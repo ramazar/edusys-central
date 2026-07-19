@@ -55,9 +55,9 @@ function TeachersPage() {
           {teachers.map((t) => (
             <TableRow key={t.id}>
               <TableCell className="font-medium">{t.full_name}</TableCell>
-              <TableCell>{t.specialty || "—"}</TableCell>
+              <TableCell>{(t.subjects || []).join("، ") || "—"}</TableCell>
               <TableCell>{t.phone || "—"}</TableCell>
-              <TableCell className="font-mono">{Number(t.monthly_salary || 0).toLocaleString("ar")}</TableCell>
+              <TableCell className="font-mono">{Number(t.salary_amount || 0).toLocaleString("ar")}</TableCell>
               <TableCell>{t.is_active ? <Badge className="bg-success text-success-foreground">نشط</Badge> : <Badge variant="destructive">موقوف</Badge>}</TableCell>
               <TableCell>{canManage && <Button size="sm" variant="outline" onClick={() => setPayOpen(t.id)}><DollarSign className="ml-1 h-4 w-4" /> صرف راتب</Button>}</TableCell>
             </TableRow>
@@ -73,14 +73,14 @@ function TeachersPage() {
 
 function TeacherDialog({ open, onOpenChange, onSaved }: { open: boolean; onOpenChange: (v: boolean) => void; onSaved: () => void }) {
   const { user } = useAuthSession();
-  const [form, setForm] = useState({ full_name: "", specialty: "", phone: "", email: "", monthly_salary: 0 });
+  const [form, setForm] = useState({ full_name: "", specialty: "", phone: "", email: "", salary_amount: 0 });
   const save = async () => {
     if (!form.full_name) return toast.error("الاسم مطلوب");
     const { data, error } = await supabase.from("teachers").insert(form).select().single();
     if (error) return toast.error(error.message);
     await logAudit(user, "create", "teachers", data.id, null, data);
     toast.success("تم إضافة المعلم"); onSaved(); onOpenChange(false);
-    setForm({ full_name: "", specialty: "", phone: "", email: "", monthly_salary: 0 });
+    setForm({ full_name: "", specialty: "", phone: "", email: "", salary_amount: 0 });
   };
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -91,7 +91,7 @@ function TeacherDialog({ open, onOpenChange, onSaved }: { open: boolean; onOpenC
           <div><Label>التخصص</Label><Input value={form.specialty} onChange={(e) => setForm({ ...form, specialty: e.target.value })} /></div>
           <div><Label>الهاتف</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
           <div><Label>البريد الإلكتروني</Label><Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-          <div><Label>الراتب الشهري</Label><Input type="number" value={form.monthly_salary} onChange={(e) => setForm({ ...form, monthly_salary: Number(e.target.value) })} /></div>
+          <div><Label>الراتب الشهري</Label><Input type="number" value={form.salary_amount} onChange={(e) => setForm({ ...form, salary_amount: Number(e.target.value) })} /></div>
         </div>
         <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)}>إلغاء</Button><Button onClick={save}>حفظ</Button></DialogFooter>
       </DialogContent>

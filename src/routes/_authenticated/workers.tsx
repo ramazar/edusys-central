@@ -73,7 +73,7 @@ function WorkersPage() {
               <TableRow key={w.id}>
                 <TableCell className="font-medium">{w.full_name}</TableCell>
                 <TableCell>{w.job_title || "—"}</TableCell>
-                <TableCell className="font-mono">{Number(w.daily_wage || 0).toLocaleString("ar")}</TableCell>
+                <TableCell className="font-mono">{Number(w.salary_amount || 0).toLocaleString("ar")}</TableCell>
                 <TableCell>
                   {attMap[w.id] === "present" && <Badge className="bg-success text-success-foreground">حاضر</Badge>}
                   {attMap[w.id] === "absent" && <Badge variant="destructive">غائب</Badge>}
@@ -100,14 +100,14 @@ function WorkersPage() {
 
 function WorkerDialog({ open, onOpenChange, onSaved }: { open: boolean; onOpenChange: (v: boolean) => void; onSaved: () => void }) {
   const { user } = useAuthSession();
-  const [form, setForm] = useState({ full_name: "", job_title: "", phone: "", daily_wage: 0 });
+  const [form, setForm] = useState({ full_name: "", job_title: "", phone: "", salary_amount: 0 });
   const save = async () => {
     if (!form.full_name) return toast.error("الاسم مطلوب");
     const { data, error } = await supabase.from("workers").insert(form).select().single();
     if (error) return toast.error(error.message);
     await logAudit(user, "create", "workers", data.id, null, data);
     toast.success("تم إضافة العامل"); onSaved(); onOpenChange(false);
-    setForm({ full_name: "", job_title: "", phone: "", daily_wage: 0 });
+    setForm({ full_name: "", job_title: "", phone: "", salary_amount: 0 });
   };
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -117,7 +117,7 @@ function WorkerDialog({ open, onOpenChange, onSaved }: { open: boolean; onOpenCh
           <div><Label>الاسم</Label><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></div>
           <div><Label>الوظيفة</Label><Input value={form.job_title} onChange={(e) => setForm({ ...form, job_title: e.target.value })} /></div>
           <div><Label>الهاتف</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
-          <div><Label>الأجر اليومي</Label><Input type="number" value={form.daily_wage} onChange={(e) => setForm({ ...form, daily_wage: Number(e.target.value) })} /></div>
+          <div><Label>الأجر اليومي</Label><Input type="number" value={form.salary_amount} onChange={(e) => setForm({ ...form, salary_amount: Number(e.target.value) })} /></div>
         </div>
         <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)}>إلغاء</Button><Button onClick={save}>حفظ</Button></DialogFooter>
       </DialogContent>
