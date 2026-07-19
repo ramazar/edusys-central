@@ -13,6 +13,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedAttendanceRouteImport } from './routes/_authenticated/attendance'
 import { Route as AuthenticatedStudentsIndexRouteImport } from './routes/_authenticated/students/index'
 import { Route as AuthenticatedStudentsIdRouteImport } from './routes/_authenticated/students/$id'
 
@@ -35,6 +36,11 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAttendanceRoute = AuthenticatedAttendanceRouteImport.update({
+  id: '/attendance',
+  path: '/attendance',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedStudentsIndexRoute =
   AuthenticatedStudentsIndexRouteImport.update({
     id: '/students/',
@@ -50,6 +56,7 @@ const AuthenticatedStudentsIdRoute = AuthenticatedStudentsIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/attendance': typeof AuthenticatedAttendanceRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/students/$id': typeof AuthenticatedStudentsIdRoute
   '/students/': typeof AuthenticatedStudentsIndexRoute
@@ -57,6 +64,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/attendance': typeof AuthenticatedAttendanceRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/students/$id': typeof AuthenticatedStudentsIdRoute
   '/students': typeof AuthenticatedStudentsIndexRoute
@@ -66,20 +74,34 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/login': typeof LoginRoute
+  '/_authenticated/attendance': typeof AuthenticatedAttendanceRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/students/$id': typeof AuthenticatedStudentsIdRoute
   '/_authenticated/students/': typeof AuthenticatedStudentsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/dashboard' | '/students/$id' | '/students/'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/attendance'
+    | '/dashboard'
+    | '/students/$id'
+    | '/students/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/dashboard' | '/students/$id' | '/students'
+  to:
+    | '/'
+    | '/login'
+    | '/attendance'
+    | '/dashboard'
+    | '/students/$id'
+    | '/students'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/login'
+    | '/_authenticated/attendance'
     | '/_authenticated/dashboard'
     | '/_authenticated/students/$id'
     | '/_authenticated/students/'
@@ -121,6 +143,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/attendance': {
+      id: '/_authenticated/attendance'
+      path: '/attendance'
+      fullPath: '/attendance'
+      preLoaderRoute: typeof AuthenticatedAttendanceRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/students/': {
       id: '/_authenticated/students/'
       path: '/students'
@@ -139,12 +168,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAttendanceRoute: typeof AuthenticatedAttendanceRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedStudentsIdRoute: typeof AuthenticatedStudentsIdRoute
   AuthenticatedStudentsIndexRoute: typeof AuthenticatedStudentsIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAttendanceRoute: AuthenticatedAttendanceRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedStudentsIdRoute: AuthenticatedStudentsIdRoute,
   AuthenticatedStudentsIndexRoute: AuthenticatedStudentsIndexRoute,
