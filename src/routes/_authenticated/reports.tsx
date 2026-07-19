@@ -22,11 +22,12 @@ function ReportsPage() {
       const students = data ?? [];
       const ids = students.map((s) => s.id);
       if (ids.length === 0) return [];
-      const { data: marks } = await supabase.from("daily_marks").select("student_id, mark").in("student_id", ids);
+      const { data: marks } = await supabase.from("daily_marks").select("student_id, score, max_score").in("student_id", ids);
       const totals: Record<string, { sum: number; count: number }> = {};
       (marks ?? []).forEach((m) => {
         const t = totals[m.student_id] || { sum: 0, count: 0 };
-        t.sum += Number(m.mark); t.count += 1;
+        const pct = Number(m.max_score) > 0 ? (Number(m.score) / Number(m.max_score)) * 100 : Number(m.score);
+        t.sum += pct; t.count += 1;
         totals[m.student_id] = t;
       });
       return students.map((s) => {
