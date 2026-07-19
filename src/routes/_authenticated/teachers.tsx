@@ -76,7 +76,9 @@ function TeacherDialog({ open, onOpenChange, onSaved }: { open: boolean; onOpenC
   const [form, setForm] = useState({ full_name: "", specialty: "", phone: "", email: "", salary_amount: 0 });
   const save = async () => {
     if (!form.full_name) return toast.error("الاسم مطلوب");
-    const { data, error } = await supabase.from("teachers").insert(form).select().single();
+    const { specialty, ...rest } = form;
+    const payload = { ...rest, subjects: specialty ? [specialty] : [] };
+    const { data, error } = await supabase.from("teachers").insert(payload).select().single();
     if (error) return toast.error(error.message);
     await logAudit(user, "create", "teachers", data.id, null, data);
     toast.success("تم إضافة المعلم"); onSaved(); onOpenChange(false);
