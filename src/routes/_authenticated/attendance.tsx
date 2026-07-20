@@ -189,10 +189,19 @@ function AttendancePage() {
       </Card>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <CardTitle>قائمة الطلاب ({students.length})</CardTitle>
-          <Button size="lg" onClick={saveAll} disabled={students.length === 0}>حفظ الكل</Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={exportSectionPDF} disabled={students.length === 0}>
+              <Printer className="ml-2 h-4 w-4" /> PDF للشعبة
+            </Button>
+            <Button variant="outline" onClick={exportGradePDF} disabled={sections.length === 0}>
+              <FileText className="ml-2 h-4 w-4" /> PDF لكل الشُعب في الصف
+            </Button>
+            <Button size="lg" onClick={saveAll} disabled={students.length === 0}>حفظ الكل</Button>
+          </div>
         </CardHeader>
+
         <CardContent className="space-y-2">
           {students.length === 0 && <div className="py-6 text-center text-muted-foreground">لا يوجد طلاب في هذه الشعبة</div>}
           {students.map((s) => {
