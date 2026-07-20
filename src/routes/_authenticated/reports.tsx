@@ -7,22 +7,57 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Download } from "lucide-react";
+import { Trophy, Download, FileText, Printer } from "lucide-react";
 import * as XLSX from "xlsx";
+import { toast } from "sonner";
+import { printReport } from "@/lib/print-pdf";
 
 export const Route = createFileRoute("/_authenticated/reports")({ component: ReportsPage });
 
+type Period = "weekly" | "all";
+
+function periodStart(period: Period): string | null {
+  if (period === "all") return null;
+  const d = new Date();
+  d.setDate(d.getDate() - 6); // last 7 days incl. today
+  return d.toISOString().slice(0, 10);
+}
+
 function ReportsPage() {
   const [gradeId, setGradeId] = useState<number>(1);
+  const [period, setPeriod] = useState<Period>("weekly");
+
+  const { data: sections = [] } = useQuery({
+    queryKey: ["sections-report", gradeId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("sections")
+        .select("id, section_number")
+        .eq("grade_id", gradeId)
+        .eq("is_active", true)
+        .order("section_number");
+      return data ?? [];
+    },
+  });
 
   const { data: ranking = [] } = useQuery({
-    queryKey: ["ranking", gradeId],
+    queryKey: ["ranking", gradeId, period],
     queryFn: async () => {
-      const { data } = await supabase.from("students").select("id, full_name, student_number, grade_id").eq("grade_id", gradeId).eq("is_active", true);
-      const students = data ?? [];
+      const { data } = await supabase
+        .from("students")
+        .select("id, full_name, student_number, grade_id, section_id, sections(section_number)")
+        .eq("grade_id", gradeId)
+        .eq("is_active", true);
+      const students = (data ?? []) as Array<{
+        id: string; full_name: string; student_number: string; grade_id: number;
+        section_id: string | null; sections: { section_number: number } | null;
+      }>;
       const ids = students.map((s) => s.id);
       if (ids.length === 0) return [];
-      const { data: marks } = await supabase.from("daily_marks").select("student_id, score, max_score").in("student_id", ids);
+      const from = periodStart(period);
+      let marksQuery = supabase.from("daily_marks").select("student_id, score, max_score, date").in("student_id", ids);
+      if (from) marksQuery = marksQuery.gte("date", from);
+      const { data: marks } = await marksQuery;
       const totals: Record<string, { sum: number; count: number }> = {};
       (marks ?? []).forEach((m) => {
         const t = totals[m.student_id] || { sum: 0, count: 0 };
@@ -30,67 +65,207 @@ function ReportsPage() {
         t.sum += pct; t.count += 1;
         totals[m.student_id] = t;
       });
-      return students.map((s) => {
-        const t = totals[s.id] || { sum: 0, count: 0 };
-        return { ...s, avg: t.count > 0 ? t.sum / t.count : 0, count: t.count };
-      }).sort((a, b) => b.avg - a.avg);
+      return students
+        .map((s) => {
+          const t = totals[s.id] || { sum: 0, count: 0 };
+          return { ...s, avg: t.count > 0 ? t.sum / t.count : 0, count: t.count };
+        })
+        .sort((a, b) => b.avg - a.avg);
     },
   });
 
+  const periodLabel = period === "weekly" ? "الأسبوع الحالي (آخر 7 أيام)" : "كل الفترات";
+
   const exportXlsx = () => {
-    const ws = XLSX.utils.json_to_sheet(ranking.map((r, i) => ({
-      "الترتيب": i + 1, "رقم الطالب": r.student_number, "الاسم": r.full_name, "الصف": r.grade_id, "المعدل": r.avg.toFixed(2), "عدد الدرجات": r.count,
-    })));
+    const ws = XLSX.utils.json_to_sheet(
+      ranking.map((r, i) => ({
+        "الترتيب": i + 1,
+        "رقم الطالب": r.student_number,
+        "الاسم": r.full_name,
+        "الصف": r.grade_id,
+        "الشعبة": r.sections?.section_number ?? "-",
+        "المعدل": r.avg.toFixed(2),
+        "عدد الدرجات": r.count,
+      })),
+    );
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "الترتيب");
     XLSX.writeFile(wb, `ranking-grade-${gradeId}.xlsx`);
+  };
+
+  const exportGradePDF = () => {
+    if (ranking.length === 0) return toast.error("لا توجد بيانات للتصدير");
+    const rows = ranking.map((r, i) => [
+      i + 1,
+      r.full_name,
+      r.student_number,
+      `الشعبة ${r.sections?.section_number ?? "-"}`,
+      r.avg.toFixed(2),
+      r.count,
+    ]);
+    printReport({
+      title: `ترتيب الصف ${gradeId} — ${periodLabel}`,
+      subtitle: "ترتيب الطلاب حسب المعدل العام",
+      meta: [
+        { label: "الصف", value: String(gradeId) },
+        { label: "الفترة", value: periodLabel },
+        { label: "عدد الطلاب", value: String(ranking.length) },
+      ],
+      columns: [
+        { header: "الترتيب", width: "10%", align: "center" },
+        { header: "اسم الطالب", width: "34%" },
+        { header: "رقم الطالب", width: "18%" },
+        { header: "الشعبة", width: "14%" },
+        { header: "المعدل %", width: "12%", align: "center" },
+        { header: "عدد الدرجات", width: "12%", align: "center" },
+      ],
+      rows,
+    });
+  };
+
+  const exportSectionPDF = (sectionId: string, sectionNumber: number) => {
+    const filtered = ranking.filter((r) => r.section_id === sectionId);
+    if (filtered.length === 0) return toast.error("لا يوجد طلاب في هذه الشعبة");
+    // Re-rank within the section
+    const rows = filtered.map((r, i) => [
+      i + 1,
+      r.full_name,
+      r.student_number,
+      r.avg.toFixed(2),
+      r.count,
+    ]);
+    printReport({
+      title: `ترتيب الصف ${gradeId} — الشعبة ${sectionNumber}`,
+      subtitle: periodLabel,
+      meta: [
+        { label: "الصف", value: String(gradeId) },
+        { label: "الشعبة", value: String(sectionNumber) },
+        { label: "الفترة", value: periodLabel },
+        { label: "عدد الطلاب", value: String(filtered.length) },
+      ],
+      columns: [
+        { header: "الترتيب", width: "10%", align: "center" },
+        { header: "اسم الطالب", width: "40%" },
+        { header: "رقم الطالب", width: "20%" },
+        { header: "المعدل %", width: "15%", align: "center" },
+        { header: "عدد الدرجات", width: "15%", align: "center" },
+      ],
+      rows,
+    });
   };
 
   return (
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-bold">التقارير والترتيب</h1>
-        <p className="text-sm text-muted-foreground">ترتيب الطلاب حسب المعدل العام</p>
+        <p className="text-sm text-muted-foreground">ترتيب الطلاب حسب المعدل العام مع تصدير PDF للصف وكل شعبة</p>
       </div>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Label>الصف:</Label>
-            <select className="h-9 rounded-md border bg-background px-3 text-sm" value={gradeId} onChange={(e) => setGradeId(Number(e.target.value))}>
-              {Array.from({ length: 12 }, (_, i) => i + 1).map((g) => <option key={g} value={g}>{`الصف ${g}`}</option>)}
-            </select>
+        <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Label>الصف:</Label>
+              <select
+                className="h-9 rounded-md border bg-background px-3 text-sm"
+                value={gradeId}
+                onChange={(e) => setGradeId(Number(e.target.value))}
+              >
+                {Array.from({ length: 12 }, (_, i) => i + 1).map((g) => (
+                  <option key={g} value={g}>{`الصف ${g}`}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label>الفترة:</Label>
+              <select
+                className="h-9 rounded-md border bg-background px-3 text-sm"
+                value={period}
+                onChange={(e) => setPeriod(e.target.value as Period)}
+              >
+                <option value="weekly">أسبوعي (آخر 7 أيام)</option>
+                <option value="all">كل الفترات</option>
+              </select>
+            </div>
           </div>
-          <Button variant="outline" onClick={exportXlsx} disabled={ranking.length === 0}>
-            <Download className="ml-2 h-4 w-4" /> تصدير Excel
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={exportXlsx} disabled={ranking.length === 0}>
+              <Download className="ml-2 h-4 w-4" /> Excel
+            </Button>
+            <Button onClick={exportGradePDF} disabled={ranking.length === 0}>
+              <FileText className="ml-2 h-4 w-4" /> PDF للصف بأكمله
+            </Button>
+          </div>
         </CardHeader>
-        <CardContent className="p-0"><Table>
-          <TableHeader><TableRow>
-            <TableHead className="text-right">الترتيب</TableHead>
-            <TableHead className="text-right">الطالب</TableHead>
-            <TableHead className="text-right">رقم الطالب</TableHead>
-            <TableHead className="text-right">المعدل</TableHead>
-            <TableHead className="text-right">عدد الدرجات</TableHead>
-          </TableRow></TableHeader>
-          <TableBody>
-            {ranking.length === 0 && <TableRow><TableCell colSpan={5} className="py-8 text-center text-muted-foreground">لا توجد بيانات</TableCell></TableRow>}
-            {ranking.map((r, i) => (
-              <TableRow key={r.id}>
-                <TableCell>
-                  {i === 0 && <Badge className="bg-warning text-warning-foreground"><Trophy className="ml-1 h-3 w-3" /> 1</Badge>}
-                  {i === 1 && <Badge className="bg-muted"><Trophy className="ml-1 h-3 w-3" /> 2</Badge>}
-                  {i === 2 && <Badge className="bg-muted"><Trophy className="ml-1 h-3 w-3" /> 3</Badge>}
-                  {i > 2 && <span className="font-mono">{i + 1}</span>}
-                </TableCell>
-                <TableCell className="font-medium">{r.full_name}</TableCell>
-                <TableCell className="font-mono">{r.student_number}</TableCell>
-                <TableCell className="font-mono">{r.avg.toFixed(2)}</TableCell>
-                <TableCell>{r.count}</TableCell>
+
+        {sections.length > 0 && (
+          <div className="border-t px-6 py-3">
+            <div className="mb-2 text-xs font-semibold text-muted-foreground">تصدير PDF لكل شعبة:</div>
+            <div className="flex flex-wrap gap-2">
+              {sections.map((s) => (
+                <Button
+                  key={s.id}
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => exportSectionPDF(s.id, s.section_number)}
+                >
+                  <Printer className="ml-1 h-3.5 w-3.5" /> الشعبة {s.section_number}
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-right">الترتيب</TableHead>
+                <TableHead className="text-right">الطالب</TableHead>
+                <TableHead className="text-right">رقم الطالب</TableHead>
+                <TableHead className="text-right">الشعبة</TableHead>
+                <TableHead className="text-right">المعدل</TableHead>
+                <TableHead className="text-right">عدد الدرجات</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table></CardContent>
+            </TableHeader>
+            <TableBody>
+              {ranking.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                    لا توجد بيانات
+                  </TableCell>
+                </TableRow>
+              )}
+              {ranking.map((r, i) => (
+                <TableRow key={r.id}>
+                  <TableCell>
+                    {i === 0 && (
+                      <Badge className="bg-warning text-warning-foreground">
+                        <Trophy className="ml-1 h-3 w-3" /> 1
+                      </Badge>
+                    )}
+                    {i === 1 && (
+                      <Badge className="bg-muted">
+                        <Trophy className="ml-1 h-3 w-3" /> 2
+                      </Badge>
+                    )}
+                    {i === 2 && (
+                      <Badge className="bg-muted">
+                        <Trophy className="ml-1 h-3 w-3" /> 3
+                      </Badge>
+                    )}
+                    {i > 2 && <span className="font-mono">{i + 1}</span>}
+                  </TableCell>
+                  <TableCell className="font-medium">{r.full_name}</TableCell>
+                  <TableCell className="font-mono">{r.student_number}</TableCell>
+                  <TableCell>{r.sections?.section_number ?? "-"}</TableCell>
+                  <TableCell className="font-mono">{r.avg.toFixed(2)}</TableCell>
+                  <TableCell>{r.count}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
       </Card>
     </div>
   );
