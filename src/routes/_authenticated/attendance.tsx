@@ -68,6 +68,93 @@ function AttendancePage() {
     refetch();
   };
 
+  const statusLabel = (s: Status) => (s === "present" ? "حاضر" : s === "late" ? "متأخر" : "غائب");
+
+  const exportSectionPDF = () => {
+    if (students.length === 0) return toast.error("لا يوجد طلاب في هذه الشعبة");
+    const section = sections.find((x) => x.id === sectionId);
+    const counts = { present: 0, late: 0, absent: 0 } as Record<Status, number>;
+    const rows = students.map((s, i) => {
+      const st = (attMap[s.id] || "present") as Status;
+      counts[st]++;
+      return [i + 1, s.full_name, s.student_number, statusLabel(st)];
+    });
+    printReport({
+      title: `كشف الحضور — الصف ${gradeId} / الشعبة ${section?.section_number ?? "-"}`,
+      subtitle: `التاريخ: ${date}`,
+      meta: [
+        { label: "الصف", value: String(gradeId) },
+        { label: "الشعبة", value: String(section?.section_number ?? "-") },
+        { label: "التاريخ", value: date },
+        { label: "إجمالي الطلاب", value: String(students.length) },
+        { label: "حاضر", value: String(counts.present) },
+        { label: "متأخر", value: String(counts.late) },
+        { label: "غائب", value: String(counts.absent) },
+      ],
+      columns: [
+        { header: "#", width: "8%", align: "center" },
+        { header: "اسم الطالب", width: "50%" },
+        { header: "رقم الطالب", width: "22%" },
+        { header: "الحالة", width: "20%", align: "center" },
+      ],
+      rows,
+    });
+  };
+
+  const exportGradePDF = async () => {
+    if (sections.length === 0) return toast.error("لا توجد شُعب في هذا الصف");
+    const secIds = sections.map((s) => s.id);
+    const { data: allStudents } = await supabase
+      .from("students")
+      .select("id, full_name, student_number, section_id")
+      .in("section_id", secIds)
+      .eq("is_active", true)
+      .order("full_name");
+    const list = allStudents ?? [];
+    if (list.length === 0) return toast.error("لا يوجد طلاب في هذا الصف");
+    const { data: att } = await supabase
+      .from("attendance")
+      .select("student_id, status")
+      .eq("date", date)
+      .in("student_id", list.map((s) => s.id));
+    const map: Record<string, Status> = {};
+    (att ?? []).forEach((a) => (map[a.student_id] = a.status as Status));
+
+    const rows: (string | number)[][] = [];
+    let idx = 0;
+    const counts = { present: 0, late: 0, absent: 0 } as Record<Status, number>;
+    for (const sec of sections) {
+      const inSec = list.filter((x) => x.section_id === sec.id);
+      inSec.forEach((s) => {
+        const st = (map[s.id] || "present") as Status;
+        counts[st]++;
+        rows.push([++idx, s.full_name, s.student_number, `الشعبة ${sec.section_number}`, statusLabel(st)]);
+      });
+    }
+    printReport({
+      title: `كشف الحضور — الصف ${gradeId} (جميع الشُعب)`,
+      subtitle: `التاريخ: ${date}`,
+      meta: [
+        { label: "الصف", value: String(gradeId) },
+        { label: "عدد الشُعب", value: String(sections.length) },
+        { label: "التاريخ", value: date },
+        { label: "إجمالي الطلاب", value: String(list.length) },
+        { label: "حاضر", value: String(counts.present) },
+        { label: "متأخر", value: String(counts.late) },
+        { label: "غائب", value: String(counts.absent) },
+      ],
+      columns: [
+        { header: "#", width: "7%", align: "center" },
+        { header: "اسم الطالب", width: "38%" },
+        { header: "رقم الطالب", width: "20%" },
+        { header: "الشعبة", width: "17%", align: "center" },
+        { header: "الحالة", width: "18%", align: "center" },
+      ],
+      rows,
+    });
+  };
+
+
   return (
     <div className="space-y-4">
       <div>
