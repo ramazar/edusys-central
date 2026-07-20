@@ -69,9 +69,10 @@ export function AppSidebar({ roles }: { roles: AppRole[] }) {
                   <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton asChild isActive={active} tooltip={item.title}>
                       <Link to={item.url} className="flex items-center gap-3">
-                        <item.icon className="h-4 w-4 shrink-0" />
+                        <item.icon className="!h-5 !w-5 shrink-0" />
                         <span>{item.title}</span>
                       </Link>
+
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
