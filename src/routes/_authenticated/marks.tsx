@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Trash2, Plus, StickyNote, FileDown, MessageSquarePlus } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthSession, useMyRoles, hasAny, logAudit } from "@/hooks/useAuth";
-import { printReport } from "@/lib/print-pdf";
+
 
 export const Route = createFileRoute("/_authenticated/marks")({ component: MarksPage });
 
