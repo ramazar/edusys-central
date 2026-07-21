@@ -25,6 +25,7 @@ type Teacher = {
   hire_date: string;
   is_active: boolean;
   attendance_code: string | null;
+  due_override: number | null;
 };
 
 type AttendanceRow = {
