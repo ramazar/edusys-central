@@ -138,10 +138,10 @@ function StudentDetail() {
               <TableHead className="text-right">الطريقة</TableHead>
               <TableHead className="text-right">المرجع</TableHead>
               <TableHead className="text-right">ملاحظات</TableHead>
-              {canFinance && <TableHead className="text-right">إجراءات</TableHead>}
+              <TableHead className="text-right">إجراءات</TableHead>
             </TableRow></TableHeader>
             <TableBody>
-              {payments.length === 0 && <TableRow><TableCell colSpan={canFinance ? 6 : 5} className="py-6 text-center text-muted-foreground">لا مدفوعات</TableCell></TableRow>}
+              {payments.length === 0 && <TableRow><TableCell colSpan={6} className="py-6 text-center text-muted-foreground">لا مدفوعات</TableCell></TableRow>}
               {payments.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell>{p.payment_date}</TableCell>
