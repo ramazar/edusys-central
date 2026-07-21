@@ -161,16 +161,30 @@ function MarksPage() {
           <p className="text-sm text-muted-foreground">إضافة العلامات، الملخص الأسبوعي، وملاحظات الطلاب</p>
         </div>
         {canEdit && (
-          <Dialog open={addOpen} onOpenChange={setAddOpen}>
-            <DialogTrigger asChild>
-              <Button><Plus className="h-4 w-4 ml-1" /> إضافة علامة</Button>
-            </DialogTrigger>
-            <AddMarkDialog
-              students={students}
-              onClose={() => setAddOpen(false)}
-              onSaved={() => qc.invalidateQueries({ queryKey: ["marks"] })}
-            />
-          </Dialog>
+          <div className="flex gap-2 flex-wrap">
+            <Dialog open={noteOpen} onOpenChange={setNoteOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <MessageSquarePlus className="h-4 w-4 ml-1" /> إضافة ملاحظة
+                </Button>
+              </DialogTrigger>
+              <AddNoteDialog
+                students={students}
+                onClose={() => setNoteOpen(false)}
+                onSaved={() => qc.invalidateQueries({ queryKey: ["marks"] })}
+              />
+            </Dialog>
+            <Dialog open={addOpen} onOpenChange={setAddOpen}>
+              <DialogTrigger asChild>
+                <Button><Plus className="h-4 w-4 ml-1" /> إضافة علامة</Button>
+              </DialogTrigger>
+              <AddMarkDialog
+                students={students}
+                onClose={() => setAddOpen(false)}
+                onSaved={() => qc.invalidateQueries({ queryKey: ["marks"] })}
+              />
+            </Dialog>
+          </div>
         )}
       </div>
 
