@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Plus, StickyNote, FileDown } from "lucide-react";
+import { Trash2, Plus, StickyNote, FileDown, MessageSquarePlus } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthSession, useMyRoles, hasAny, logAudit } from "@/hooks/useAuth";
 import { printReport } from "@/lib/print-pdf";
@@ -48,6 +48,7 @@ function MarksPage() {
   const [gradeId, setGradeId] = useState<number>(1);
   const [sectionId, setSectionId] = useState<string>("all");
   const [addOpen, setAddOpen] = useState(false);
+  const [noteOpen, setNoteOpen] = useState(false);
 
   const { data: sections = [] } = useQuery({
     queryKey: ["marks-sections", gradeId],
@@ -99,6 +100,7 @@ function MarksPage() {
     const map = new Map<string, { student: Student; total: number; max: number; count: number; subjects: Set<string> }>();
     for (const s of students) map.set(s.id, { student: s, total: 0, max: 0, count: 0, subjects: new Set() });
     for (const m of weeklyMarks) {
+      if (Number(m.max_score) <= 0) continue;
       const row = map.get(m.student_id);
       if (!row) continue;
       row.total += Number(m.score);
@@ -159,16 +161,30 @@ function MarksPage() {
           <p className="text-sm text-muted-foreground">إضافة العلامات، الملخص الأسبوعي، وملاحظات الطلاب</p>
         </div>
         {canEdit && (
-          <Dialog open={addOpen} onOpenChange={setAddOpen}>
-            <DialogTrigger asChild>
-              <Button><Plus className="h-4 w-4 ml-1" /> إضافة علامة</Button>
-            </DialogTrigger>
-            <AddMarkDialog
-              students={students}
-              onClose={() => setAddOpen(false)}
-              onSaved={() => qc.invalidateQueries({ queryKey: ["marks"] })}
-            />
-          </Dialog>
+          <div className="flex gap-2 flex-wrap">
+            <Dialog open={noteOpen} onOpenChange={setNoteOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <MessageSquarePlus className="h-4 w-4 ml-1" /> إضافة ملاحظة
+                </Button>
+              </DialogTrigger>
+              <AddNoteDialog
+                students={students}
+                onClose={() => setNoteOpen(false)}
+                onSaved={() => qc.invalidateQueries({ queryKey: ["marks"] })}
+              />
+            </Dialog>
+            <Dialog open={addOpen} onOpenChange={setAddOpen}>
+              <DialogTrigger asChild>
+                <Button><Plus className="h-4 w-4 ml-1" /> إضافة علامة</Button>
+              </DialogTrigger>
+              <AddMarkDialog
+                students={students}
+                onClose={() => setAddOpen(false)}
+                onSaved={() => qc.invalidateQueries({ queryKey: ["marks"] })}
+              />
+            </Dialog>
+          </div>
         )}
       </div>
 
@@ -283,10 +299,10 @@ function MarksPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {marks.length === 0 && (
+              {marks.filter((m) => Number(m.max_score) > 0).length === 0 && (
                 <TableRow><TableCell colSpan={canEdit ? 7 : 6} className="text-center text-muted-foreground py-6">لا توجد علامات</TableCell></TableRow>
               )}
-              {marks.map((m) => {
+              {marks.filter((m) => Number(m.max_score) > 0).map((m) => {
                 const st = students.find((s) => s.id === m.student_id);
                 const pct = Number(m.max_score) > 0 ? (Number(m.score) / Number(m.max_score)) * 100 : 0;
                 return (
@@ -386,6 +402,83 @@ function AddMarkDialog({
         <div>
           <Label>ملاحظة (اختياري)</Label>
           <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="ملاحظة عن الطالب" className="text-right" />
+        </div>
+      </div>
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose}>إلغاء</Button>
+        <Button onClick={save} disabled={saving}>حفظ</Button>
+      </DialogFooter>
+    </DialogContent>
+  );
+}
+
+function AddNoteDialog({
+  students, onClose, onSaved,
+}: { students: Student[]; onClose: () => void; onSaved: () => void }) {
+  const { user } = useAuthSession();
+  const [studentId, setStudentId] = useState<string>("");
+  const [category, setCategory] = useState("سلوك");
+  const [notes, setNotes] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    if (!studentId || !notes.trim()) {
+      return toast.error("يرجى اختيار الطالب وكتابة الملاحظة");
+    }
+    setSaving(true);
+    const payload = {
+      student_id: studentId,
+      subject: category.trim() || "ملاحظة",
+      score: 0,
+      max_score: 0,
+      notes: notes.trim(),
+      date,
+      recorded_by: user?.id ?? null,
+    };
+    const { data, error } = await supabase.from("daily_marks").insert(payload).select().single();
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    await logAudit(user, "create", "daily_marks", data?.id, null, payload);
+    toast.success("تمت إضافة الملاحظة");
+    onSaved();
+    onClose();
+  }
+
+  return (
+    <DialogContent>
+      <DialogHeader><DialogTitle>إضافة ملاحظة</DialogTitle></DialogHeader>
+      <div className="space-y-3">
+        <div>
+          <Label>الطالب</Label>
+          <Select value={studentId} onValueChange={setStudentId}>
+            <SelectTrigger><SelectValue placeholder="اختر طالباً" /></SelectTrigger>
+            <SelectContent>
+              {students.map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.full_name} — {s.student_number}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>نوع الملاحظة</Label>
+          <Select value={category} onValueChange={setCategory}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="سلوك">سلوك</SelectItem>
+              <SelectItem value="مشاركة">مشاركة</SelectItem>
+              <SelectItem value="واجب">واجب</SelectItem>
+              <SelectItem value="ملاحظة">ملاحظة عامة</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>التاريخ</Label>
+          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} dir="ltr" />
+        </div>
+        <div>
+          <Label>الملاحظة</Label>
+          <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="اكتب الملاحظة حول سلوك الطالب أو أدائه" className="text-right" rows={4} />
         </div>
       </div>
       <DialogFooter>
