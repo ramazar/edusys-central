@@ -6,14 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowRight, Printer, Plus, Trash2 } from "lucide-react";
+import { ArrowRight, Printer, Plus, Trash2, Receipt } from "lucide-react";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useAuthSession, useMyRoles, hasAny, logAudit } from "@/hooks/useAuth";
-import { generateInvoicePDF } from "@/lib/invoice";
+import { generateInvoicePDF, generateReceiptPDF } from "@/lib/invoice";
 
 export const Route = createFileRoute("/_authenticated/students/$id")({
   component: StudentDetail,
@@ -138,10 +138,10 @@ function StudentDetail() {
               <TableHead className="text-right">الطريقة</TableHead>
               <TableHead className="text-right">المرجع</TableHead>
               <TableHead className="text-right">ملاحظات</TableHead>
-              {canFinance && <TableHead className="text-right">إجراءات</TableHead>}
+              <TableHead className="text-right">إجراءات</TableHead>
             </TableRow></TableHeader>
             <TableBody>
-              {payments.length === 0 && <TableRow><TableCell colSpan={canFinance ? 6 : 5} className="py-6 text-center text-muted-foreground">لا مدفوعات</TableCell></TableRow>}
+              {payments.length === 0 && <TableRow><TableCell colSpan={6} className="py-6 text-center text-muted-foreground">لا مدفوعات</TableCell></TableRow>}
               {payments.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell>{p.payment_date}</TableCell>
@@ -149,9 +149,12 @@ function StudentDetail() {
                   <TableCell>{p.method || "—"}</TableCell>
                   <TableCell>{p.reference || "—"}</TableCell>
                   <TableCell>{p.notes || "—"}</TableCell>
-                  {canFinance && (
-                    <TableCell>
-                      <Button variant="ghost" size="icon" onClick={async () => {
+                  <TableCell className="flex gap-1">
+                    <Button variant="ghost" size="icon" title="طباعة إيصال" onClick={() => generateReceiptPDF(student, p, { totalDue, totalPaid })}>
+                      <Receipt className="h-4 w-4 text-primary" />
+                    </Button>
+                    {canFinance && (
+                      <Button variant="ghost" size="icon" title="حذف" onClick={async () => {
                         if (!confirm("حذف هذه الدفعة؟")) return;
                         const { error } = await supabase.from("student_payments").delete().eq("id", p.id);
                         if (error) return toast.error(error.message);
@@ -159,8 +162,8 @@ function StudentDetail() {
                         toast.success("تم الحذف");
                         qc.invalidateQueries({ queryKey: ["payments", id] });
                       }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                    </TableCell>
-                  )}
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
