@@ -149,9 +149,12 @@ function StudentDetail() {
                   <TableCell>{p.method || "—"}</TableCell>
                   <TableCell>{p.reference || "—"}</TableCell>
                   <TableCell>{p.notes || "—"}</TableCell>
-                  {canFinance && (
-                    <TableCell>
-                      <Button variant="ghost" size="icon" onClick={async () => {
+                  <TableCell className="flex gap-1">
+                    <Button variant="ghost" size="icon" title="طباعة إيصال" onClick={() => generateReceiptPDF(student, p, { totalDue, totalPaid })}>
+                      <Receipt className="h-4 w-4 text-primary" />
+                    </Button>
+                    {canFinance && (
+                      <Button variant="ghost" size="icon" title="حذف" onClick={async () => {
                         if (!confirm("حذف هذه الدفعة؟")) return;
                         const { error } = await supabase.from("student_payments").delete().eq("id", p.id);
                         if (error) return toast.error(error.message);
@@ -159,8 +162,8 @@ function StudentDetail() {
                         toast.success("تم الحذف");
                         qc.invalidateQueries({ queryKey: ["payments", id] });
                       }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                    </TableCell>
-                  )}
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
