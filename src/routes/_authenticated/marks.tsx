@@ -48,6 +48,7 @@ function MarksPage() {
   const [gradeId, setGradeId] = useState<number>(1);
   const [sectionId, setSectionId] = useState<string>("all");
   const [addOpen, setAddOpen] = useState(false);
+  const [noteOpen, setNoteOpen] = useState(false);
 
   const { data: sections = [] } = useQuery({
     queryKey: ["marks-sections", gradeId],
