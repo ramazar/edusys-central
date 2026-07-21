@@ -143,7 +143,10 @@ function MarksPage() {
     printReport({
       title: "الملخص الأسبوعي للعلامات",
       subtitle: `الصف ${gradeId} — من ${from} إلى ${new Date().toISOString().slice(0, 10)}`,
-      headers: ["#", "الطالب", "الرقم", "المجموع", "النسبة", "عدد العلامات", "المواد"],
+      columns: [
+        { header: "#" }, { header: "الطالب" }, { header: "الرقم" },
+        { header: "المجموع" }, { header: "النسبة" }, { header: "عدد العلامات" }, { header: "المواد" },
+      ],
       rows,
     });
   }
