@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, DollarSign, History, Trash2, ScanLine, LogIn, LogOut } from "lucide-react";
+import { Plus, DollarSign, History, Trash2, ScanLine, LogIn, LogOut, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthSession, useMyRoles, hasAny, logAudit } from "@/hooks/useAuth";
 
@@ -25,6 +25,7 @@ type Teacher = {
   hire_date: string;
   is_active: boolean;
   attendance_code: string | null;
+  due_override: number | null;
 };
 
 type AttendanceRow = {
@@ -59,6 +60,7 @@ function TeachersPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [payOpen, setPayOpen] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState<Teacher | null>(null);
+  const [editOpen, setEditOpen] = useState<Teacher | null>(null);
   const [code, setCode] = useState("");
   const codeRef = useRef<HTMLInputElement>(null);
 
@@ -94,7 +96,7 @@ function TeachersPage() {
   todayAtt.forEach((r) => (attByTeacher[r.teacher_id] = r));
 
   const totalPaid = Object.values(paymentsByTeacher).reduce((s, v) => s + v, 0);
-  const totalDue = teachers.reduce((s, t) => s + Number(t.salary_amount) * monthsBetween(t.hire_date), 0);
+  const totalDue = teachers.reduce((s, t) => s + (t.due_override != null ? Number(t.due_override) : Number(t.salary_amount) * monthsBetween(t.hire_date)), 0);
   const totalRemaining = totalDue - totalPaid;
 
   const submitCode = async (raw: string) => {
@@ -191,7 +193,7 @@ function TeachersPage() {
           {teachers.length === 0 && <TableRow><TableCell colSpan={10} className="py-8 text-center text-muted-foreground">لا يوجد معلمون</TableCell></TableRow>}
           {teachers.map((t) => {
             const paid = paymentsByTeacher[t.id] ?? 0;
-            const due = Number(t.salary_amount) * monthsBetween(t.hire_date);
+            const due = t.due_override != null ? Number(t.due_override) : Number(t.salary_amount) * monthsBetween(t.hire_date);
             const remaining = due - paid;
             const att = attByTeacher[t.id];
             return (
@@ -210,12 +212,16 @@ function TeachersPage() {
                     : <span className="text-muted-foreground">—</span>}
                 </TableCell>
                 <TableCell className="font-mono">{Number(t.salary_amount || 0).toLocaleString("ar")}</TableCell>
-                <TableCell className="font-mono">{due.toLocaleString("ar")}</TableCell>
+                <TableCell className="font-mono">
+                  <span className={t.due_override != null ? "text-primary font-semibold" : ""}>{due.toLocaleString("ar")}</span>
+                  {t.due_override != null && <span className="ms-1 text-[10px] text-muted-foreground">(مخصص)</span>}
+                </TableCell>
                 <TableCell className="font-mono text-success">{paid.toLocaleString("ar")}</TableCell>
                 <TableCell className={`font-mono ${remaining > 0 ? "text-destructive" : "text-success"}`}>{remaining.toLocaleString("ar")}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
                     <Button size="sm" variant="outline" onClick={() => setHistoryOpen(t)}><History className="ml-1 h-4 w-4" /> السجل</Button>
+                    {canManage && <Button size="sm" variant="outline" onClick={() => setEditOpen(t)}><Pencil className="ml-1 h-4 w-4" /> تعديل</Button>}
                     {canManage && <Button size="sm" onClick={() => setPayOpen(t.id)}><DollarSign className="ml-1 h-4 w-4" /> صرف</Button>}
                     {canManage && (
                       <Button size="sm" variant="destructive" onClick={async () => {
@@ -240,6 +246,7 @@ function TeachersPage() {
       <TeacherDialog open={dialogOpen} onOpenChange={setDialogOpen} onSaved={() => qc.invalidateQueries({ queryKey: ["teachers"] })} />
       {payOpen && <SalaryDialog teacherId={payOpen} onClose={() => setPayOpen(null)} onSaved={() => { qc.invalidateQueries({ queryKey: ["teachers"] }); qc.invalidateQueries({ queryKey: ["teacher_payments_all"] }); }} />}
       {historyOpen && <HistoryDialog teacher={historyOpen} canManage={canManage} onClose={() => setHistoryOpen(null)} onChanged={() => qc.invalidateQueries({ queryKey: ["teacher_payments_all"] })} />}
+      {editOpen && <EditTeacherDialog teacher={editOpen} onClose={() => setEditOpen(null)} onSaved={() => qc.invalidateQueries({ queryKey: ["teachers"] })} />}
     </div>
   );
 }
@@ -368,6 +375,56 @@ function HistoryDialog({ teacher, canManage, onClose, onChanged }: { teacher: Te
           </Table>
         </div>
         <DialogFooter><Button variant="outline" onClick={onClose}>إغلاق</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EditTeacherDialog({ teacher, onClose, onSaved }: { teacher: Teacher; onClose: () => void; onSaved: () => void }) {
+  const { user } = useAuthSession();
+  const autoDue = Number(teacher.salary_amount) * monthsBetween(teacher.hire_date);
+  const [salary, setSalary] = useState(String(teacher.salary_amount ?? 0));
+  const [dueOverride, setDueOverride] = useState<string>(teacher.due_override != null ? String(teacher.due_override) : "");
+  const save = async () => {
+    const payload: { salary_amount: number; due_override: number | null } = {
+      salary_amount: Number(salary) || 0,
+      due_override: dueOverride.trim() === "" ? null : Number(dueOverride),
+    };
+    const { error } = await supabase.from("teachers").update(payload as never).eq("id", teacher.id);
+    if (error) return toast.error(error.message);
+    await logAudit(user, "update", "teachers", teacher.id, { salary_amount: teacher.salary_amount, due_override: teacher.due_override }, payload);
+    toast.success("تم الحفظ");
+    onSaved();
+    onClose();
+  };
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>تعديل — {teacher.full_name}</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label>الراتب الشهري</Label>
+            <Input type="number" value={salary} onChange={(e) => setSalary(e.target.value)} />
+          </div>
+          <div>
+            <Label>المستحق (مخصص)</Label>
+            <Input
+              type="number"
+              value={dueOverride}
+              onChange={(e) => setDueOverride(e.target.value)}
+              placeholder={`اتركه فارغًا للاحتساب التلقائي (${autoDue.toLocaleString("ar")})`}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              عند تعبئته يُستخدم هذا الرقم بدلًا من "الراتب × عدد الأشهر منذ التعيين".
+            </p>
+          </div>
+          {dueOverride.trim() !== "" && (
+            <Button type="button" variant="ghost" size="sm" onClick={() => setDueOverride("")}>
+              العودة للاحتساب التلقائي
+            </Button>
+          )}
+        </div>
+        <DialogFooter><Button variant="outline" onClick={onClose}>إلغاء</Button><Button onClick={save}>حفظ</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );
