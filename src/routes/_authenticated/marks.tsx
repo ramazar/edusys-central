@@ -133,24 +133,91 @@ function MarksPage() {
   }
 
   function exportWeeklyPDF() {
-    const rows = summary.map((r, i) => [
-      String(i + 1),
-      r.student.full_name,
-      r.student.student_number,
-      `${r.total.toLocaleString("ar")} / ${r.max.toLocaleString("ar")}`,
-      `${r.pct.toFixed(1)}%`,
-      String(r.count),
-      Array.from(r.subjects).join("، ") || "-",
-    ]);
-    printReport({
-      title: "الملخص الأسبوعي للعلامات",
-      subtitle: `الصف ${gradeId} — من ${from} إلى ${new Date().toISOString().slice(0, 10)}`,
-      columns: [
-        { header: "#" }, { header: "الطالب" }, { header: "الرقم" },
-        { header: "المجموع" }, { header: "النسبة" }, { header: "عدد العلامات" }, { header: "المواد" },
-      ],
-      rows,
-    });
+    const today = new Date().toISOString().slice(0, 10);
+    const nameOf = (id: string) => students.find((s) => s.id === id)?.full_name ?? "-";
+
+    const allComments = marks
+      .filter((m) => m.notes && m.notes.trim().length > 0)
+      .sort((a, b) => (a.date < b.date ? 1 : -1));
+    const allMarks = marks
+      .filter((m) => Number(m.max_score) > 0)
+      .sort((a, b) => (a.date < b.date ? 1 : -1));
+
+    const isRecent = (d: string) => d >= from;
+    const esc = (s: string) =>
+      String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    const row = (cells: string[], recent: boolean) =>
+      `<tr class="${recent ? "recent" : ""}">${cells.map((c) => `<td>${esc(c)}</td>`).join("")}</tr>`;
+
+    const commentsRows = allComments
+      .map((m) => row([m.date, nameOf(m.student_id), m.subject, m.notes ?? ""], isRecent(m.date)))
+      .join("");
+
+    const marksRows = allMarks
+      .map((m) => {
+        const pct = Number(m.max_score) > 0
+          ? ((Number(m.score) / Number(m.max_score)) * 100).toFixed(1) + "%"
+          : "-";
+        return row(
+          [m.date, nameOf(m.student_id), m.subject, `${Number(m.score)} / ${Number(m.max_score)}`, pct, m.notes ?? "-"],
+          isRecent(m.date),
+        );
+      })
+      .join("");
+
+    const style = `
+      @page { size: A4; margin: 14mm; }
+      body { font-family: "Cairo","Noto Sans Arabic","Segoe UI",Tahoma,sans-serif; direction: rtl; color:#1E293B; margin:0; }
+      header { display:flex; justify-content:space-between; align-items:flex-end; border-bottom:2px solid #1D4ED8; padding-bottom:10px; margin-bottom:14px; }
+      .brand { color:#1D4ED8; font-weight:800; font-size:20px; }
+      h1 { font-size:18px; margin:0 0 4px; }
+      h2 { font-size:15px; margin:22px 0 8px; color:#1D4ED8; border-right:4px solid #1D4ED8; padding-right:8px; }
+      .subtitle { color:#64748b; font-size:13px; margin-bottom:10px; }
+      .legend { display:flex; gap:14px; font-size:12px; margin-bottom:10px; color:#334155; }
+      .legend .sw { display:inline-block; width:14px; height:14px; border-radius:3px; vertical-align:middle; margin-left:5px; }
+      table { width:100%; border-collapse:collapse; font-size:12px; margin-bottom:6px; }
+      thead th { background:#1D4ED8; color:#fff; padding:8px; text-align:right; font-weight:700; }
+      tbody td { padding:7px 8px; border-bottom:1px solid #e2e8f0; text-align:right; }
+      tbody tr:nth-child(even) td { background:#f8fafc; }
+      tbody tr.recent td { background:#fef3c7 !important; color:#92400e; font-weight:600; }
+      .empty { text-align:center; color:#94a3b8; padding:14px; }
+    `;
+
+    const html = `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"/>
+      <title>تقرير علامات الطلاب</title>
+      <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+      <style>${style}</style></head><body>
+      <header>
+        <div>
+          <div class="brand">SchoolDesk — إدارة المدرسة</div>
+          <h1>تقرير علامات وملاحظات الطلاب</h1>
+          <div class="subtitle">الصف ${gradeId} — حتى ${today} — الأسبوع الأخير: من ${from}</div>
+        </div>
+        <div class="subtitle">${new Date().toLocaleString("ar")}</div>
+      </header>
+      <div class="legend">
+        <span><span class="sw" style="background:#fef3c7;border:1px solid #f59e0b"></span> سجلات الأسبوع الأخير</span>
+        <span><span class="sw" style="background:#f8fafc;border:1px solid #cbd5e1"></span> سجلات سابقة</span>
+      </div>
+      <h2>الملاحظات — كل الفترة</h2>
+      <table>
+        <thead><tr><th>التاريخ</th><th>الطالب</th><th>التصنيف</th><th>الملاحظة</th></tr></thead>
+        <tbody>${commentsRows || `<tr><td colspan="4" class="empty">لا توجد ملاحظات</td></tr>`}</tbody>
+      </table>
+      <h2>العلامات — كل الفترة</h2>
+      <table>
+        <thead><tr><th>التاريخ</th><th>الطالب</th><th>المادة</th><th>العلامة</th><th>النسبة</th><th>ملاحظة</th></tr></thead>
+        <tbody>${marksRows || `<tr><td colspan="6" class="empty">لا توجد علامات</td></tr>`}</tbody>
+      </table>
+      <script>window.addEventListener("load",()=>setTimeout(()=>{window.focus();window.print();},400));</script>
+      </body></html>`;
+
+    const w = window.open("", "_blank", "width=900,height=1000");
+    if (!w) return;
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
   }
 
   return (
