@@ -10,6 +10,7 @@ import {
   Settings,
   ScrollText,
   GraduationCap,
+  ClipboardList,
 } from "lucide-react";
 import {
   Sidebar,
@@ -30,6 +31,7 @@ const items: Item[] = [
   { title: "لوحة التحكم", url: "/dashboard", icon: LayoutDashboard, roles: ["admin","accountant","reception","teacher"] },
   { title: "الطلاب", url: "/students", icon: Users, roles: ["admin","accountant","reception","teacher"] },
   { title: "الحضور", url: "/attendance", icon: CalendarCheck, roles: ["admin","reception","teacher"] },
+  { title: "العلامات", url: "/marks", icon: ClipboardList, roles: ["admin","teacher","reception"] },
   { title: "المعلمون", url: "/teachers", icon: UserCog, roles: ["admin","accountant","reception","teacher"] },
   { title: "العمال", url: "/workers", icon: HardHat, roles: ["admin","accountant","reception"] },
   { title: "المالية", url: "/finance", icon: Wallet, roles: ["admin","accountant"] },
