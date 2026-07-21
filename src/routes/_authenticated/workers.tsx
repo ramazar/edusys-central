@@ -239,6 +239,30 @@ function MonthlyHistoryDialog({ worker, onClose }: { worker: Worker; onClose: ()
 
   const presentDays = rows.filter((r) => r.status === "present").length;
   const absentDays = rows.filter((r) => r.status === "absent").length;
+  const lateDays = rows.filter((r) => r.status === "late").length;
+
+  const exportPDF = () => {
+    const statusAr = (s: string) => s === "present" ? "حاضر" : s === "absent" ? "غائب" : s === "late" ? "متأخر" : s;
+    printReport({
+      title: `السجل الشهري — ${worker.full_name}`,
+      subtitle: worker.job_title ?? undefined,
+      meta: [
+        { label: "الشهر", value: month },
+        { label: "حاضر", value: String(presentDays) },
+        { label: "متأخر", value: String(lateDays) },
+        { label: "غائب", value: String(absentDays) },
+      ],
+      columns: [
+        { header: "التاريخ" },
+        { header: "الحضور" },
+        { header: "الانصراف" },
+        { header: "الحالة" },
+      ],
+      rows: rows.length
+        ? rows.map((r) => [r.date, fmtTime(r.check_in), fmtTime(r.check_out), statusAr(r.status)])
+        : [["—", "—", "—", "لا توجد سجلات"]],
+    });
+  };
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
@@ -251,8 +275,12 @@ function MonthlyHistoryDialog({ worker, onClose }: { worker: Worker; onClose: ()
           </div>
           <div className="flex gap-2">
             <Badge className="bg-success text-success-foreground">حاضر: {presentDays}</Badge>
+            {lateDays > 0 && <Badge className="bg-warning text-warning-foreground">متأخر: {lateDays}</Badge>}
             <Badge variant="destructive">غائب: {absentDays}</Badge>
           </div>
+          <Button variant="outline" className="ms-auto" onClick={exportPDF}>
+            <FileDown className="ml-1 h-4 w-4" /> تصدير PDF
+          </Button>
         </div>
         <div className="max-h-[55vh] overflow-auto">
           <Table>
