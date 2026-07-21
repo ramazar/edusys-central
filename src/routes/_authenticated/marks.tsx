@@ -411,3 +411,80 @@ function AddMarkDialog({
     </DialogContent>
   );
 }
+
+function AddNoteDialog({
+  students, onClose, onSaved,
+}: { students: Student[]; onClose: () => void; onSaved: () => void }) {
+  const { user } = useAuthSession();
+  const [studentId, setStudentId] = useState<string>("");
+  const [category, setCategory] = useState("سلوك");
+  const [notes, setNotes] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    if (!studentId || !notes.trim()) {
+      return toast.error("يرجى اختيار الطالب وكتابة الملاحظة");
+    }
+    setSaving(true);
+    const payload = {
+      student_id: studentId,
+      subject: category.trim() || "ملاحظة",
+      score: 0,
+      max_score: 0,
+      notes: notes.trim(),
+      date,
+      recorded_by: user?.id ?? null,
+    };
+    const { data, error } = await supabase.from("daily_marks").insert(payload).select().single();
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    await logAudit(user, "create", "daily_marks", data?.id, null, payload);
+    toast.success("تمت إضافة الملاحظة");
+    onSaved();
+    onClose();
+  }
+
+  return (
+    <DialogContent>
+      <DialogHeader><DialogTitle>إضافة ملاحظة</DialogTitle></DialogHeader>
+      <div className="space-y-3">
+        <div>
+          <Label>الطالب</Label>
+          <Select value={studentId} onValueChange={setStudentId}>
+            <SelectTrigger><SelectValue placeholder="اختر طالباً" /></SelectTrigger>
+            <SelectContent>
+              {students.map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.full_name} — {s.student_number}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>نوع الملاحظة</Label>
+          <Select value={category} onValueChange={setCategory}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="سلوك">سلوك</SelectItem>
+              <SelectItem value="مشاركة">مشاركة</SelectItem>
+              <SelectItem value="واجب">واجب</SelectItem>
+              <SelectItem value="ملاحظة">ملاحظة عامة</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>التاريخ</Label>
+          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} dir="ltr" />
+        </div>
+        <div>
+          <Label>الملاحظة</Label>
+          <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="اكتب الملاحظة حول سلوك الطالب أو أدائه" className="text-right" rows={4} />
+        </div>
+      </div>
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose}>إلغاء</Button>
+        <Button onClick={save} disabled={saving}>حفظ</Button>
+      </DialogFooter>
+    </DialogContent>
+  );
+}
