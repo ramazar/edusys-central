@@ -701,6 +701,8 @@ export type Database = {
       }
       worker_attendance: {
         Row: {
+          check_in: string | null
+          check_out: string | null
           created_at: string
           date: string
           id: string
@@ -710,6 +712,8 @@ export type Database = {
           worker_id: string
         }
         Insert: {
+          check_in?: string | null
+          check_out?: string | null
           created_at?: string
           date: string
           id?: string
@@ -719,6 +723,8 @@ export type Database = {
           worker_id: string
         }
         Update: {
+          check_in?: string | null
+          check_out?: string | null
           created_at?: string
           date?: string
           id?: string
@@ -783,6 +789,7 @@ export type Database = {
       }
       workers: {
         Row: {
+          attendance_code: string | null
           created_at: string
           full_name: string
           hire_date: string
@@ -795,6 +802,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          attendance_code?: string | null
           created_at?: string
           full_name: string
           hire_date?: string
@@ -807,6 +815,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          attendance_code?: string | null
           created_at?: string
           full_name?: string
           hire_date?: string
