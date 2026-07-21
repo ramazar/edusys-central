@@ -212,7 +212,10 @@ function TeachersPage() {
                     : <span className="text-muted-foreground">—</span>}
                 </TableCell>
                 <TableCell className="font-mono">{Number(t.salary_amount || 0).toLocaleString("ar")}</TableCell>
-                <TableCell className="font-mono">{due.toLocaleString("ar")}</TableCell>
+                <TableCell className="font-mono">
+                  <span className={t.due_override != null ? "text-primary font-semibold" : ""}>{due.toLocaleString("ar")}</span>
+                  {t.due_override != null && <span className="ms-1 text-[10px] text-muted-foreground">(مخصص)</span>}
+                </TableCell>
                 <TableCell className="font-mono text-success">{paid.toLocaleString("ar")}</TableCell>
                 <TableCell className={`font-mono ${remaining > 0 ? "text-destructive" : "text-success"}`}>{remaining.toLocaleString("ar")}</TableCell>
                 <TableCell>
