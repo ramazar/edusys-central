@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Plus, StickyNote, FileDown } from "lucide-react";
+import { Trash2, Plus, StickyNote, FileDown, MessageSquarePlus } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthSession, useMyRoles, hasAny, logAudit } from "@/hooks/useAuth";
 import { printReport } from "@/lib/print-pdf";
