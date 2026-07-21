@@ -299,10 +299,10 @@ function MarksPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {marks.length === 0 && (
+              {marks.filter((m) => Number(m.max_score) > 0).length === 0 && (
                 <TableRow><TableCell colSpan={canEdit ? 7 : 6} className="text-center text-muted-foreground py-6">لا توجد علامات</TableCell></TableRow>
               )}
-              {marks.map((m) => {
+              {marks.filter((m) => Number(m.max_score) > 0).map((m) => {
                 const st = students.find((s) => s.id === m.student_id);
                 const pct = Number(m.max_score) > 0 ? (Number(m.score) / Number(m.max_score)) * 100 : 0;
                 return (
