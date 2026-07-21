@@ -221,6 +221,7 @@ function TeachersPage() {
                 <TableCell>
                   <div className="flex gap-1">
                     <Button size="sm" variant="outline" onClick={() => setHistoryOpen(t)}><History className="ml-1 h-4 w-4" /> السجل</Button>
+                    {canManage && <Button size="sm" variant="outline" onClick={() => setEditOpen(t)}><Pencil className="ml-1 h-4 w-4" /> تعديل</Button>}
                     {canManage && <Button size="sm" onClick={() => setPayOpen(t.id)}><DollarSign className="ml-1 h-4 w-4" /> صرف</Button>}
                     {canManage && (
                       <Button size="sm" variant="destructive" onClick={async () => {
