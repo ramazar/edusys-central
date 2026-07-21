@@ -9,9 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, ScanLine, LogIn, LogOut, History } from "lucide-react";
+import { Plus, ScanLine, LogIn, LogOut, History, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthSession, useMyRoles, hasAny, logAudit } from "@/hooks/useAuth";
+import { printReport } from "@/lib/print-pdf";
 
 export const Route = createFileRoute("/_authenticated/workers")({ component: WorkersPage });
 
