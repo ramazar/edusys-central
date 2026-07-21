@@ -100,6 +100,7 @@ function MarksPage() {
     const map = new Map<string, { student: Student; total: number; max: number; count: number; subjects: Set<string> }>();
     for (const s of students) map.set(s.id, { student: s, total: 0, max: 0, count: 0, subjects: new Set() });
     for (const m of weeklyMarks) {
+      if (Number(m.max_score) <= 0) continue;
       const row = map.get(m.student_id);
       if (!row) continue;
       row.total += Number(m.score);
