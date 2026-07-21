@@ -631,6 +631,7 @@ export type Database = {
         Row: {
           attendance_code: string | null
           created_at: string
+          due_override: number | null
           email: string | null
           full_name: string
           hire_date: string
@@ -647,6 +648,7 @@ export type Database = {
         Insert: {
           attendance_code?: string | null
           created_at?: string
+          due_override?: number | null
           email?: string | null
           full_name: string
           hire_date?: string
@@ -663,6 +665,7 @@ export type Database = {
         Update: {
           attendance_code?: string | null
           created_at?: string
+          due_override?: number | null
           email?: string | null
           full_name?: string
           hire_date?: string
