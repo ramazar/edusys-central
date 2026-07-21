@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, ScanLine, LogIn, LogOut, History, FileDown } from "lucide-react";
+import { Plus, ScanLine, LogIn, LogOut, History, FileDown, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthSession, useMyRoles, hasAny, logAudit } from "@/hooks/useAuth";
 import { printReport } from "@/lib/print-pdf";
@@ -170,9 +170,22 @@ function WorkersPage() {
                     : <span className="text-muted-foreground">—</span>}
                 </TableCell>
                 <TableCell>
-                  <Button size="sm" variant="outline" onClick={() => setHistoryOpen(w)}>
-                    <History className="ml-1 h-4 w-4" /> السجل الشهري
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button size="sm" variant="outline" onClick={() => setHistoryOpen(w)}>
+                      <History className="ml-1 h-4 w-4" /> السجل الشهري
+                    </Button>
+                    {canManage && (
+                      <Button size="sm" variant="destructive" onClick={async () => {
+                        if (!confirm(`حذف العامل ${w.full_name}؟ سيتم حذف كل سجلات حضوره.`)) return;
+                        const { error } = await supabase.from("workers").delete().eq("id", w.id);
+                        if (error) return toast.error(error.message);
+                        await logAudit(user, "delete", "workers", w.id, w, null);
+                        toast.success("تم حذف العامل");
+                        qc.invalidateQueries({ queryKey: ["workers"] });
+                        qc.invalidateQueries({ queryKey: ["worker_attendance_today"] });
+                      }}><Trash2 className="h-4 w-4" /></Button>
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             );
