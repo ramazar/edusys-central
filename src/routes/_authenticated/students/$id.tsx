@@ -100,15 +100,28 @@ function StudentDetail() {
               <TableHead className="text-right">الوصف</TableHead>
               <TableHead className="text-right">تاريخ الاستحقاق</TableHead>
               <TableHead className="text-right">المبلغ</TableHead>
+              {canFinance && <TableHead className="text-right">إجراءات</TableHead>}
             </TableRow></TableHeader>
             <TableBody>
-              {plans.length === 0 && <TableRow><TableCell colSpan={4} className="py-6 text-center text-muted-foreground">لا توجد أقساط</TableCell></TableRow>}
+              {plans.length === 0 && <TableRow><TableCell colSpan={canFinance ? 5 : 4} className="py-6 text-center text-muted-foreground">لا توجد أقساط</TableCell></TableRow>}
               {plans.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell>{p.installment_number}</TableCell>
                   <TableCell>{p.description || "—"}</TableCell>
                   <TableCell>{p.due_date}</TableCell>
                   <TableCell className="font-mono">{Number(p.amount).toLocaleString("ar")}</TableCell>
+                  {canFinance && (
+                    <TableCell>
+                      <Button variant="ghost" size="icon" onClick={async () => {
+                        if (!confirm("حذف هذا القسط؟")) return;
+                        const { error } = await supabase.from("student_payment_plans").delete().eq("id", p.id);
+                        if (error) return toast.error(error.message);
+                        await logAudit(user, "delete", "student_payment_plans", p.id, p, null);
+                        toast.success("تم الحذف");
+                        qc.invalidateQueries({ queryKey: ["plans", id] });
+                      }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
@@ -125,9 +138,10 @@ function StudentDetail() {
               <TableHead className="text-right">الطريقة</TableHead>
               <TableHead className="text-right">المرجع</TableHead>
               <TableHead className="text-right">ملاحظات</TableHead>
+              {canFinance && <TableHead className="text-right">إجراءات</TableHead>}
             </TableRow></TableHeader>
             <TableBody>
-              {payments.length === 0 && <TableRow><TableCell colSpan={5} className="py-6 text-center text-muted-foreground">لا مدفوعات</TableCell></TableRow>}
+              {payments.length === 0 && <TableRow><TableCell colSpan={canFinance ? 6 : 5} className="py-6 text-center text-muted-foreground">لا مدفوعات</TableCell></TableRow>}
               {payments.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell>{p.payment_date}</TableCell>
@@ -135,6 +149,18 @@ function StudentDetail() {
                   <TableCell>{p.method || "—"}</TableCell>
                   <TableCell>{p.reference || "—"}</TableCell>
                   <TableCell>{p.notes || "—"}</TableCell>
+                  {canFinance && (
+                    <TableCell>
+                      <Button variant="ghost" size="icon" onClick={async () => {
+                        if (!confirm("حذف هذه الدفعة؟")) return;
+                        const { error } = await supabase.from("student_payments").delete().eq("id", p.id);
+                        if (error) return toast.error(error.message);
+                        await logAudit(user, "delete", "student_payments", p.id, p, null);
+                        toast.success("تم الحذف");
+                        qc.invalidateQueries({ queryKey: ["payments", id] });
+                      }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
