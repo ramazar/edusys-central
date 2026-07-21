@@ -379,3 +379,53 @@ function HistoryDialog({ teacher, canManage, onClose, onChanged }: { teacher: Te
     </Dialog>
   );
 }
+
+function EditTeacherDialog({ teacher, onClose, onSaved }: { teacher: Teacher; onClose: () => void; onSaved: () => void }) {
+  const { user } = useAuthSession();
+  const autoDue = Number(teacher.salary_amount) * monthsBetween(teacher.hire_date);
+  const [salary, setSalary] = useState(String(teacher.salary_amount ?? 0));
+  const [dueOverride, setDueOverride] = useState<string>(teacher.due_override != null ? String(teacher.due_override) : "");
+  const save = async () => {
+    const payload: { salary_amount: number; due_override: number | null } = {
+      salary_amount: Number(salary) || 0,
+      due_override: dueOverride.trim() === "" ? null : Number(dueOverride),
+    };
+    const { error } = await supabase.from("teachers").update(payload as never).eq("id", teacher.id);
+    if (error) return toast.error(error.message);
+    await logAudit(user, "update", "teachers", teacher.id, { salary_amount: teacher.salary_amount, due_override: teacher.due_override }, payload);
+    toast.success("تم الحفظ");
+    onSaved();
+    onClose();
+  };
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>تعديل — {teacher.full_name}</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label>الراتب الشهري</Label>
+            <Input type="number" value={salary} onChange={(e) => setSalary(e.target.value)} />
+          </div>
+          <div>
+            <Label>المستحق (مخصص)</Label>
+            <Input
+              type="number"
+              value={dueOverride}
+              onChange={(e) => setDueOverride(e.target.value)}
+              placeholder={`اتركه فارغًا للاحتساب التلقائي (${autoDue.toLocaleString("ar")})`}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              عند تعبئته يُستخدم هذا الرقم بدلًا من "الراتب × عدد الأشهر منذ التعيين".
+            </p>
+          </div>
+          {dueOverride.trim() !== "" && (
+            <Button type="button" variant="ghost" size="sm" onClick={() => setDueOverride("")}>
+              العودة للاحتساب التلقائي
+            </Button>
+          )}
+        </div>
+        <DialogFooter><Button variant="outline" onClick={onClose}>إلغاء</Button><Button onClick={save}>حفظ</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
