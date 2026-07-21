@@ -96,7 +96,7 @@ function TeachersPage() {
   todayAtt.forEach((r) => (attByTeacher[r.teacher_id] = r));
 
   const totalPaid = Object.values(paymentsByTeacher).reduce((s, v) => s + v, 0);
-  const totalDue = teachers.reduce((s, t) => s + Number(t.salary_amount) * monthsBetween(t.hire_date), 0);
+  const totalDue = teachers.reduce((s, t) => s + (t.due_override != null ? Number(t.due_override) : Number(t.salary_amount) * monthsBetween(t.hire_date)), 0);
   const totalRemaining = totalDue - totalPaid;
 
   const submitCode = async (raw: string) => {
