@@ -10,6 +10,7 @@ import {
   Settings,
   ScrollText,
   GraduationCap,
+  ClipboardList,
 } from "lucide-react";
 import {
   Sidebar,
