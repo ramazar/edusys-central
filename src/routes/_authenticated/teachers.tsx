@@ -217,6 +217,18 @@ function TeachersPage() {
                   <div className="flex gap-1">
                     <Button size="sm" variant="outline" onClick={() => setHistoryOpen(t)}><History className="ml-1 h-4 w-4" /> السجل</Button>
                     {canManage && <Button size="sm" onClick={() => setPayOpen(t.id)}><DollarSign className="ml-1 h-4 w-4" /> صرف</Button>}
+                    {canManage && (
+                      <Button size="sm" variant="destructive" onClick={async () => {
+                        if (!confirm(`حذف المعلم ${t.full_name}؟ سيتم حذف كل سجلات رواتبه وحضوره.`)) return;
+                        const { error } = await supabase.from("teachers").delete().eq("id", t.id);
+                        if (error) return toast.error(error.message);
+                        await logAudit(user, "delete", "teachers", t.id, t, null);
+                        toast.success("تم حذف المعلم");
+                        qc.invalidateQueries({ queryKey: ["teachers"] });
+                        qc.invalidateQueries({ queryKey: ["teacher_payments_all"] });
+                        qc.invalidateQueries({ queryKey: ["teacher_attendance_today"] });
+                      }}><Trash2 className="h-4 w-4" /></Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
