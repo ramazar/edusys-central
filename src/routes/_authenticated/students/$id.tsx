@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useAuthSession, useMyRoles, hasAny, logAudit } from "@/hooks/useAuth";
-import { generateInvoicePDF } from "@/lib/invoice";
+import { generateInvoicePDF, generateReceiptPDF } from "@/lib/invoice";
 
 export const Route = createFileRoute("/_authenticated/students/$id")({
   component: StudentDetail,
