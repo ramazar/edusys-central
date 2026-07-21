@@ -503,6 +503,47 @@ export type Database = {
           },
         ]
       }
+      teacher_attendance: {
+        Row: {
+          check_in: string | null
+          check_out: string | null
+          created_at: string
+          date: string
+          id: string
+          recorded_by: string | null
+          teacher_id: string
+          updated_at: string
+        }
+        Insert: {
+          check_in?: string | null
+          check_out?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          recorded_by?: string | null
+          teacher_id: string
+          updated_at?: string
+        }
+        Update: {
+          check_in?: string | null
+          check_out?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          recorded_by?: string | null
+          teacher_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_attendance_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teacher_payments: {
         Row: {
           amount: number
@@ -588,6 +629,7 @@ export type Database = {
       }
       teachers: {
         Row: {
+          attendance_code: string | null
           created_at: string
           email: string | null
           full_name: string
@@ -603,6 +645,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          attendance_code?: string | null
           created_at?: string
           email?: string | null
           full_name: string
@@ -618,6 +661,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          attendance_code?: string | null
           created_at?: string
           email?: string | null
           full_name?: string
