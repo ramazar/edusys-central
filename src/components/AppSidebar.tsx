@@ -11,6 +11,7 @@ import {
   ScrollText,
   GraduationCap,
   ClipboardList,
+  Sprout,
 } from "lucide-react";
 import {
   Sidebar,
