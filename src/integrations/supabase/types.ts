@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      academic_harvest: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string | null
+          date: string
+          grade_id: number
+          id: string
+          section_id: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          grade_id: number
+          id?: string
+          section_id: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          grade_id?: number
+          id?: string
+          section_id?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "academic_harvest_grade_id_fkey"
+            columns: ["grade_id"]
+            isOneToOne: false
+            referencedRelation: "grades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "academic_harvest_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendance: {
         Row: {
           created_at: string
