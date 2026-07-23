@@ -112,12 +112,6 @@ export async function generateStudentReport(student: Student, from: string, to: 
       <div class="kpi"><div class="l">أيام الغياب</div><div class="v">${absent.toLocaleString("ar")}</div></div>
       <div class="kpi"><div class="l">إجمالي الأيام المسجّلة</div><div class="v">${totalDays.toLocaleString("ar")}</div></div>
     </div>
-    <div class="kpis">
-      <div class="kpi"><div class="l">مجموع الدرجات</div><div class="v">${totalScore.toLocaleString("ar")}</div></div>
-      <div class="kpi"><div class="l">من أصل</div><div class="v">${totalMax.toLocaleString("ar")}</div></div>
-      <div class="kpi"><div class="l">النسبة العامة</div><div class="v">${pct}%</div></div>
-      <div class="kpi"><div class="l">عدد الملاحظات</div><div class="v">${noteRows.length.toLocaleString("ar")}</div></div>
-    </div>
 
     <h2>العلامات</h2>
     ${marksTable}
