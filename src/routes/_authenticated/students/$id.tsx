@@ -188,7 +188,44 @@ function StudentDetail() {
 
       <PaymentDialog open={payDialog} onOpenChange={setPayDialog} studentId={id} onSaved={() => qc.invalidateQueries({ queryKey: ["payments", id] })} />
       <PlanDialog open={planDialog} onOpenChange={setPlanDialog} studentId={id} nextNumber={plans.length + 1} onSaved={() => qc.invalidateQueries({ queryKey: ["plans", id] })} />
+      <ReportDialog open={reportDialog} onOpenChange={setReportDialog} student={student} />
     </div>
+  );
+}
+
+function ReportDialog({ open, onOpenChange, student }: { open: boolean; onOpenChange: (v: boolean) => void; student: { id: string; full_name: string; student_number: number | string; grade_id?: number | null } }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+  const [from, setFrom] = useState(monthAgo);
+  const [to, setTo] = useState(today);
+  const [loading, setLoading] = useState(false);
+  const gen = async () => {
+    if (!from || !to) return toast.error("حدد الفترة");
+    setLoading(true);
+    try {
+      await generateStudentReport(student, from, to);
+      onOpenChange(false);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "تعذّر إنشاء التقرير");
+    } finally {
+      setLoading(false);
+    }
+  };
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>تقرير الطالب — تحديد الفترة</DialogTitle></DialogHeader>
+        <div className="grid grid-cols-2 gap-3">
+          <div><Label>من تاريخ</Label><Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></div>
+          <div><Label>إلى تاريخ</Label><Input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></div>
+        </div>
+        <p className="text-xs text-muted-foreground">يشمل التقرير جميع العلامات، الملاحظات السلوكية، وعدد أيام الحضور/التأخر/الغياب خلال الفترة المحددة.</p>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>إلغاء</Button>
+          <Button onClick={gen} disabled={loading}>{loading ? "جارٍ الإنشاء…" : "إنشاء PDF"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
