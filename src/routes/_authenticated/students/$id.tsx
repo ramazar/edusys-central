@@ -74,6 +74,9 @@ function StudentDetail() {
             <Badge variant="secondary">الصف {student.grade_id} · الشعبة {(student.sections as { section_number: number } | null)?.section_number}</Badge>
           </div>
         </div>
+        <Button variant="outline" onClick={() => setReportDialog(true)}>
+          <FileText className="ml-2 h-4 w-4" /> تقرير الطالب PDF
+        </Button>
         <Button variant="outline" onClick={() => generateInvoicePDF(student, plans, payments)}>
           <Printer className="ml-2 h-4 w-4" /> طباعة الفاتورة
         </Button>
