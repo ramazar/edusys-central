@@ -28,6 +28,7 @@ function StudentDetail() {
   const canFinance = hasAny(roles, ["admin", "accountant"]);
   const [payDialog, setPayDialog] = useState(false);
   const [planDialog, setPlanDialog] = useState(false);
+  const [reportDialog, setReportDialog] = useState(false);
 
   const { data: student } = useQuery({
     queryKey: ["student", id],
