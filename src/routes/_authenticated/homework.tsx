@@ -333,7 +333,7 @@ function AssignmentDialog({
   const [statusMap, setStatusMap] = useState<Record<string, Status>>({} as any);
   const [saving, setSaving] = useState(false);
 
-  const { data: students = [] } = useQuery({
+  const { data: students } = useQuery({
     queryKey: ["hw-students", assignment.section_id],
     queryFn: async () => {
       const { data } = await supabase
@@ -346,7 +346,7 @@ function AssignmentDialog({
     },
   });
 
-  const { data: records = [] } = useQuery({
+  const { data: records } = useQuery({
     queryKey: ["hw-records", assignment.id],
     queryFn: async () => {
       const { data } = await supabase
@@ -358,16 +358,22 @@ function AssignmentDialog({
   });
 
   useEffect(() => {
+    if (!students || !records) return;
     const m: Record<string, Status> = {} as any;
-    students.forEach((s) => (m[s.id] = "not_done"));
+    list.forEach((s) => (m[s.id] = "not_done"));
     records.forEach((r) => (m[r.student_id] = r.status));
     setStatusMap(m);
   }, [students, records]);
 
+  const list: Student[] = students ?? [];
+
+
+
+
   const save = async () => {
-    if (students.length === 0) return;
+    if (list.length === 0) return;
     setSaving(true);
-    const rows = students.map((s) => ({
+    const rows = list.map((s) => ({
       assignment_id: assignment.id,
       student_id: s.id,
       status: (statusMap[s.id] || "not_done") as Status,
@@ -383,9 +389,9 @@ function AssignmentDialog({
   };
 
   const exportPDF = () => {
-    if (students.length === 0) return toast.error("لا يوجد طلاب");
+    if (list.length === 0) return toast.error("لا يوجد طلاب");
     const counts = { done: 0, partial: 0, not_done: 0 } as Record<Status, number>;
-    const rows = students.map((s, i) => {
+    const rows = list.map((s, i) => {
       const st = (statusMap[s.id] || "not_done") as Status;
       counts[st]++;
       return [i + 1, s.full_name, s.student_number, statusLabel(st)];
@@ -397,7 +403,7 @@ function AssignmentDialog({
         { label: "التاريخ", value: assignment.date },
         { label: "المادة", value: assignment.subject },
         { label: "العنوان", value: assignment.title },
-        { label: "إجمالي الطلاب", value: String(students.length) },
+        { label: "إجمالي الطلاب", value: String(list.length) },
         { label: "أنجز", value: String(counts.done) },
         { label: "جزئي", value: String(counts.partial) },
         { label: "لم يُنجز", value: String(counts.not_done) },
@@ -414,7 +420,7 @@ function AssignmentDialog({
 
   const setAll = (s: Status) => {
     const m: Record<string, Status> = {} as any;
-    students.forEach((x) => (m[x.id] = s));
+    list.forEach((x) => (m[x.id] = s));
     setStatusMap(m);
   };
 
@@ -446,10 +452,10 @@ function AssignmentDialog({
           </div>
         </div>
         <div className="overflow-y-auto space-y-2 pt-2">
-          {students.length === 0 && (
+          {list.length === 0 && (
             <div className="py-6 text-center text-muted-foreground">لا يوجد طلاب في هذه الشعبة</div>
           )}
-          {students.map((s) => {
+          {list.map((s) => {
             const st = (statusMap[s.id] || "not_done") as Status;
             return (
               <div key={s.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3 hover:bg-muted/40">
