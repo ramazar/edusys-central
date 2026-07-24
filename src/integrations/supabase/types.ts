@@ -234,6 +234,101 @@ export type Database = {
         }
         Relationships: []
       }
+      homework_assignments: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          date: string
+          grade_id: number
+          id: string
+          notes: string | null
+          section_id: string
+          subject: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          date: string
+          grade_id: number
+          id?: string
+          notes?: string | null
+          section_id: string
+          subject: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          grade_id?: number
+          id?: string
+          notes?: string | null
+          section_id?: string
+          subject?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "homework_assignments_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      homework_records: {
+        Row: {
+          assignment_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          recorded_by: string | null
+          status: Database["public"]["Enums"]["homework_status"]
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          assignment_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          recorded_by?: string | null
+          status?: Database["public"]["Enums"]["homework_status"]
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          assignment_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          recorded_by?: string | null
+          status?: Database["public"]["Enums"]["homework_status"]
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "homework_records_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "homework_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "homework_records_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       income_entries: {
         Row: {
           amount: number
@@ -907,6 +1002,7 @@ export type Database = {
     Enums: {
       app_role: "admin" | "accountant" | "reception" | "teacher"
       attendance_status: "present" | "absent" | "late"
+      homework_status: "done" | "not_done" | "partial"
       salary_type: "fixed" | "hourly"
     }
     CompositeTypes: {
@@ -1037,6 +1133,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "accountant", "reception", "teacher"],
       attendance_status: ["present", "absent", "late"],
+      homework_status: ["done", "not_done", "partial"],
       salary_type: ["fixed", "hourly"],
     },
   },
