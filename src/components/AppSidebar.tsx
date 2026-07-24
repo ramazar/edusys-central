@@ -35,6 +35,7 @@ const items: Item[] = [
   { title: "الحضور", url: "/attendance", icon: CalendarCheck, roles: ["admin","reception","teacher"] },
   { title: "العلامات", url: "/marks", icon: ClipboardList, roles: ["admin","teacher","reception"] },
   { title: "الحصاد العلمي", url: "/harvest", icon: Sprout, roles: ["admin","teacher","reception"] },
+  { title: "الواجبات", url: "/homework", icon: BookCheck, roles: ["admin","teacher","reception"] },
   { title: "المعلمون", url: "/teachers", icon: UserCog, roles: ["admin","accountant","reception","teacher"] },
   { title: "العمال", url: "/workers", icon: HardHat, roles: ["admin","accountant","reception"] },
   { title: "المالية", url: "/finance", icon: Wallet, roles: ["admin","accountant"] },
