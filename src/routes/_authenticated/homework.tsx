@@ -44,7 +44,7 @@ type Assignment = {
 };
 type Status = "done" | "not_done" | "partial";
 type Student = { id: string; full_name: string; student_number: string };
-type Record = { assignment_id: string; student_id: string; status: Status; notes: string | null };
+type HWRecord = { assignment_id: string; student_id: string; status: Status; notes: string | null };
 
 const statusLabel = (s: Status) =>
   s === "done" ? "أنجز" : s === "partial" ? "جزئي" : "لم يُنجز";
@@ -353,7 +353,7 @@ function AssignmentDialog({
         .from("homework_records")
         .select("assignment_id, student_id, status, notes")
         .eq("assignment_id", assignment.id);
-      return (data ?? []) as Record[];
+      return (data ?? []) as HWRecord[];
     },
   });
 
