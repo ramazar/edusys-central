@@ -12,6 +12,7 @@ import {
   GraduationCap,
   ClipboardList,
   Sprout,
+  BookCheck,
 } from "lucide-react";
 import {
   Sidebar,
