@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Check, X, Clock, CheckCheck, FileText, Printer } from "lucide-react";
+import { Check, X, Clock, CheckCheck, FileText, Printer, Grid3x3, Save } from "lucide-react";
 import { useAuthSession, logAudit } from "@/hooks/useAuth";
 import { printReport } from "@/lib/print-pdf";
+import { printAttendanceGrid, type GridCell } from "@/lib/attendance-grid-pdf";
 
 
 export const Route = createFileRoute("/_authenticated/attendance")({
