@@ -333,7 +333,7 @@ function AssignmentDialog({
   const [statusMap, setStatusMap] = useState<Record<string, Status>>({} as any);
   const [saving, setSaving] = useState(false);
 
-  const { data: students = [] } = useQuery({
+  const { data: students } = useQuery({
     queryKey: ["hw-students", assignment.section_id],
     queryFn: async () => {
       const { data } = await supabase
@@ -346,7 +346,7 @@ function AssignmentDialog({
     },
   });
 
-  const { data: records = [] } = useQuery({
+  const { data: records } = useQuery({
     queryKey: ["hw-records", assignment.id],
     queryFn: async () => {
       const { data } = await supabase
@@ -358,11 +358,13 @@ function AssignmentDialog({
   });
 
   useEffect(() => {
+    if (!students || !records) return;
     const m: Record<string, Status> = {} as any;
     students.forEach((s) => (m[s.id] = "not_done"));
     records.forEach((r) => (m[r.student_id] = r.status));
     setStatusMap(m);
   }, [students, records]);
+
 
   const save = async () => {
     if (students.length === 0) return;
