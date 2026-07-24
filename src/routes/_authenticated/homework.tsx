@@ -365,6 +365,10 @@ function AssignmentDialog({
     setStatusMap(m);
   }, [students, records]);
 
+  const list: Student[] = students ?? [];
+
+
+
 
   const save = async () => {
     if (students.length === 0) return;
