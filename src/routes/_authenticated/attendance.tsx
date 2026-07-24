@@ -229,6 +229,162 @@ function AttendancePage() {
           })}
         </CardContent>
       </Card>
+
+      {sectionId && <AttendanceGridCard sectionId={sectionId} gradeId={gradeId} sectionNumber={sections.find((s) => s.id === sectionId)?.section_number} />}
     </div>
+  );
+}
+
+function AttendanceGridCard({ sectionId, gradeId, sectionNumber }: { sectionId: string; gradeId: number; sectionNumber?: number }) {
+  const { user } = useAuthSession();
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  const today = new Date();
+  const twoWeeksAgo = new Date(); twoWeeksAgo.setDate(today.getDate() - 13);
+  const [from, setFrom] = useState(iso(twoWeeksAgo));
+  const [to, setTo] = useState(iso(today));
+  const [grid, setGrid] = useState<Record<string, Record<string, GridCell>>>({});
+  const [dirty, setDirty] = useState<Set<string>>(new Set()); // "studentId|date"
+
+  const dates = (() => {
+    const out: string[] = [];
+    const start = new Date(from); const end = new Date(to);
+    if (end < start) return out;
+    for (let d = new Date(end); d >= start; d.setDate(d.getDate() - 1)) out.push(iso(d));
+    return out;
+  })();
+
+  const { data: students = [] } = useQuery({
+    queryKey: ["grid-students", sectionId],
+    enabled: !!sectionId,
+    queryFn: async () => {
+      const { data } = await supabase.from("students").select("id, full_name").eq("section_id", sectionId).eq("is_active", true).order("full_name");
+      return data ?? [];
+    },
+  });
+
+  const { data: attRows = [], refetch } = useQuery({
+    queryKey: ["grid-att", sectionId, from, to],
+    enabled: !!sectionId && dates.length > 0,
+    queryFn: async () => {
+      const ids = students.map((s) => s.id);
+      if (ids.length === 0) return [];
+      const { data } = await supabase.from("attendance").select("student_id, date, status").in("student_id", ids).gte("date", from).lte("date", to);
+      return data ?? [];
+    },
+  });
+
+  useEffect(() => {
+    const g: Record<string, Record<string, GridCell>> = {};
+    students.forEach((s) => (g[s.id] = {}));
+    attRows.forEach((r: any) => {
+      if (!g[r.student_id]) g[r.student_id] = {};
+      g[r.student_id][r.date] = r.status as GridCell;
+    });
+    setGrid(g);
+    setDirty(new Set());
+  }, [attRows, students]);
+
+  const cycle = (cur: GridCell): GridCell => {
+    if (cur === "present") return "absent";
+    if (cur === "absent") return null;
+    return "present";
+  };
+
+  const toggle = (studentId: string, date: string) => {
+    setGrid((prev) => {
+      const next = { ...prev, [studentId]: { ...(prev[studentId] || {}) } };
+      next[studentId][date] = cycle(prev[studentId]?.[date] ?? null);
+      return next;
+    });
+    setDirty((prev) => new Set(prev).add(`${studentId}|${date}`));
+  };
+
+  const save = async () => {
+    if (dirty.size === 0) return toast.info("لا يوجد تغييرات");
+    const upserts: any[] = [];
+    const deletes: { student_id: string; date: string }[] = [];
+    dirty.forEach((k) => {
+      const [sid, date] = k.split("|");
+      const v = grid[sid]?.[date] ?? null;
+      if (v === null) deletes.push({ student_id: sid, date });
+      else upserts.push({ student_id: sid, date, status: v, recorded_by: user?.id });
+    });
+    if (upserts.length) {
+      const { error } = await supabase.from("attendance").upsert(upserts, { onConflict: "student_id,date" });
+      if (error) return toast.error(error.message);
+    }
+    for (const d of deletes) {
+      await supabase.from("attendance").delete().eq("student_id", d.student_id).eq("date", d.date);
+    }
+    await logAudit(user, "grid_upsert", "attendance", sectionId, null, { count: dirty.size });
+    toast.success(`تم حفظ ${dirty.size} تغيير`);
+    setDirty(new Set());
+    refetch();
+  };
+
+  const exportPDF = () => {
+    if (students.length === 0 || dates.length === 0) return toast.error("لا يوجد بيانات");
+    printAttendanceGrid({
+      title: `سجل الحضور — الصف ${gradeId} / الشعبة ${sectionNumber ?? "-"}`,
+      subtitle: `من ${from} إلى ${to}`,
+      dates,
+      students,
+      cells: grid,
+    });
+  };
+
+  const fmtHeader = (iso: string) => {
+    const [, m, d] = iso.split("-");
+    return `${Number(d)}/${Number(m)}`;
+  };
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <CardTitle className="flex items-center gap-2"><Grid3x3 className="h-5 w-5" /> شبكة الحضور (نطاق أيام)</CardTitle>
+        <div className="flex flex-wrap items-end gap-2">
+          <div><Label className="text-xs">من</Label><Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="mt-1 h-9" /></div>
+          <div><Label className="text-xs">إلى</Label><Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="mt-1 h-9" /></div>
+          <Button variant="outline" onClick={exportPDF} disabled={students.length === 0}><Printer className="ml-2 h-4 w-4" /> تصدير PDF</Button>
+          <Button onClick={save} disabled={dirty.size === 0}><Save className="ml-2 h-4 w-4" /> حفظ ({dirty.size})</Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <p className="mb-2 text-xs text-muted-foreground">اضغط على الخلية للتبديل: فارغ ← ✅ حاضر ← ❌ غائب ← فارغ.</p>
+        <div className="overflow-auto max-h-[70vh] border rounded-md">
+          <table className="w-full text-xs border-collapse">
+            <thead className="sticky top-0 bg-muted">
+              <tr>
+                <th className="border p-1 w-8">#</th>
+                <th className="border p-2 text-right min-w-[160px] sticky right-0 bg-muted">الاسم</th>
+                {dates.map((d) => (
+                  <th key={d} className="border p-1 whitespace-nowrap font-mono" style={{ minWidth: 52 }} dir="ltr">{fmtHeader(d)}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {students.length === 0 && <tr><td colSpan={dates.length + 2} className="p-4 text-center text-muted-foreground">لا يوجد طلاب</td></tr>}
+              {students.map((s, i) => (
+                <tr key={s.id} className="hover:bg-muted/30">
+                  <td className="border p-1 text-center text-muted-foreground">{i + 1}</td>
+                  <td className="border p-2 text-right font-medium sticky right-0 bg-background">{s.full_name}</td>
+                  {dates.map((d) => {
+                    const v = grid[s.id]?.[d] ?? null;
+                    const isDirty = dirty.has(`${s.id}|${d}`);
+                    const base = "border p-0 text-center cursor-pointer select-none w-10 h-8 hover:opacity-80";
+                    const bg = v === "present" ? "bg-success/20 text-success" : v === "absent" ? "bg-destructive/20 text-destructive" : v === "late" ? "bg-warning/20 text-warning" : "";
+                    return (
+                      <td key={d} className={`${base} ${bg} ${isDirty ? "ring-2 ring-inset ring-primary" : ""}`} onClick={() => toggle(s.id, d)}>
+                        {v === "present" ? "✅" : v === "absent" ? "❌" : v === "late" ? "⏰" : ""}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
