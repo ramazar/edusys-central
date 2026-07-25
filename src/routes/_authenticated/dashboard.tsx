@@ -45,24 +45,32 @@ function Dashboard() {
   const { data: monthly } = useQuery({
     queryKey: ["monthly-finance"],
     queryFn: async () => {
-      const rows: { month: string; income: number; expense: number }[] = [];
+      const start = startOfMonth(subMonths(new Date(), 5)).toISOString().slice(0, 10);
+      const [inc, pay, exp] = await Promise.all([
+        supabase.from("income_entries").select("amount,entry_date").gte("entry_date", start),
+        supabase.from("student_payments").select("amount,payment_date").gte("payment_date", start),
+        supabase.from("expenses").select("amount,entry_date").gte("entry_date", start),
+      ]);
+      const buckets = new Map<string, { month: string; income: number; expense: number }>();
       for (let i = 5; i >= 0; i--) {
-        const from = startOfMonth(subMonths(new Date(), i)).toISOString().slice(0, 10);
-        const to = startOfMonth(subMonths(new Date(), i - 1)).toISOString().slice(0, 10);
-        const [inc, pay, exp] = await Promise.all([
-          supabase.from("income_entries").select("amount").gte("entry_date", from).lt("entry_date", to),
-          supabase.from("student_payments").select("amount").gte("payment_date", from).lt("payment_date", to),
-          supabase.from("expenses").select("amount").gte("entry_date", from).lt("entry_date", to),
-        ]);
-        rows.push({
-          month: format(subMonths(new Date(), i), "MMM"),
-          income:
-            (inc.data ?? []).reduce((s, r) => s + Number(r.amount), 0) +
-            (pay.data ?? []).reduce((s, r) => s + Number(r.amount), 0),
-          expense: (exp.data ?? []).reduce((s, r) => s + Number(r.amount), 0),
-        });
+        const d = subMonths(new Date(), i);
+        const key = format(startOfMonth(d), "yyyy-MM");
+        buckets.set(key, { month: format(d, "MMM"), income: 0, expense: 0 });
       }
-      return rows;
+      const bucketKey = (dateStr: string) => dateStr.slice(0, 7);
+      for (const r of inc.data ?? []) {
+        const b = buckets.get(bucketKey(r.entry_date));
+        if (b) b.income += Number(r.amount);
+      }
+      for (const r of pay.data ?? []) {
+        const b = buckets.get(bucketKey(r.payment_date));
+        if (b) b.income += Number(r.amount);
+      }
+      for (const r of exp.data ?? []) {
+        const b = buckets.get(bucketKey(r.entry_date));
+        if (b) b.expense += Number(r.amount);
+      }
+      return Array.from(buckets.values());
     },
   });
 
