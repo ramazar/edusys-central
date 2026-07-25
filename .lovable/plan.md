@@ -1,27 +1,45 @@
-## Add worker check-in/out by code (mirror teachers)
+## Diagnosis
 
-Mirror the teacher code-scan flow for workers, with daily-reset attendance and a monthly history view.
+DB is not the bottleneck — the slowest query in the whole project runs in ~13 ms (checked via slow-query stats). The slowness is on the client:
 
-### Database (migration)
-- Add `code text unique` and `check_in timestamptz`, `check_out timestamptz` to `public.workers` (nullable). Backfill all existing workers with a random unique 6-digit code.
-- Attendance already lives in `worker_attendance` (unique per `worker_id, date`) — used to persist daily records so history is queryable per month.
+1. **QueryClient has no defaults.** In `src/router.tsx`, `new QueryClient()` is created with no options, so every query has `staleTime: 0` and `refetchOnWindowFocus: true`. Every time you switch tabs, click back into the window, or navigate between pages, all queries refire — even ones that just returned the same data a second ago. On the dashboard that means all 10 finance/attendance queries run again on every focus.
+2. **No cache across navigation.** Because of the above, going Students → Dashboard → Students refetches the student list every time instead of showing the cached result while revalidating.
+3. **Heavy chart library loads on the dashboard eagerly.** `recharts` is imported statically at the top of `dashboard.tsx`, so it's parsed even when the user is on another page and it delays the dashboard's first paint.
 
-### Workers page (`src/routes/_authenticated/workers.tsx`)
-- Add a scan/entry input at the top: type or scan the worker code + Enter.
-  - First scan of the day → sets `check_in = now()`, upserts `worker_attendance` row (status `present`) for today, toast "تم تسجيل الحضور".
-  - Second scan same day → sets `check_out = now()`, toast "تم تسجيل الانصراف".
-  - Third scan same day → toast "تم التسجيل مسبقًا".
-- Daily reset: at the start of a new day (no `worker_attendance` row for today for that worker), treat next scan as check-in again. `check_in`/`check_out` columns are updated to reflect the latest day's timestamps; the durable per-day record is the `worker_attendance` row (date + created_at as check-in time, plus we'll store check-out timestamp).
-- Add `check_out_at timestamptz` to `worker_attendance` in the same migration so both timestamps are preserved per day for history.
-- Table columns: الاسم | الوظيفة | الرمز | حضور اليوم (badge + دخول/خروج times) | إجراءات (سجل الشهر).
-- Keep the existing manual حاضر/غائب buttons for reception overrides.
-- Add worker dialog: auto-generate a 6-digit code (editable), same as teachers.
+## What to change
 
-### Monthly history dialog
-- Button "سجل الشهر" per worker opens a dialog with a month picker (default: current month).
-- Shows a table: التاريخ | وقت الدخول | وقت الخروج | الحالة, sourced from `worker_attendance` filtered by month for that worker.
-- Lets admin/accountant answer "did he come last week?" by scrolling the month view.
+### 1. Add sensible React Query defaults (biggest win)
 
-### Out of scope
-- No payroll/salary UI (removed previously, stays removed).
-- No PDF export for worker attendance in this pass (can be added later if you want it).
+In `src/router.tsx`, configure the `QueryClient` with:
+
+- `staleTime: 60_000` (1 minute) — most dashboard/list data doesn't need to refetch more than once a minute.
+- `gcTime: 5 * 60_000` — keep cached results for 5 minutes so back-navigation is instant.
+- `refetchOnWindowFocus: false` — stop the "everything reloads when I click back into the tab" behavior.
+- `retry: 1` — a single failed request currently retries 3 times with backoff, which makes transient errors feel like 10-second hangs.
+
+Result: navigating between pages you've already visited becomes instant, and alt-tabbing back into the app no longer triggers a wave of requests.
+
+### 2. Lazy-load Recharts on the dashboard
+
+Split the two charts on `src/routes/_authenticated/dashboard.tsx` into a separate component imported with `React.lazy` + `Suspense`, so the KPI cards render immediately and the charts stream in after. Recharts is one of the largest deps in the bundle.
+
+### 3. Keep the earlier dashboard fix
+
+The 6-month range consolidation from the previous turn stays — it already cut the dashboard from ~21 sequential queries to ~10 parallel ones.
+
+## Not changing
+
+- Database schema, RLS, or indexes — DB timings are already sub-15 ms, so adding indexes wouldn't help.
+- Auth flow / layout — the sidebar/layout mounts once and doesn't re-run on child navigation.
+
+## Technical notes
+
+- `defaultPreloadStaleTime: 0` in the router stays as-is (correct for TanStack Query integration).
+- Query defaults go on `defaultOptions.queries` when constructing `QueryClient`.
+- Lazy chart component will live at `src/components/dashboard/FinanceCharts.tsx` and receive the `monthly` array as a prop.
+
+## Expected outcome
+
+- First visit to dashboard: same speed or slightly faster (charts stream in).
+- Repeat visits and tab-switching: near-instant instead of full reload.
+- Transient network blips: recover in ~1 s instead of ~7 s.
