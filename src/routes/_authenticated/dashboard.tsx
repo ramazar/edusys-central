@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Wallet, AlertTriangle, CalendarCheck } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Line, LineChart } from "recharts";
 import { format, startOfMonth, subMonths } from "date-fns";
+
+const FinanceCharts = lazy(() => import("@/components/dashboard/FinanceCharts"));
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
