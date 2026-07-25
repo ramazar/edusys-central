@@ -29,7 +29,7 @@ function AuthedLayout() {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full flex-row-reverse">
+      <div className="flex min-h-screen w-full">
         <AppSidebar roles={roles} />
         <SidebarInset className="flex-1">
           <TopBar fullName={profile?.full_name} email={user?.email} roles={roles} />
