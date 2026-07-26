@@ -53,6 +53,10 @@ export function StudentDialog({
         guardian_relation: student.guardian_relation ?? "",
         address: student.address ?? "",
         enrollment_date: student.enrollment_date ?? new Date().toISOString().slice(0, 10),
+        academic_year: student.academic_year ?? defaultAcademicYear,
+        gender: student.gender ?? "",
+        birth_date: student.birth_date ?? "",
+        notes: student.notes ?? "",
       });
     } else {
       setForm((f) => ({ ...f, student_number: `S${Date.now().toString().slice(-6)}` }));
