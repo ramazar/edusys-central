@@ -13,7 +13,7 @@ export function StudentDialog({
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onSaved: () => void;
-  student?: { id: string; full_name: string; student_number: string; grade_id: number; section_id: string; guardian_name?: string | null; guardian_phone?: string | null; guardian_relation?: string | null; address?: string | null; enrollment_date?: string | null; };
+  student?: { id: string; full_name: string; student_number: string; grade_id: number; section_id: string; guardian_name?: string | null; guardian_phone?: string | null; guardian_relation?: string | null; address?: string | null; enrollment_date?: string | null; academic_year?: string | null; gender?: string | null; birth_date?: string | null; notes?: string | null; };
 }) {
   const { user } = useAuthSession();
   const [form, setForm] = useState({
