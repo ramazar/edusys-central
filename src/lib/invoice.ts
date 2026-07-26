@@ -182,15 +182,6 @@ export function generateReceiptPDF(student: Student, payment: Payment, opts?: { 
         <small>المبلغ المستلم</small>
       </div>
 
-      ${
-        balance !== undefined
-          ? `<div class="totals">
-              <div class="row"><span>إجمالي المستحق</span><span>${fmt(opts!.totalDue!)}</span></div>
-              <div class="row paid"><span>إجمالي المدفوع</span><span>${fmt(opts!.totalPaid!)}</span></div>
-              <div class="row big balance"><span>الرصيد المتبقي</span><span>${fmt(balance)}</span></div>
-            </div>`
-          : ""
-      }
 
       <div class="stamp">
         <div class="box">توقيع المستلم</div>
