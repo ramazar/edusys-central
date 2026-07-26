@@ -30,6 +30,8 @@ function StudentDetail() {
   const [payDialog, setPayDialog] = useState(false);
   const [planDialog, setPlanDialog] = useState(false);
   const [reportDialog, setReportDialog] = useState(false);
+  const [editDialog, setEditDialog] = useState(false);
+  const canEdit = hasAny(roles, ["admin", "reception"]);
 
   const { data: student } = useQuery({
     queryKey: ["student", id],
