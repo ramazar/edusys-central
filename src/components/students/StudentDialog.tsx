@@ -72,13 +72,14 @@ export function StudentDialog({
     }
     setSaving(true);
     try {
+      const payload = { ...form, birth_date: form.birth_date || null, gender: form.gender || null };
       if (student) {
-        const { error } = await supabase.from("students").update(form).eq("id", student.id);
+        const { error } = await supabase.from("students").update(payload).eq("id", student.id);
         if (error) throw error;
-        await logAudit(user, "update", "students", student.id, student, form);
+        await logAudit(user, "update", "students", student.id, student, payload);
         toast.success("تم تحديث الطالب");
       } else {
-        const { data, error } = await supabase.from("students").insert(form).select().single();
+        const { data, error } = await supabase.from("students").insert(payload).select().single();
         if (error) throw error;
         await logAudit(user, "create", "students", data.id, null, data);
         toast.success("تم إضافة الطالب");
