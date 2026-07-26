@@ -1,45 +1,37 @@
-## Diagnosis
+# إشعارات WhatsApp لأولياء الأمور
 
-DB is not the bottleneck — the slowest query in the whole project runs in ~13 ms (checked via slow-query stats). The slowness is on the client:
+## الهدف
+إرسال رسائل WhatsApp تلقائية إلى أولياء الأمور (على رقم `guardian_phone` في جدول `students`) لأربعة أحداث رئيسية، مع سجل قابل للتدقيق وإمكانية إعادة الإرسال يدوياً.
 
-1. **QueryClient has no defaults.** In `src/router.tsx`, `new QueryClient()` is created with no options, so every query has `staleTime: 0` and `refetchOnWindowFocus: true`. Every time you switch tabs, click back into the window, or navigate between pages, all queries refire — even ones that just returned the same data a second ago. On the dashboard that means all 10 finance/attendance queries run again on every focus.
-2. **No cache across navigation.** Because of the above, going Students → Dashboard → Students refetches the student list every time instead of showing the cached result while revalidating.
-3. **Heavy chart library loads on the dashboard eagerly.** `recharts` is imported statically at the top of `dashboard.tsx`, so it's parsed even when the user is on another page and it delays the dashboard's first paint.
+## الأحداث المُشغِّلة
+1. **تسجيل غياب** — عند إدخال حضور `absent` لطالب في `attendance` → رسالة فورية.
+2. **دفعة جديدة** — عند إضافة صف في `student_payments` → إيصال مختصر (المبلغ + المتبقي).
+3. **تذكير قسط مستحق** — Cron يومي 08:00 يفحص `student_payment_plans` غير المدفوعة والمستحقة خلال 3 أيام.
+4. **ملاحظة سلوكية** — عند إضافة `daily_marks.notes` (بدون درجة، أو مع علامة منخفضة) → إشعار ولي الأمر.
 
-## What to change
+## الربط والبنية التحتية
+- تفعيل موصّل **Twilio** عبر `standard_connectors--connect` (المستخدم يزوّد Account SID + API Key + رقم WhatsApp Sender المعتمد من Twilio).
+- إضافة إعداد رقم المرسِل كسر (`TWILIO_WHATSAPP_FROM`, مثال: `whatsapp:+14155238886`) عبر `add_secret`.
+- **قاعدة البيانات**: جدول جديد `whatsapp_messages` (recipient, student_id, event_type, template, body, status, twilio_sid, error, sent_at) + جدول `whatsapp_settings` (event_type PK, enabled bool, template text) مع RLS يقصر التحكّم على admin.
 
-### 1. Add sensible React Query defaults (biggest win)
+## الخادم (Server Functions + Server Route)
+- `src/lib/whatsapp.server.ts` — helper يستدعي gateway Twilio (`/Messages.json` مع `To=whatsapp:+..., From=$TWILIO_WHATSAPP_FROM, Body=...`) ويكتب النتيجة في `whatsapp_messages`.
+- `src/lib/whatsapp.functions.ts` — server fns محمية بـ `requireSupabaseAuth`:
+  - `sendWhatsappForEvent({ event, studentId, payload })` — يُستدعى من واجهة الحضور/الدفعات/العلامات بعد الحفظ.
+  - `resendWhatsapp({ messageId })` لإعادة الإرسال.
+  - `listWhatsappMessages({ studentId?, limit })` للسجل.
+- `src/routes/api/public/cron/payment-reminders.ts` — يفحص الأقساط المستحقة ويرسل، محمي بمقارنة `apikey` مع Supabase anon key.
+- جدولة عبر `pg_cron` + `pg_net` يومياً 08:00 لاستدعاء المسار أعلاه.
 
-In `src/router.tsx`, configure the `QueryClient` with:
+## الواجهة (RTL عربي)
+- **إعدادات → تبويب "إشعارات WhatsApp"**: تفعيل/تعطيل لكل نوع حدث، تعديل قوالب الرسائل (placeholders: `{student}`, `{date}`, `{amount}`, `{remaining}`, `{subject}`, `{note}`).
+- **بطاقة الطالب**: تبويب "سجل الرسائل" يعرض الرسائل المُرسَلة + زر "إعادة إرسال".
+- إشعار toast بعد كل إجراء يوضّح نجاح/فشل الإرسال دون تعطيل الحفظ الأصلي.
 
-- `staleTime: 60_000` (1 minute) — most dashboard/list data doesn't need to refetch more than once a minute.
-- `gcTime: 5 * 60_000` — keep cached results for 5 minutes so back-navigation is instant.
-- `refetchOnWindowFocus: false` — stop the "everything reloads when I click back into the tab" behavior.
-- `retry: 1` — a single failed request currently retries 3 times with backoff, which makes transient errors feel like 10-second hangs.
+## نقاط تقنية
+- كل نداءات Twilio تمرّ عبر `https://connector-gateway.lovable.dev/twilio/Messages.json` بترويسات `Authorization: Bearer $LOVABLE_API_KEY` و `X-Connection-Api-Key: $TWILIO_API_KEY`.
+- تطبيع رقم ولي الأمر إلى E.164 قبل الإرسال (اقتطاع الأصفار وإضافة رمز الدولة الافتراضي — سأطلب من المستخدم لاحقاً الدولة الافتراضية عند التنفيذ إذا لم تكن مضبوطة).
+- الإرسال يتم داخل `Promise` مستقل — فشل WhatsApp لا يوقف حفظ الغياب/الدفعة.
+- ملاحظة WhatsApp Business: يتطلب Twilio قوالب معتمدة مسبقاً للرسائل الصادرة خارج نافذة 24 ساعة؛ سيتم توثيق ذلك للمستخدم داخل شاشة الإعدادات.
 
-Result: navigating between pages you've already visited becomes instant, and alt-tabbing back into the app no longer triggers a wave of requests.
-
-### 2. Lazy-load Recharts on the dashboard
-
-Split the two charts on `src/routes/_authenticated/dashboard.tsx` into a separate component imported with `React.lazy` + `Suspense`, so the KPI cards render immediately and the charts stream in after. Recharts is one of the largest deps in the bundle.
-
-### 3. Keep the earlier dashboard fix
-
-The 6-month range consolidation from the previous turn stays — it already cut the dashboard from ~21 sequential queries to ~10 parallel ones.
-
-## Not changing
-
-- Database schema, RLS, or indexes — DB timings are already sub-15 ms, so adding indexes wouldn't help.
-- Auth flow / layout — the sidebar/layout mounts once and doesn't re-run on child navigation.
-
-## Technical notes
-
-- `defaultPreloadStaleTime: 0` in the router stays as-is (correct for TanStack Query integration).
-- Query defaults go on `defaultOptions.queries` when constructing `QueryClient`.
-- Lazy chart component will live at `src/components/dashboard/FinanceCharts.tsx` and receive the `monthly` array as a prop.
-
-## Expected outcome
-
-- First visit to dashboard: same speed or slightly faster (charts stream in).
-- Repeat visits and tab-switching: near-instant instead of full reload.
-- Transient network blips: recover in ~1 s instead of ~7 s.
+هل نمضي بهذا؟
