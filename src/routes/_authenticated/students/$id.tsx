@@ -185,11 +185,15 @@ function StudentDetail() {
         <TabsContent value="info">
           <Card><CardContent className="grid grid-cols-1 gap-3 p-6 md:grid-cols-2">
             <Info label="رقم الطالب" value={student.student_number} />
+            <Info label="العام الدراسي" value={student.academic_year} />
             <Info label="تاريخ التسجيل" value={student.enrollment_date} />
+            <Info label="تاريخ الميلاد" value={student.birth_date} />
+            <Info label="الجنس" value={student.gender === "male" ? "ذكر" : student.gender === "female" ? "أنثى" : student.gender} />
             <Info label="ولي الأمر" value={student.guardian_name} />
             <Info label="الهاتف" value={student.guardian_phone} />
             <Info label="صلة القرابة" value={student.guardian_relation} />
             <Info label="العنوان" value={student.address} />
+            <Info label="ملاحظات" value={student.notes} />
           </CardContent></Card>
         </TabsContent>
       </Tabs>
@@ -197,6 +201,7 @@ function StudentDetail() {
       <PaymentDialog open={payDialog} onOpenChange={setPayDialog} studentId={id} onSaved={() => qc.invalidateQueries({ queryKey: ["payments", id] })} />
       <PlanDialog open={planDialog} onOpenChange={setPlanDialog} studentId={id} nextNumber={plans.length + 1} onSaved={() => qc.invalidateQueries({ queryKey: ["plans", id] })} />
       <ReportDialog open={reportDialog} onOpenChange={setReportDialog} student={student} />
+      <StudentDialog open={editDialog} onOpenChange={setEditDialog} student={student} onSaved={() => qc.invalidateQueries({ queryKey: ["student", id] })} />
     </div>
   );
 }
