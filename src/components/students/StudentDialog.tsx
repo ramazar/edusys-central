@@ -151,9 +151,33 @@ export function StudentDialog({
             <Label>تاريخ التسجيل</Label>
             <Input type="date" value={form.enrollment_date} onChange={(e) => setForm({ ...form, enrollment_date: e.target.value })} />
           </div>
+          <div className="space-y-2">
+            <Label>العام الدراسي</Label>
+            <Input value={form.academic_year} onChange={(e) => setForm({ ...form, academic_year: e.target.value })} placeholder="مثال: 2025-2026" />
+          </div>
+          <div className="space-y-2">
+            <Label>الجنس</Label>
+            <select
+              className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+              value={form.gender}
+              onChange={(e) => setForm({ ...form, gender: e.target.value })}
+            >
+              <option value="">—</option>
+              <option value="male">ذكر</option>
+              <option value="female">أنثى</option>
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label>تاريخ الميلاد</Label>
+            <Input type="date" value={form.birth_date} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} />
+          </div>
           <div className="space-y-2 md:col-span-2">
             <Label>العنوان</Label>
             <Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label>ملاحظات</Label>
+            <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
           </div>
         </div>
         <DialogFooter>
