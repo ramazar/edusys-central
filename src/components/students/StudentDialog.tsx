@@ -16,6 +16,8 @@ export function StudentDialog({
   student?: { id: string; full_name: string; student_number: string; grade_id: number; section_id: string; guardian_name?: string | null; guardian_phone?: string | null; guardian_relation?: string | null; address?: string | null; enrollment_date?: string | null; academic_year?: string | null; gender?: string | null; birth_date?: string | null; notes?: string | null; };
 }) {
   const { user } = useAuthSession();
+  const currentYear = new Date().getFullYear();
+  const defaultAcademicYear = `${currentYear}-${currentYear + 1}`;
   const [form, setForm] = useState({
     student_number: "",
     full_name: "",
@@ -26,6 +28,10 @@ export function StudentDialog({
     guardian_relation: "",
     address: "",
     enrollment_date: new Date().toISOString().slice(0, 10),
+    academic_year: defaultAcademicYear,
+    gender: "",
+    birth_date: "",
+    notes: "",
   });
   const [saving, setSaving] = useState(false);
   const [sections, setSections] = useState<{ id: string; section_number: number; grade_id: number }[]>([]);
