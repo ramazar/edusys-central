@@ -13,9 +13,11 @@ export function StudentDialog({
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onSaved: () => void;
-  student?: { id: string; full_name: string; student_number: string; grade_id: number; section_id: string; guardian_name?: string | null; guardian_phone?: string | null; guardian_relation?: string | null; address?: string | null; enrollment_date?: string | null; };
+  student?: { id: string; full_name: string; student_number: string; grade_id: number; section_id: string; guardian_name?: string | null; guardian_phone?: string | null; guardian_relation?: string | null; address?: string | null; enrollment_date?: string | null; academic_year?: string | null; gender?: string | null; birth_date?: string | null; notes?: string | null; };
 }) {
   const { user } = useAuthSession();
+  const currentYear = new Date().getFullYear();
+  const defaultAcademicYear = `${currentYear}-${currentYear + 1}`;
   const [form, setForm] = useState({
     student_number: "",
     full_name: "",
@@ -26,6 +28,10 @@ export function StudentDialog({
     guardian_relation: "",
     address: "",
     enrollment_date: new Date().toISOString().slice(0, 10),
+    academic_year: defaultAcademicYear,
+    gender: "",
+    birth_date: "",
+    notes: "",
   });
   const [saving, setSaving] = useState(false);
   const [sections, setSections] = useState<{ id: string; section_number: number; grade_id: number }[]>([]);
@@ -47,6 +53,10 @@ export function StudentDialog({
         guardian_relation: student.guardian_relation ?? "",
         address: student.address ?? "",
         enrollment_date: student.enrollment_date ?? new Date().toISOString().slice(0, 10),
+        academic_year: student.academic_year ?? defaultAcademicYear,
+        gender: student.gender ?? "",
+        birth_date: student.birth_date ?? "",
+        notes: student.notes ?? "",
       });
     } else {
       setForm((f) => ({ ...f, student_number: `S${Date.now().toString().slice(-6)}` }));
@@ -62,13 +72,14 @@ export function StudentDialog({
     }
     setSaving(true);
     try {
+      const payload = { ...form, birth_date: form.birth_date || null, gender: form.gender || null };
       if (student) {
-        const { error } = await supabase.from("students").update(form).eq("id", student.id);
+        const { error } = await supabase.from("students").update(payload).eq("id", student.id);
         if (error) throw error;
-        await logAudit(user, "update", "students", student.id, student, form);
+        await logAudit(user, "update", "students", student.id, student, payload);
         toast.success("تم تحديث الطالب");
       } else {
-        const { data, error } = await supabase.from("students").insert(form).select().single();
+        const { data, error } = await supabase.from("students").insert(payload).select().single();
         if (error) throw error;
         await logAudit(user, "create", "students", data.id, null, data);
         toast.success("تم إضافة الطالب");
@@ -141,9 +152,33 @@ export function StudentDialog({
             <Label>تاريخ التسجيل</Label>
             <Input type="date" value={form.enrollment_date} onChange={(e) => setForm({ ...form, enrollment_date: e.target.value })} />
           </div>
+          <div className="space-y-2">
+            <Label>العام الدراسي</Label>
+            <Input value={form.academic_year} onChange={(e) => setForm({ ...form, academic_year: e.target.value })} placeholder="مثال: 2025-2026" />
+          </div>
+          <div className="space-y-2">
+            <Label>الجنس</Label>
+            <select
+              className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+              value={form.gender}
+              onChange={(e) => setForm({ ...form, gender: e.target.value })}
+            >
+              <option value="">—</option>
+              <option value="male">ذكر</option>
+              <option value="female">أنثى</option>
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label>تاريخ الميلاد</Label>
+            <Input type="date" value={form.birth_date} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} />
+          </div>
           <div className="space-y-2 md:col-span-2">
             <Label>العنوان</Label>
             <Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label>ملاحظات</Label>
+            <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
           </div>
         </div>
         <DialogFooter>

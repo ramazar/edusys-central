@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowRight, Printer, Plus, Trash2, Receipt, FileText } from "lucide-react";
+import { ArrowRight, Printer, Plus, Trash2, Receipt, FileText, Pencil } from "lucide-react";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { useAuthSession, useMyRoles, hasAny, logAudit } from "@/hooks/useAuth";
 import { generateInvoicePDF, generateReceiptPDF } from "@/lib/invoice";
 import { generateStudentReport } from "@/lib/student-report";
+import { StudentDialog } from "@/components/students/StudentDialog";
 
 export const Route = createFileRoute("/_authenticated/students/$id")({
   component: StudentDetail,
@@ -29,6 +30,8 @@ function StudentDetail() {
   const [payDialog, setPayDialog] = useState(false);
   const [planDialog, setPlanDialog] = useState(false);
   const [reportDialog, setReportDialog] = useState(false);
+  const [editDialog, setEditDialog] = useState(false);
+  const canEdit = hasAny(roles, ["admin", "reception"]);
 
   const { data: student } = useQuery({
     queryKey: ["student", id],
@@ -74,6 +77,11 @@ function StudentDetail() {
             <Badge variant="secondary">الصف {student.grade_id} · الشعبة {(student.sections as { section_number: number } | null)?.section_number}</Badge>
           </div>
         </div>
+        {canEdit && (
+          <Button variant="outline" onClick={() => setEditDialog(true)}>
+            <Pencil className="ml-2 h-4 w-4" /> تعديل البيانات
+          </Button>
+        )}
         <Button variant="outline" onClick={() => setReportDialog(true)}>
           <FileText className="ml-2 h-4 w-4" /> تقرير الطالب PDF
         </Button>
@@ -177,11 +185,15 @@ function StudentDetail() {
         <TabsContent value="info">
           <Card><CardContent className="grid grid-cols-1 gap-3 p-6 md:grid-cols-2">
             <Info label="رقم الطالب" value={student.student_number} />
+            <Info label="العام الدراسي" value={student.academic_year} />
             <Info label="تاريخ التسجيل" value={student.enrollment_date} />
+            <Info label="تاريخ الميلاد" value={student.birth_date} />
+            <Info label="الجنس" value={student.gender === "male" ? "ذكر" : student.gender === "female" ? "أنثى" : student.gender} />
             <Info label="ولي الأمر" value={student.guardian_name} />
             <Info label="الهاتف" value={student.guardian_phone} />
             <Info label="صلة القرابة" value={student.guardian_relation} />
             <Info label="العنوان" value={student.address} />
+            <Info label="ملاحظات" value={student.notes} />
           </CardContent></Card>
         </TabsContent>
       </Tabs>
@@ -189,6 +201,7 @@ function StudentDetail() {
       <PaymentDialog open={payDialog} onOpenChange={setPayDialog} studentId={id} onSaved={() => qc.invalidateQueries({ queryKey: ["payments", id] })} />
       <PlanDialog open={planDialog} onOpenChange={setPlanDialog} studentId={id} nextNumber={plans.length + 1} onSaved={() => qc.invalidateQueries({ queryKey: ["plans", id] })} />
       <ReportDialog open={reportDialog} onOpenChange={setReportDialog} student={student} />
+      <StudentDialog open={editDialog} onOpenChange={setEditDialog} student={student} onSaved={() => qc.invalidateQueries({ queryKey: ["student", id] })} />
     </div>
   );
 }
