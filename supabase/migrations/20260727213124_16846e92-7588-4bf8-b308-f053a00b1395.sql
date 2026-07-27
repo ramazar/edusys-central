@@ -1,0 +1,21 @@
+
+CREATE INDEX IF NOT EXISTS idx_students_is_active ON public.students(is_active);
+CREATE INDEX IF NOT EXISTS idx_teachers_is_active ON public.teachers(is_active);
+CREATE INDEX IF NOT EXISTS idx_workers_is_active ON public.workers(is_active);
+CREATE INDEX IF NOT EXISTS idx_income_entries_entry_date ON public.income_entries(entry_date);
+CREATE INDEX IF NOT EXISTS idx_expenses_entry_date ON public.expenses(entry_date);
+CREATE INDEX IF NOT EXISTS idx_student_payments_payment_date ON public.student_payments(payment_date);
+CREATE INDEX IF NOT EXISTS idx_student_payments_student_id ON public.student_payments(student_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_date ON public.attendance(date);
+CREATE INDEX IF NOT EXISTS idx_attendance_student_date ON public.attendance(student_id, date);
+CREATE INDEX IF NOT EXISTS idx_students_section_id ON public.students(section_id);
+CREATE INDEX IF NOT EXISTS idx_user_roles_user_id ON public.user_roles(user_id);
+CREATE INDEX IF NOT EXISTS idx_daily_marks_student_id ON public.daily_marks(student_id);
+CREATE INDEX IF NOT EXISTS idx_daily_marks_date ON public.daily_marks(date);
+CREATE INDEX IF NOT EXISTS idx_teacher_attendance_teacher_date ON public.teacher_attendance(teacher_id, date);
+CREATE INDEX IF NOT EXISTS idx_worker_attendance_worker_date ON public.worker_attendance(worker_id, date);
+CREATE INDEX IF NOT EXISTS idx_homework_records_assignment ON public.homework_records(assignment_id);
+CREATE INDEX IF NOT EXISTS idx_academic_harvest_section_date ON public.academic_harvest(section_id, date);
+CREATE INDEX IF NOT EXISTS idx_student_payment_plans_student_id ON public.student_payment_plans(student_id);
+CREATE INDEX IF NOT EXISTS idx_teacher_payments_teacher_id ON public.teacher_payments(teacher_id);
+CREATE INDEX IF NOT EXISTS idx_sections_grade_id ON public.sections(grade_id);
