@@ -238,6 +238,14 @@ function AttendancePage() {
           })}
         </CardContent>
       </Card>
+
+      <WhatsAppSendDialog
+        open={waOpen}
+        onOpenChange={setWaOpen}
+        students={students as never}
+        absentIds={students.filter((s) => (attMap[s.id] || "present") === "absent").map((s) => s.id)}
+        contextLabel={date}
+      />
     </div>
   );
 }
