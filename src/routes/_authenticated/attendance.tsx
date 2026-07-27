@@ -25,6 +25,7 @@ function AttendancePage() {
   const [sectionId, setSectionId] = useState<string>("");
   const [date, setDate] = useState<string>(new Date().toISOString().slice(0, 10));
   const [attMap, setAttMap] = useState<Record<string, Status>>({});
+  const [waOpen, setWaOpen] = useState(false);
 
   const { data: sections = [] } = useQuery({
     queryKey: ["sections-att", gradeId],
