@@ -41,7 +41,7 @@ function AttendancePage() {
     queryKey: ["students-in-section", sectionId, date],
     enabled: !!sectionId,
     queryFn: async () => {
-      const { data: st } = await supabase.from("students").select("id, full_name, student_number").eq("section_id", sectionId).eq("is_active", true).order("full_name");
+      const { data: st } = await supabase.from("students").select("id, full_name, student_number, guardian_phone, guardian_name").eq("section_id", sectionId).eq("is_active", true).order("full_name");
       const students = st ?? [];
       const { data: att } = await supabase.from("attendance").select("student_id, status").eq("date", date).in("student_id", students.map((s) => s.id));
       const map: Record<string, Status> = {};
