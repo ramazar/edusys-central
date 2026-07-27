@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Check, X, Clock, CheckCheck, FileText, Printer } from "lucide-react";
+import { Check, X, Clock, CheckCheck, FileText, Printer, MessageCircle } from "lucide-react";
 import { useAuthSession, logAudit } from "@/hooks/useAuth";
 import { printReport } from "@/lib/print-pdf";
+import { WhatsAppSendDialog } from "@/components/attendance/WhatsAppSendDialog";
 
 
 export const Route = createFileRoute("/_authenticated/attendance")({
