@@ -200,6 +200,14 @@ function AttendancePage() {
             <Button variant="outline" onClick={exportGradePDF} disabled={sections.length === 0}>
               <FileText className="ml-2 h-4 w-4" /> PDF لكل الشُعب في الصف
             </Button>
+            <Button
+              variant="outline"
+              className="border-success text-success hover:bg-success/10"
+              onClick={() => setWaOpen(true)}
+              disabled={students.length === 0}
+            >
+              <MessageCircle className="ml-2 h-4 w-4" /> واتساب لأولياء الأمور
+            </Button>
             <Button size="lg" onClick={saveAll} disabled={students.length === 0}>حفظ الكل</Button>
           </div>
         </CardHeader>
