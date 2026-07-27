@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Check, X, Clock, CheckCheck, FileText, Printer } from "lucide-react";
+import { Check, X, Clock, CheckCheck, FileText, Printer, MessageCircle } from "lucide-react";
 import { useAuthSession, logAudit } from "@/hooks/useAuth";
 import { printReport } from "@/lib/print-pdf";
+import { WhatsAppSendDialog } from "@/components/attendance/WhatsAppSendDialog";
 
 
 export const Route = createFileRoute("/_authenticated/attendance")({
@@ -24,6 +25,7 @@ function AttendancePage() {
   const [sectionId, setSectionId] = useState<string>("");
   const [date, setDate] = useState<string>(new Date().toISOString().slice(0, 10));
   const [attMap, setAttMap] = useState<Record<string, Status>>({});
+  const [waOpen, setWaOpen] = useState(false);
 
   const { data: sections = [] } = useQuery({
     queryKey: ["sections-att", gradeId],
@@ -39,7 +41,7 @@ function AttendancePage() {
     queryKey: ["students-in-section", sectionId, date],
     enabled: !!sectionId,
     queryFn: async () => {
-      const { data: st } = await supabase.from("students").select("id, full_name, student_number").eq("section_id", sectionId).eq("is_active", true).order("full_name");
+      const { data: st } = await supabase.from("students").select("id, full_name, student_number, guardian_phone, guardian_name").eq("section_id", sectionId).eq("is_active", true).order("full_name");
       const students = st ?? [];
       const { data: att } = await supabase.from("attendance").select("student_id, status").eq("date", date).in("student_id", students.map((s) => s.id));
       const map: Record<string, Status> = {};
@@ -198,6 +200,14 @@ function AttendancePage() {
             <Button variant="outline" onClick={exportGradePDF} disabled={sections.length === 0}>
               <FileText className="ml-2 h-4 w-4" /> PDF لكل الشُعب في الصف
             </Button>
+            <Button
+              variant="outline"
+              className="border-success text-success hover:bg-success/10"
+              onClick={() => setWaOpen(true)}
+              disabled={students.length === 0}
+            >
+              <MessageCircle className="ml-2 h-4 w-4" /> واتساب لأولياء الأمور
+            </Button>
             <Button size="lg" onClick={saveAll} disabled={students.length === 0}>حفظ الكل</Button>
           </div>
         </CardHeader>
@@ -228,6 +238,14 @@ function AttendancePage() {
           })}
         </CardContent>
       </Card>
+
+      <WhatsAppSendDialog
+        open={waOpen}
+        onOpenChange={setWaOpen}
+        students={students as never}
+        absentIds={students.filter((s) => (attMap[s.id] || "present") === "absent").map((s) => s.id)}
+        contextLabel={date}
+      />
     </div>
   );
 }
