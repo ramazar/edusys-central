@@ -95,3 +95,47 @@ export async function sendReportWhatsApp(doc: ExportTextDoc): Promise<{ trimmed:
   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
   return { trimmed };
 }
+
+/** Normalizes a WhatsApp group link (accepts a full chat.whatsapp.com invite URL). */
+export function normalizeGroupLink(link: string): string {
+  const t = link.trim();
+  if (!t) return "";
+  if (/^https?:\/\//i.test(t)) return t;
+  if (/^chat\.whatsapp\.com\//i.test(t)) return `https://${t}`;
+  return `https://chat.whatsapp.com/${t.replace(/^\/+/, "")}`;
+}
+
+async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      const ok = document.execCommand("copy");
+      ta.remove();
+      return ok;
+    } catch {
+      return false;
+    }
+  }
+}
+
+/**
+ * Semi-automatic group send: copies the full report text to the clipboard and
+ * opens the section's WhatsApp group so the user can paste it in one tap.
+ */
+export async function sendToSectionGroup(
+  doc: ExportTextDoc,
+  groupLink: string,
+): Promise<{ copied: boolean }> {
+  const copied = await copyText(buildReportText(doc));
+  window.open(normalizeGroupLink(groupLink), "_blank", "noopener,noreferrer");
+  return { copied };
+}
