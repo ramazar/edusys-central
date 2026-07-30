@@ -284,6 +284,16 @@ function HarvestPage() {
                   <p className="whitespace-pre-wrap text-sm leading-relaxed">
                     {r.content}
                   </p>
+                  {r.homework && (
+                    <div className="mt-3 rounded-md border border-dashed p-3">
+                      <p className="mb-1 text-xs font-semibold text-muted-foreground">
+                        الواجب
+                      </p>
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed">
+                        {r.homework}
+                      </p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
