@@ -28,6 +28,7 @@ import {
   updateUserRoles,
   deleteUser,
 } from "@/lib/admin-users.functions";
+import { SectionGroupsTab } from "@/components/settings/SectionGroupsTab";
 
 export const Route = createFileRoute("/_authenticated/settings")({ component: SettingsPage });
 
@@ -56,9 +57,11 @@ function SettingsPage() {
       <Tabs defaultValue="sections">
         <TabsList>
           <TabsTrigger value="sections">الشُعب</TabsTrigger>
+          <TabsTrigger value="groups">مجموعات واتساب</TabsTrigger>
           <TabsTrigger value="users">المستخدمون</TabsTrigger>
         </TabsList>
         <TabsContent value="sections"><SectionsTab /></TabsContent>
+        <TabsContent value="groups"><SectionGroupsTab isAdmin={isAdmin} /></TabsContent>
         <TabsContent value="users"><UsersTab isAdmin={isAdmin} /></TabsContent>
       </Tabs>
     </div>
