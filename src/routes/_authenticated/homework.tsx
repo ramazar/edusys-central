@@ -23,9 +23,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { BookCheck, Check, CircleSlash, CircleDot, FileDown, Plus, Trash2 } from "lucide-react";
+import { BookCheck, Check, CircleSlash, CircleDot, Plus, Trash2 } from "lucide-react";
 import { useAuthSession, useMyRoles, hasAny, logAudit } from "@/hooks/useAuth";
-import { printReport } from "@/lib/print-pdf";
+import { ExportMenu } from "@/components/ExportMenu";
 
 export const Route = createFileRoute("/_authenticated/homework")({
   component: HomeworkPage,
@@ -388,15 +388,18 @@ function AssignmentDialog({
     toast.success(`تم حفظ حالة ${rows.length} طالب`);
   };
 
-  const exportPDF = () => {
-    if (list.length === 0) return toast.error("لا يوجد طلاب");
+  const buildDoc = () => {
+    if (list.length === 0) {
+      toast.error("لا يوجد طلاب");
+      return null;
+    }
     const counts = { done: 0, partial: 0, not_done: 0 } as Record<Status, number>;
     const rows = list.map((s, i) => {
       const st = (statusMap[s.id] || "not_done") as Status;
       counts[st]++;
       return [i + 1, s.full_name, s.student_number, statusLabel(st)];
     });
-    printReport({
+    return {
       title: `الواجب — ${assignment.subject}`,
       subtitle: `${assignment.title} — الصف ${assignment.grade_id} / الشعبة ${sectionNumber}`,
       meta: [
@@ -408,14 +411,9 @@ function AssignmentDialog({
         { label: "جزئي", value: String(counts.partial) },
         { label: "لم يُنجز", value: String(counts.not_done) },
       ],
-      columns: [
-        { header: "#", width: "8%", align: "center" },
-        { header: "اسم الطالب", width: "50%" },
-        { header: "رقم الطالب", width: "22%" },
-        { header: "الحالة", width: "20%", align: "center" },
-      ],
-      rows,
-    });
+      tables: [{ columns: ["#", "اسم الطالب", "رقم الطالب", "الحالة"], rows }],
+      filename: `homework-${assignment.date}`,
+    };
   };
 
   const setAll = (s: Status) => {
@@ -441,9 +439,16 @@ function AssignmentDialog({
             <CircleSlash className="ms-1 h-4 w-4" /> الكل لم يُنجز
           </Button>
           <div className="ms-auto flex gap-2">
-            <Button size="sm" variant="outline" onClick={exportPDF}>
-              <FileDown className="ms-1 h-4 w-4" /> تصدير PDF
-            </Button>
+            <ExportMenu
+              size="sm"
+              doc={buildDoc}
+              pdfColumns={[
+                { header: "#", width: "8%", align: "center" },
+                { header: "اسم الطالب", width: "50%" },
+                { header: "رقم الطالب", width: "22%" },
+                { header: "الحالة", width: "20%", align: "center" },
+              ]}
+            />
             {canEdit && (
               <Button size="sm" onClick={save} disabled={saving}>
                 {saving ? "..." : "حفظ الكل"}
