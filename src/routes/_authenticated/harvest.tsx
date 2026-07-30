@@ -317,6 +317,8 @@ function AddHarvestDialog({
   const [open, setOpen] = useState(false);
   const [subject, setSubject] = useState("");
   const [content, setContent] = useState("");
+  const [page, setPage] = useState("");
+  const [homework, setHomework] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [saving, setSaving] = useState(false);
 
@@ -333,6 +335,8 @@ function AddHarvestDialog({
         section_id: sectionId,
         subject: subject.trim(),
         content: content.trim(),
+        page: page.trim() || null,
+        homework: homework.trim() || null,
         date,
         created_by: user?.id ?? null,
       })
@@ -347,6 +351,8 @@ function AddHarvestDialog({
     toast.success("تم الحفظ");
     setSubject("");
     setContent("");
+    setPage("");
+    setHomework("");
     setOpen(false);
     onSaved();
   };
