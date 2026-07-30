@@ -262,6 +262,11 @@ function HarvestPage() {
                       <span className="inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
                         {r.subject}
                       </span>
+                      {r.page && (
+                        <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-medium">
+                          صفحة {r.page}
+                        </span>
+                      )}
                       <span className="text-xs text-muted-foreground" dir="ltr">
                         {r.date}
                       </span>
