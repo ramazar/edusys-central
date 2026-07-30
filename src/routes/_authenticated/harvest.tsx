@@ -143,10 +143,12 @@ function HarvestPage() {
       ],
       columns: [
         { header: "التاريخ", width: "18%" },
-        { header: "المادة", width: "22%" },
-        { header: "ما تم تعلمه", width: "60%" },
+        { header: "المادة", width: "16%" },
+        { header: "الصفحة", width: "10%" },
+        { header: "ما تم تعلمه", width: "34%" },
+        { header: "الواجب", width: "22%" },
       ],
-      rows: rows.map((r) => [r.date, r.subject, r.content]),
+      rows: rows.map((r) => [r.date, r.subject, r.page ?? "-", r.content, r.homework ?? "-"]),
     });
   };
 
