@@ -198,6 +198,7 @@ function AttendancePage() {
           <div className="flex flex-wrap gap-2">
             <ExportMenu
               label="تصدير الشعبة"
+              sectionId={sectionId}
               doc={buildSectionDoc}
               disabled={students.length === 0}
               pdfColumns={[
@@ -209,6 +210,7 @@ function AttendancePage() {
             />
             <ExportMenu
               label="تصدير كل الشُعب"
+              sectionTargets={sections.map((s) => ({ id: s.id, label: `الشعبة ${s.section_number}` }))}
               doc={buildGradeDoc}
               disabled={sections.length === 0}
               pdfColumns={[

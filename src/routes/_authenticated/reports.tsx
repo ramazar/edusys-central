@@ -205,6 +205,7 @@ function ReportsPage() {
             <ExportMenu
               variant="default"
               label="تصدير الصف بأكمله"
+              sectionTargets={sections.map((s) => ({ id: s.id, label: `الشعبة ${s.section_number}` }))}
               doc={buildGradeDoc}
               disabled={ranking.length === 0}
               pdfColumns={gradeCols}
@@ -222,6 +223,7 @@ function ReportsPage() {
                   size="sm"
                   variant="secondary"
                   label={`الشعبة ${s.section_number}`}
+                  sectionId={s.id}
                   doc={buildSectionDoc(s.id, s.section_number)}
                   pdfColumns={sectionCols}
                 />
