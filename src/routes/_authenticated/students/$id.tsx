@@ -240,7 +240,7 @@ function ReportDialog({ open, onOpenChange, student }: { open: boolean; onOpenCh
             variant="default"
             label={loading ? "جارٍ الإنشاء…" : "إنشاء التقرير"}
             disabled={loading}
-            onPdf={gen}
+            onPdf={async () => { await gen(); }}
             doc={async () => {
               if (!from || !to) {
                 toast.error("حدد الفترة");
