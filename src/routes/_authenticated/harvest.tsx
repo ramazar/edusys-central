@@ -388,12 +388,29 @@ function AddHarvestDialog({
             />
           </div>
           <div className="space-y-1.5">
+            <Label>الصفحة</Label>
+            <Input
+              value={page}
+              onChange={(e) => setPage(e.target.value)}
+              placeholder="مثال: 42 أو 42-45"
+            />
+          </div>
+          <div className="space-y-1.5">
             <Label>ما تم تعلمه</Label>
             <Textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              rows={5}
+              rows={4}
               placeholder="اكتب ملخصًا لما تم تدريسه اليوم..."
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>الواجب</Label>
+            <Textarea
+              value={homework}
+              onChange={(e) => setHomework(e.target.value)}
+              rows={3}
+              placeholder="مثال: حل تمارين صفحة 43"
             />
           </div>
         </div>
