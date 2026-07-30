@@ -171,6 +171,7 @@ function HarvestPage() {
         </div>
         <div className="flex gap-2">
           <ExportMenu
+            sectionId={sectionId}
             doc={buildDoc}
             pdfColumns={[
               { header: "التاريخ", width: "14%" },

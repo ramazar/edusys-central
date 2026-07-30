@@ -441,6 +441,7 @@ function AssignmentDialog({
           <div className="ms-auto flex gap-2">
             <ExportMenu
               size="sm"
+              sectionId={assignment.section_id}
               doc={buildDoc}
               pdfColumns={[
                 { header: "#", width: "8%", align: "center" },

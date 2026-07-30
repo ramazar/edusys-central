@@ -328,6 +328,8 @@ function MarksPage() {
           <ExportMenu
             className="mr-auto"
             label="تصدير الملخص"
+            sectionId={sectionId !== "all" ? sectionId : null}
+            sectionTargets={sections.map((s) => ({ id: s.id, label: `الشعبة ${s.section_number}` }))}
             doc={buildWeeklyDoc}
             onPdf={exportWeeklyPDF}
           />
