@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Plus, StickyNote, FileDown, MessageSquarePlus } from "lucide-react";
+import { Trash2, Plus, StickyNote, MessageSquarePlus } from "lucide-react";
+import { ExportMenu } from "@/components/ExportMenu";
 import { toast } from "sonner";
 import { useAuthSession, useMyRoles, hasAny, logAudit } from "@/hooks/useAuth";
 
@@ -130,6 +131,50 @@ function MarksPage() {
     await logAudit(user, "delete", "daily_marks", m.id, m as unknown, null);
     toast.success("تم الحذف");
     qc.invalidateQueries({ queryKey: ["marks"] });
+  }
+
+  function buildWeeklyDoc() {
+    const nameOf = (id: string) => students.find((st) => st.id === id)?.full_name ?? "-";
+    const allComments = marks
+      .filter((m) => m.notes && m.notes.trim().length > 0)
+      .sort((a, b) => (a.date < b.date ? 1 : -1));
+    const allMarks = marks
+      .filter((m) => Number(m.max_score) > 0)
+      .sort((a, b) => (a.date < b.date ? 1 : -1));
+    const tag = (d: string) => (d >= from ? " (هذا الأسبوع)" : "");
+    return {
+      title: "علامات وملاحظات الطلاب",
+      subtitle: `الصف ${gradeId}${sectionId === "all" ? " — جميع الشعب" : ""}`,
+      meta: [
+        { label: "عدد العلامات", value: String(allMarks.length) },
+        { label: "عدد الملاحظات", value: String(allComments.length) },
+        { label: "بداية الأسبوع", value: from },
+      ],
+      tables: [
+        {
+          heading: "الملاحظات",
+          columns: ["التاريخ", "الطالب", "التصنيف", "الملاحظة"],
+          rows: allComments.map((m) => [
+            m.date + tag(m.date),
+            nameOf(m.student_id),
+            m.subject,
+            m.notes ?? "",
+          ]),
+        },
+        {
+          heading: "العلامات",
+          columns: ["التاريخ", "الطالب", "المادة", "العلامة", "ملاحظة"],
+          rows: allMarks.map((m) => [
+            m.date + tag(m.date),
+            nameOf(m.student_id),
+            m.subject,
+            `${Number(m.score)} / ${Number(m.max_score)}`,
+            m.notes ?? "",
+          ]),
+        },
+      ],
+      filename: `marks-grade-${gradeId}`,
+    };
   }
 
   function exportWeeklyPDF() {
@@ -280,9 +325,12 @@ function MarksPage() {
               </SelectContent>
             </Select>
           </div>
-          <Button variant="outline" onClick={exportWeeklyPDF} className="mr-auto">
-            <FileDown className="h-4 w-4 ml-1" /> تصدير الملخص PDF
-          </Button>
+          <ExportMenu
+            className="mr-auto"
+            label="تصدير الملخص"
+            doc={buildWeeklyDoc}
+            onPdf={exportWeeklyPDF}
+          />
         </CardContent>
       </Card>
 

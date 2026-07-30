@@ -2,6 +2,7 @@
 // marks, behavioral comments, and attendance day counts.
 
 import { supabase } from "@/integrations/supabase/client";
+import type { ExportTextDoc } from "@/lib/report-text";
 
 type Student = { id: string; full_name: string; student_number: number | string; grade_id?: number | null };
 
@@ -136,4 +137,64 @@ function esc(s: string) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+/** Same data as the PDF report, shaped for text / WhatsApp export. */
+export async function buildStudentReportDoc(
+  student: Student,
+  from: string,
+  to: string,
+): Promise<ExportTextDoc> {
+  const [{ data: marks = [] }, { data: attendance = [] }] = await Promise.all([
+    supabase
+      .from("daily_marks")
+      .select("*")
+      .eq("student_id", student.id)
+      .gte("date", from)
+      .lte("date", to)
+      .order("date", { ascending: false }),
+    supabase
+      .from("attendance")
+      .select("date,status")
+      .eq("student_id", student.id)
+      .gte("date", from)
+      .lte("date", to),
+  ]);
+
+  const marksRows = (marks ?? []).filter((m: any) => Number(m.max_score ?? 0) > 0);
+  const noteRows = (marks ?? []).filter((m: any) => !(Number(m.max_score ?? 0) > 0));
+  const present = (attendance ?? []).filter((a: any) => a.status === "present").length;
+  const late = (attendance ?? []).filter((a: any) => a.status === "late").length;
+  const absent = (attendance ?? []).filter((a: any) => a.status === "absent").length;
+
+  return {
+    title: `تقرير الطالب: ${student.full_name}`,
+    subtitle: `من ${from} إلى ${to}`,
+    meta: [
+      { label: "رقم الطالب", value: String(student.student_number) },
+      ...(student.grade_id ? [{ label: "الصف", value: String(student.grade_id) }] : []),
+      { label: "أيام الحضور", value: String(present) },
+      { label: "أيام التأخر", value: String(late) },
+      { label: "أيام الغياب", value: String(absent) },
+    ],
+    tables: [
+      {
+        heading: "العلامات",
+        columns: ["التاريخ", "المادة", "الدرجة", "النسبة", "ملاحظات"],
+        rows: marksRows.map((m: any) => [
+          m.date,
+          m.subject ?? "—",
+          `${Number(m.score)} / ${Number(m.max_score)}`,
+          `${Math.round((Number(m.score) / Number(m.max_score)) * 100)}%`,
+          m.notes ?? "",
+        ]),
+      },
+      {
+        heading: "الملاحظات والتعليقات",
+        columns: ["التاريخ", "النوع", "الملاحظة"],
+        rows: noteRows.map((m: any) => [m.date, m.subject ?? "ملاحظة", m.notes ?? ""]),
+      },
+    ],
+    filename: `student-${student.full_name}-${from}-${to}`,
+  };
 }

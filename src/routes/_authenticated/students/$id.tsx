@@ -14,7 +14,8 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useAuthSession, useMyRoles, hasAny, logAudit } from "@/hooks/useAuth";
 import { generateInvoicePDF, generateReceiptPDF } from "@/lib/invoice";
-import { generateStudentReport } from "@/lib/student-report";
+import { generateStudentReport, buildStudentReportDoc } from "@/lib/student-report";
+import { ExportMenu } from "@/components/ExportMenu";
 import { StudentDialog } from "@/components/students/StudentDialog";
 
 export const Route = createFileRoute("/_authenticated/students/$id")({
@@ -83,7 +84,7 @@ function StudentDetail() {
           </Button>
         )}
         <Button variant="outline" onClick={() => setReportDialog(true)}>
-          <FileText className="ml-2 h-4 w-4" /> تقرير الطالب PDF
+          <FileText className="ml-2 h-4 w-4" /> تقرير الطالب
         </Button>
         <Button variant="outline" onClick={() => generateInvoicePDF(student, plans, payments)}>
           <Printer className="ml-2 h-4 w-4" /> طباعة الفاتورة
@@ -235,7 +236,21 @@ function ReportDialog({ open, onOpenChange, student }: { open: boolean; onOpenCh
         <p className="text-xs text-muted-foreground">يشمل التقرير جميع العلامات، الملاحظات السلوكية، وعدد أيام الحضور/التأخر/الغياب خلال الفترة المحددة.</p>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>إلغاء</Button>
-          <Button onClick={gen} disabled={loading}>{loading ? "جارٍ الإنشاء…" : "إنشاء PDF"}</Button>
+          <ExportMenu
+            variant="default"
+            label={loading ? "جارٍ الإنشاء…" : "إنشاء التقرير"}
+            disabled={loading}
+            onPdf={async () => { await gen(); }}
+            doc={async () => {
+              if (!from || !to) {
+                toast.error("حدد الفترة");
+                return null;
+              }
+              const d = await buildStudentReportDoc(student, from, to);
+              onOpenChange(false);
+              return d;
+            }}
+          />
         </DialogFooter>
       </DialogContent>
     </Dialog>

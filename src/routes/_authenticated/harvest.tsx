@@ -23,9 +23,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { FileDown, Plus, Sprout, Trash2 } from "lucide-react";
+import { Plus, Sprout, Trash2 } from "lucide-react";
 import { useAuthSession, useMyRoles, hasAny, logAudit } from "@/hooks/useAuth";
-import { printReport } from "@/lib/print-pdf";
+import { ExportMenu } from "@/components/ExportMenu";
 
 export const Route = createFileRoute("/_authenticated/harvest")({
   component: HarvestPage,
@@ -128,12 +128,9 @@ function HarvestPage() {
     qc.invalidateQueries({ queryKey: ["harvest-rows"] });
   };
 
-  const exportPDF = () => {
-    if (rows.length === 0) {
-      toast.error("لا توجد بيانات للتصدير");
-      return;
-    }
-    printReport({
+  const buildDoc = () => {
+    if (rows.length === 0) return null;
+    return {
       title: "الحصاد العلمي",
       subtitle: `${gradeName} — الشعبة ${sectionNum}`,
       meta: [
@@ -141,16 +138,22 @@ function HarvestPage() {
         { label: "إلى", value: to },
         { label: "عدد السجلات", value: String(rows.length) },
       ],
-      columns: [
-        { header: "التاريخ", width: "18%" },
-        { header: "المادة", width: "16%" },
-        { header: "الصفحة", width: "10%" },
-        { header: "ما تم تعلمه", width: "34%" },
-        { header: "الواجب", width: "22%" },
+      tables: [
+        {
+          columns: ["التاريخ", "المادة", "الصفحة", "ما تم تعلمه", "الواجب"],
+          rows: rows.map((r) => [
+            r.date,
+            r.subject,
+            (r as any).page ?? "-",
+            r.content,
+            (r as any).homework ?? "-",
+          ]),
+        },
       ],
-      rows: rows.map((r) => [r.date, r.subject, r.page ?? "-", r.content, r.homework ?? "-"]),
-    });
+      filename: `harvest-${from}-${to}`,
+    };
   };
+
 
   return (
     <div className="space-y-6 p-6">
@@ -167,10 +170,17 @@ function HarvestPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={exportPDF}>
-            <FileDown className="ms-2 h-4 w-4" />
-            تصدير PDF
-          </Button>
+          <ExportMenu
+            doc={buildDoc}
+            pdfColumns={[
+              { header: "التاريخ", width: "14%" },
+              { header: "المادة", width: "16%" },
+              { header: "الصفحة", width: "10%" },
+              { header: "ما تم تعلمه", width: "38%" },
+              { header: "الواجب", width: "22%" },
+            ]}
+          />
+
           {canEdit && sectionId && (
             <AddHarvestDialog
               gradeId={gradeId}

@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Check, X, Clock, CheckCheck, FileText, Printer, MessageCircle } from "lucide-react";
+import { Check, X, Clock, CheckCheck, MessageCircle } from "lucide-react";
 import { useAuthSession, logAudit } from "@/hooks/useAuth";
-import { printReport } from "@/lib/print-pdf";
+import { ExportMenu } from "@/components/ExportMenu";
 import { WhatsAppSendDialog } from "@/components/attendance/WhatsAppSendDialog";
 
 
@@ -72,8 +72,11 @@ function AttendancePage() {
 
   const statusLabel = (s: Status) => (s === "present" ? "حاضر" : s === "late" ? "متأخر" : "غائب");
 
-  const exportSectionPDF = () => {
-    if (students.length === 0) return toast.error("لا يوجد طلاب في هذه الشعبة");
+  const buildSectionDoc = () => {
+    if (students.length === 0) {
+      toast.error("لا يوجد طلاب في هذه الشعبة");
+      return null;
+    }
     const section = sections.find((x) => x.id === sectionId);
     const counts = { present: 0, late: 0, absent: 0 } as Record<Status, number>;
     const rows = students.map((s, i) => {
@@ -81,7 +84,7 @@ function AttendancePage() {
       counts[st]++;
       return [i + 1, s.full_name, s.student_number, statusLabel(st)];
     });
-    printReport({
+    return {
       title: `كشف الحضور — الصف ${gradeId} / الشعبة ${section?.section_number ?? "-"}`,
       subtitle: `التاريخ: ${date}`,
       meta: [
@@ -93,18 +96,18 @@ function AttendancePage() {
         { label: "متأخر", value: String(counts.late) },
         { label: "غائب", value: String(counts.absent) },
       ],
-      columns: [
-        { header: "#", width: "8%", align: "center" },
-        { header: "اسم الطالب", width: "50%" },
-        { header: "رقم الطالب", width: "22%" },
-        { header: "الحالة", width: "20%", align: "center" },
+      tables: [
+        { columns: ["#", "اسم الطالب", "رقم الطالب", "الحالة"], rows },
       ],
-      rows,
-    });
+      filename: `attendance-section-${date}`,
+    };
   };
 
-  const exportGradePDF = async () => {
-    if (sections.length === 0) return toast.error("لا توجد شُعب في هذا الصف");
+  const buildGradeDoc = async () => {
+    if (sections.length === 0) {
+      toast.error("لا توجد شُعب في هذا الصف");
+      return null;
+    }
     const secIds = sections.map((s) => s.id);
     const { data: allStudents } = await supabase
       .from("students")
@@ -113,7 +116,10 @@ function AttendancePage() {
       .eq("is_active", true)
       .order("full_name");
     const list = allStudents ?? [];
-    if (list.length === 0) return toast.error("لا يوجد طلاب في هذا الصف");
+    if (list.length === 0) {
+      toast.error("لا يوجد طلاب في هذا الصف");
+      return null;
+    }
     const { data: att } = await supabase
       .from("attendance")
       .select("student_id, status")
@@ -133,7 +139,7 @@ function AttendancePage() {
         rows.push([++idx, s.full_name, s.student_number, `الشعبة ${sec.section_number}`, statusLabel(st)]);
       });
     }
-    printReport({
+    return {
       title: `كشف الحضور — الصف ${gradeId} (جميع الشُعب)`,
       subtitle: `التاريخ: ${date}`,
       meta: [
@@ -145,15 +151,11 @@ function AttendancePage() {
         { label: "متأخر", value: String(counts.late) },
         { label: "غائب", value: String(counts.absent) },
       ],
-      columns: [
-        { header: "#", width: "7%", align: "center" },
-        { header: "اسم الطالب", width: "38%" },
-        { header: "رقم الطالب", width: "20%" },
-        { header: "الشعبة", width: "17%", align: "center" },
-        { header: "الحالة", width: "18%", align: "center" },
+      tables: [
+        { columns: ["#", "اسم الطالب", "رقم الطالب", "الشعبة", "الحالة"], rows },
       ],
-      rows,
-    });
+      filename: `attendance-grade-${gradeId}-${date}`,
+    };
   };
 
 
@@ -194,12 +196,29 @@ function AttendancePage() {
         <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <CardTitle>قائمة الطلاب ({students.length})</CardTitle>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={exportSectionPDF} disabled={students.length === 0}>
-              <Printer className="ml-2 h-4 w-4" /> PDF للشعبة
-            </Button>
-            <Button variant="outline" onClick={exportGradePDF} disabled={sections.length === 0}>
-              <FileText className="ml-2 h-4 w-4" /> PDF لكل الشُعب في الصف
-            </Button>
+            <ExportMenu
+              label="تصدير الشعبة"
+              doc={buildSectionDoc}
+              disabled={students.length === 0}
+              pdfColumns={[
+                { header: "#", width: "8%", align: "center" },
+                { header: "اسم الطالب", width: "50%" },
+                { header: "رقم الطالب", width: "22%" },
+                { header: "الحالة", width: "20%", align: "center" },
+              ]}
+            />
+            <ExportMenu
+              label="تصدير كل الشُعب"
+              doc={buildGradeDoc}
+              disabled={sections.length === 0}
+              pdfColumns={[
+                { header: "#", width: "7%", align: "center" },
+                { header: "اسم الطالب", width: "38%" },
+                { header: "رقم الطالب", width: "20%" },
+                { header: "الشعبة", width: "17%", align: "center" },
+                { header: "الحالة", width: "18%", align: "center" },
+              ]}
+            />
             <Button
               variant="outline"
               className="border-success text-success hover:bg-success/10"

@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Download, FileText, Printer } from "lucide-react";
+import { Trophy, Download } from "lucide-react";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
-import { printReport } from "@/lib/print-pdf";
+import { ExportMenu } from "@/components/ExportMenu";
 
 export const Route = createFileRoute("/_authenticated/reports")({ component: ReportsPage });
 
@@ -93,17 +93,28 @@ function ReportsPage() {
     XLSX.writeFile(wb, `ranking-grade-${gradeId}.xlsx`);
   };
 
-  const exportGradePDF = () => {
-    if (ranking.length === 0) return toast.error("لا توجد بيانات للتصدير");
-    const rows = ranking.map((r, i) => [
-      i + 1,
-      r.full_name,
-      r.student_number,
-      `الشعبة ${r.sections?.section_number ?? "-"}`,
-      r.avg.toFixed(2),
-      r.count,
-    ]);
-    printReport({
+  const gradeCols = [
+    { header: "الترتيب", width: "10%", align: "center" as const },
+    { header: "اسم الطالب", width: "34%" },
+    { header: "رقم الطالب", width: "18%" },
+    { header: "الشعبة", width: "14%" },
+    { header: "المعدل %", width: "12%", align: "center" as const },
+    { header: "عدد الدرجات", width: "12%", align: "center" as const },
+  ];
+  const sectionCols = [
+    { header: "الترتيب", width: "10%", align: "center" as const },
+    { header: "اسم الطالب", width: "40%" },
+    { header: "رقم الطالب", width: "20%" },
+    { header: "المعدل %", width: "15%", align: "center" as const },
+    { header: "عدد الدرجات", width: "15%", align: "center" as const },
+  ];
+
+  const buildGradeDoc = () => {
+    if (ranking.length === 0) {
+      toast.error("لا توجد بيانات للتصدير");
+      return null;
+    }
+    return {
       title: `ترتيب الصف ${gradeId} — ${periodLabel}`,
       subtitle: "ترتيب الطلاب حسب المعدل العام",
       meta: [
@@ -111,30 +122,30 @@ function ReportsPage() {
         { label: "الفترة", value: periodLabel },
         { label: "عدد الطلاب", value: String(ranking.length) },
       ],
-      columns: [
-        { header: "الترتيب", width: "10%", align: "center" },
-        { header: "اسم الطالب", width: "34%" },
-        { header: "رقم الطالب", width: "18%" },
-        { header: "الشعبة", width: "14%" },
-        { header: "المعدل %", width: "12%", align: "center" },
-        { header: "عدد الدرجات", width: "12%", align: "center" },
+      tables: [
+        {
+          columns: gradeCols.map((c) => c.header),
+          rows: ranking.map((r, i) => [
+            i + 1,
+            r.full_name,
+            r.student_number,
+            `الشعبة ${r.sections?.section_number ?? "-"}`,
+            r.avg.toFixed(2),
+            r.count,
+          ]),
+        },
       ],
-      rows,
-    });
+      filename: `ranking-grade-${gradeId}`,
+    };
   };
 
-  const exportSectionPDF = (sectionId: string, sectionNumber: number) => {
+  const buildSectionDoc = (sectionId: string, sectionNumber: number) => () => {
     const filtered = ranking.filter((r) => r.section_id === sectionId);
-    if (filtered.length === 0) return toast.error("لا يوجد طلاب في هذه الشعبة");
-    // Re-rank within the section
-    const rows = filtered.map((r, i) => [
-      i + 1,
-      r.full_name,
-      r.student_number,
-      r.avg.toFixed(2),
-      r.count,
-    ]);
-    printReport({
+    if (filtered.length === 0) {
+      toast.error("لا يوجد طلاب في هذه الشعبة");
+      return null;
+    }
+    return {
       title: `ترتيب الصف ${gradeId} — الشعبة ${sectionNumber}`,
       subtitle: periodLabel,
       meta: [
@@ -143,15 +154,14 @@ function ReportsPage() {
         { label: "الفترة", value: periodLabel },
         { label: "عدد الطلاب", value: String(filtered.length) },
       ],
-      columns: [
-        { header: "الترتيب", width: "10%", align: "center" },
-        { header: "اسم الطالب", width: "40%" },
-        { header: "رقم الطالب", width: "20%" },
-        { header: "المعدل %", width: "15%", align: "center" },
-        { header: "عدد الدرجات", width: "15%", align: "center" },
+      tables: [
+        {
+          columns: sectionCols.map((c) => c.header),
+          rows: filtered.map((r, i) => [i + 1, r.full_name, r.student_number, r.avg.toFixed(2), r.count]),
+        },
       ],
-      rows,
-    });
+      filename: `ranking-grade-${gradeId}-section-${sectionNumber}`,
+    };
   };
 
   return (
@@ -192,25 +202,29 @@ function ReportsPage() {
             <Button variant="outline" onClick={exportXlsx} disabled={ranking.length === 0}>
               <Download className="ml-2 h-4 w-4" /> Excel
             </Button>
-            <Button onClick={exportGradePDF} disabled={ranking.length === 0}>
-              <FileText className="ml-2 h-4 w-4" /> PDF للصف بأكمله
-            </Button>
+            <ExportMenu
+              variant="default"
+              label="تصدير الصف بأكمله"
+              doc={buildGradeDoc}
+              disabled={ranking.length === 0}
+              pdfColumns={gradeCols}
+            />
           </div>
         </CardHeader>
 
         {sections.length > 0 && (
           <div className="border-t px-6 py-3">
-            <div className="mb-2 text-xs font-semibold text-muted-foreground">تصدير PDF لكل شعبة:</div>
+            <div className="mb-2 text-xs font-semibold text-muted-foreground">تصدير لكل شعبة (PDF / نص / واتساب):</div>
             <div className="flex flex-wrap gap-2">
               {sections.map((s) => (
-                <Button
+                <ExportMenu
                   key={s.id}
                   size="sm"
                   variant="secondary"
-                  onClick={() => exportSectionPDF(s.id, s.section_number)}
-                >
-                  <Printer className="ml-1 h-3.5 w-3.5" /> الشعبة {s.section_number}
-                </Button>
+                  label={`الشعبة ${s.section_number}`}
+                  doc={buildSectionDoc(s.id, s.section_number)}
+                  pdfColumns={sectionCols}
+                />
               ))}
             </div>
           </div>

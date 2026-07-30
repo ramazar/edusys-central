@@ -9,10 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, ScanLine, LogIn, LogOut, History, FileDown, Trash2 } from "lucide-react";
+import { Plus, ScanLine, LogIn, LogOut, History, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthSession, useMyRoles, hasAny, logAudit } from "@/hooks/useAuth";
-import { printReport } from "@/lib/print-pdf";
+import { ExportMenu } from "@/components/ExportMenu";
 
 export const Route = createFileRoute("/_authenticated/workers")({ component: WorkersPage });
 
@@ -254,9 +254,9 @@ function MonthlyHistoryDialog({ worker, onClose }: { worker: Worker; onClose: ()
   const absentDays = rows.filter((r) => r.status === "absent").length;
   const lateDays = rows.filter((r) => r.status === "late").length;
 
-  const exportPDF = () => {
-    const statusAr = (s: string) => s === "present" ? "حاضر" : s === "absent" ? "غائب" : s === "late" ? "متأخر" : s;
-    printReport({
+  const buildDoc = () => {
+    const statusAr = (st: string) => st === "present" ? "حاضر" : st === "absent" ? "غائب" : st === "late" ? "متأخر" : st;
+    return {
       title: `السجل الشهري — ${worker.full_name}`,
       subtitle: worker.job_title ?? undefined,
       meta: [
@@ -265,16 +265,16 @@ function MonthlyHistoryDialog({ worker, onClose }: { worker: Worker; onClose: ()
         { label: "متأخر", value: String(lateDays) },
         { label: "غائب", value: String(absentDays) },
       ],
-      columns: [
-        { header: "التاريخ" },
-        { header: "الحضور" },
-        { header: "الانصراف" },
-        { header: "الحالة" },
+      tables: [
+        {
+          columns: ["التاريخ", "الحضور", "الانصراف", "الحالة"],
+          rows: rows.length
+            ? rows.map((r) => [r.date, fmtTime(r.check_in), fmtTime(r.check_out), statusAr(r.status)])
+            : [["—", "—", "—", "لا توجد سجلات"]],
+        },
       ],
-      rows: rows.length
-        ? rows.map((r) => [r.date, fmtTime(r.check_in), fmtTime(r.check_out), statusAr(r.status)])
-        : [["—", "—", "—", "لا توجد سجلات"]],
-    });
+      filename: `worker-${worker.full_name}-${month}`,
+    };
   };
 
   return (
@@ -291,9 +291,7 @@ function MonthlyHistoryDialog({ worker, onClose }: { worker: Worker; onClose: ()
             {lateDays > 0 && <Badge className="bg-warning text-warning-foreground">متأخر: {lateDays}</Badge>}
             <Badge variant="destructive">غائب: {absentDays}</Badge>
           </div>
-          <Button variant="outline" className="ms-auto" onClick={exportPDF}>
-            <FileDown className="ml-1 h-4 w-4" /> تصدير PDF
-          </Button>
+          <ExportMenu className="ms-auto" doc={buildDoc} />
         </div>
         <div className="max-h-[55vh] overflow-auto">
           <Table>
