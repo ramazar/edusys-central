@@ -23,9 +23,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { FileDown, Plus, Sprout, Trash2 } from "lucide-react";
+import { Plus, Sprout, Trash2 } from "lucide-react";
 import { useAuthSession, useMyRoles, hasAny, logAudit } from "@/hooks/useAuth";
-import { printReport } from "@/lib/print-pdf";
+import { ExportMenu } from "@/components/ExportMenu";
 
 export const Route = createFileRoute("/_authenticated/harvest")({
   component: HarvestPage,
