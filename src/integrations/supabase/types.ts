@@ -435,6 +435,7 @@ export type Database = {
           id: string
           is_active: boolean
           section_number: number
+          whatsapp_group_link: string | null
         }
         Insert: {
           created_at?: string
@@ -442,6 +443,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           section_number: number
+          whatsapp_group_link?: string | null
         }
         Update: {
           created_at?: string
@@ -449,6 +451,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           section_number?: number
+          whatsapp_group_link?: string | null
         }
         Relationships: [
           {
