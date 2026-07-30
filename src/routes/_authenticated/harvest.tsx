@@ -170,10 +170,17 @@ function HarvestPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={exportPDF}>
-            <FileDown className="ms-2 h-4 w-4" />
-            تصدير PDF
-          </Button>
+          <ExportMenu
+            doc={buildDoc}
+            pdfColumns={[
+              { header: "التاريخ", width: "14%" },
+              { header: "المادة", width: "16%" },
+              { header: "الصفحة", width: "10%" },
+              { header: "ما تم تعلمه", width: "38%" },
+              { header: "الواجب", width: "22%" },
+            ]}
+          />
+
           {canEdit && sectionId && (
             <AddHarvestDialog
               gradeId={gradeId}
