@@ -21,7 +21,9 @@ export type Database = {
           created_by: string | null
           date: string
           grade_id: number
+          homework: string | null
           id: string
+          page: string | null
           section_id: string
           subject: string
           updated_at: string
@@ -32,7 +34,9 @@ export type Database = {
           created_by?: string | null
           date?: string
           grade_id: number
+          homework?: string | null
           id?: string
+          page?: string | null
           section_id: string
           subject: string
           updated_at?: string
@@ -43,7 +47,9 @@ export type Database = {
           created_by?: string | null
           date?: string
           grade_id?: number
+          homework?: string | null
           id?: string
+          page?: string | null
           section_id?: string
           subject?: string
           updated_at?: string
