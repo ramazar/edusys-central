@@ -39,6 +39,8 @@ type Harvest = {
   section_id: string;
   subject: string;
   content: string;
+  page: string | null;
+  homework: string | null;
   date: string;
   created_at: string;
 };
