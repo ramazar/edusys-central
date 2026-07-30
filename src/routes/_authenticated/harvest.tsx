@@ -39,6 +39,8 @@ type Harvest = {
   section_id: string;
   subject: string;
   content: string;
+  page: string | null;
+  homework: string | null;
   date: string;
   created_at: string;
 };
@@ -141,10 +143,12 @@ function HarvestPage() {
       ],
       columns: [
         { header: "التاريخ", width: "18%" },
-        { header: "المادة", width: "22%" },
-        { header: "ما تم تعلمه", width: "60%" },
+        { header: "المادة", width: "16%" },
+        { header: "الصفحة", width: "10%" },
+        { header: "ما تم تعلمه", width: "34%" },
+        { header: "الواجب", width: "22%" },
       ],
-      rows: rows.map((r) => [r.date, r.subject, r.content]),
+      rows: rows.map((r) => [r.date, r.subject, r.page ?? "-", r.content, r.homework ?? "-"]),
     });
   };
 
@@ -258,6 +262,11 @@ function HarvestPage() {
                       <span className="inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
                         {r.subject}
                       </span>
+                      {r.page && (
+                        <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-medium">
+                          صفحة {r.page}
+                        </span>
+                      )}
                       <span className="text-xs text-muted-foreground" dir="ltr">
                         {r.date}
                       </span>
@@ -275,6 +284,16 @@ function HarvestPage() {
                   <p className="whitespace-pre-wrap text-sm leading-relaxed">
                     {r.content}
                   </p>
+                  {r.homework && (
+                    <div className="mt-3 rounded-md border border-dashed p-3">
+                      <p className="mb-1 text-xs font-semibold text-muted-foreground">
+                        الواجب
+                      </p>
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed">
+                        {r.homework}
+                      </p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -298,6 +317,8 @@ function AddHarvestDialog({
   const [open, setOpen] = useState(false);
   const [subject, setSubject] = useState("");
   const [content, setContent] = useState("");
+  const [page, setPage] = useState("");
+  const [homework, setHomework] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [saving, setSaving] = useState(false);
 
@@ -314,6 +335,8 @@ function AddHarvestDialog({
         section_id: sectionId,
         subject: subject.trim(),
         content: content.trim(),
+        page: page.trim() || null,
+        homework: homework.trim() || null,
         date,
         created_by: user?.id ?? null,
       })
@@ -328,6 +351,8 @@ function AddHarvestDialog({
     toast.success("تم الحفظ");
     setSubject("");
     setContent("");
+    setPage("");
+    setHomework("");
     setOpen(false);
     onSaved();
   };
@@ -363,12 +388,29 @@ function AddHarvestDialog({
             />
           </div>
           <div className="space-y-1.5">
+            <Label>الصفحة</Label>
+            <Input
+              value={page}
+              onChange={(e) => setPage(e.target.value)}
+              placeholder="مثال: 42 أو 42-45"
+            />
+          </div>
+          <div className="space-y-1.5">
             <Label>ما تم تعلمه</Label>
             <Textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              rows={5}
+              rows={4}
               placeholder="اكتب ملخصًا لما تم تدريسه اليوم..."
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>الواجب</Label>
+            <Textarea
+              value={homework}
+              onChange={(e) => setHomework(e.target.value)}
+              rows={3}
+              placeholder="مثال: حل تمارين صفحة 43"
             />
           </div>
         </div>
