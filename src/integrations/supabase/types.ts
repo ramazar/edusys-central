@@ -702,6 +702,95 @@ export type Database = {
           },
         ]
       }
+      teacher_lecture_types: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          rate: number
+          teacher_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          rate?: number
+          teacher_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          rate?: number
+          teacher_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_lecture_types_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teacher_lectures: {
+        Row: {
+          count: number
+          created_at: string
+          date: string
+          id: string
+          lecture_type_id: string | null
+          notes: string | null
+          rate: number
+          recorded_by: string | null
+          teacher_id: string
+          type_name: string
+        }
+        Insert: {
+          count?: number
+          created_at?: string
+          date?: string
+          id?: string
+          lecture_type_id?: string | null
+          notes?: string | null
+          rate?: number
+          recorded_by?: string | null
+          teacher_id: string
+          type_name: string
+        }
+        Update: {
+          count?: number
+          created_at?: string
+          date?: string
+          id?: string
+          lecture_type_id?: string | null
+          notes?: string | null
+          rate?: number
+          recorded_by?: string | null
+          teacher_id?: string
+          type_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_lectures_lecture_type_id_fkey"
+            columns: ["lecture_type_id"]
+            isOneToOne: false
+            referencedRelation: "teacher_lecture_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_lectures_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teacher_payments: {
         Row: {
           amount: number
