@@ -218,7 +218,7 @@ function TeachersPage() {
                     ? <Badge className="gap-1" variant="outline"><LogOut className="h-3 w-3" />{fmtTime(att.check_out)}</Badge>
                     : <span className="text-muted-foreground">—</span>}
                 </TableCell>
-                <TableCell className="font-mono">{Number(t.salary_amount || 0).toLocaleString("ar")}</TableCell>
+                <TableCell className="font-mono">{(lectureTotals[t.id]?.lectures ?? 0).toLocaleString("ar")}</TableCell>
                 <TableCell className="font-mono">
                   <span className={t.due_override != null ? "text-primary font-semibold" : ""}>{due.toLocaleString("ar")}</span>
                   {t.due_override != null && <span className="ms-1 text-[10px] text-muted-foreground">(مخصص)</span>}
