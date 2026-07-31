@@ -9,9 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, DollarSign, History, Trash2, ScanLine, LogIn, LogOut, Pencil } from "lucide-react";
+import { Plus, DollarSign, History, Trash2, ScanLine, LogIn, LogOut, Pencil, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthSession, useMyRoles, hasAny, logAudit } from "@/hooks/useAuth";
+import { LecturesDialog, useLectureTotals } from "@/components/teachers/LecturesDialog";
 
 export const Route = createFileRoute("/_authenticated/teachers")({ component: TeachersPage });
 
