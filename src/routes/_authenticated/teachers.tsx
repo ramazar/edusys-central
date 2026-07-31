@@ -328,7 +328,7 @@ function SalaryDialog({ teacherId, onClose, onSaved }: { teacherId: string; onCl
   );
 }
 
-function HistoryDialog({ teacher, canManage, onClose, onChanged }: { teacher: Teacher; canManage: boolean; onClose: () => void; onChanged: () => void }) {
+function HistoryDialog({ teacher, due, canManage, onClose, onChanged }: { teacher: Teacher; due: number; canManage: boolean; onClose: () => void; onChanged: () => void }) {
   const { user } = useAuthSession();
   const qc = useQueryClient();
   const { data: payments = [] } = useQuery({
@@ -340,7 +340,6 @@ function HistoryDialog({ teacher, canManage, onClose, onChanged }: { teacher: Te
   });
 
   const paid = payments.reduce((s, p) => s + Number(p.amount), 0);
-  const due = Number(teacher.salary_amount) * monthsBetween(teacher.hire_date);
   const remaining = due - paid;
 
   const remove = async (id: string, row: unknown) => {
