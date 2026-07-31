@@ -29,7 +29,7 @@ export function BulkMarksDialog({
   function fillAll() {
     if (fillValue.trim() === "") return;
     const next: Record<string, string> = {};
-    students.forEach((s) => (next[s.id] = fillValue);
+    students.forEach((s) => { next[s.id] = fillValue; });
     setScores(next);
   }
 
