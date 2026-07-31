@@ -200,7 +200,7 @@ function TeachersPage() {
           {teachers.length === 0 && <TableRow><TableCell colSpan={10} className="py-8 text-center text-muted-foreground">لا يوجد معلمون</TableCell></TableRow>}
           {teachers.map((t) => {
             const paid = paymentsByTeacher[t.id] ?? 0;
-            const due = t.due_override != null ? Number(t.due_override) : Number(t.salary_amount) * monthsBetween(t.hire_date);
+            const due = dueOf(t);
             const remaining = due - paid;
             const att = attByTeacher[t.id];
             return (
