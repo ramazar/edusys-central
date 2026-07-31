@@ -190,7 +190,7 @@ function TeachersPage() {
           <TableHead className="text-right">الرمز</TableHead>
           <TableHead className="text-right">حضور اليوم</TableHead>
           <TableHead className="text-right">انصراف اليوم</TableHead>
-          <TableHead className="text-right">الراتب</TableHead>
+          <TableHead className="text-right">عدد الحصص</TableHead>
           <TableHead className="text-right">المستحق</TableHead>
           <TableHead className="text-right">المدفوع</TableHead>
           <TableHead className="text-right">المتبقي</TableHead>
