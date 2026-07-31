@@ -227,6 +227,7 @@ function TeachersPage() {
                 <TableCell className={`font-mono ${remaining > 0 ? "text-destructive" : "text-success"}`}>{remaining.toLocaleString("ar")}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
+                    <Button size="sm" variant="outline" onClick={() => setLecturesOpen(t)}><BookOpen className="ml-1 h-4 w-4" /> الحصص</Button>
                     <Button size="sm" variant="outline" onClick={() => setHistoryOpen(t)}><History className="ml-1 h-4 w-4" /> السجل</Button>
                     {canManage && <Button size="sm" variant="outline" onClick={() => setEditOpen(t)}><Pencil className="ml-1 h-4 w-4" /> تعديل</Button>}
                     {canManage && <Button size="sm" onClick={() => setPayOpen(t.id)}><DollarSign className="ml-1 h-4 w-4" /> صرف</Button>}
