@@ -37,12 +37,7 @@ type AttendanceRow = {
   check_out: string | null;
 };
 
-function monthsBetween(from: string) {
-  const start = new Date(from);
-  const now = new Date();
-  const months = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth()) + 1;
-  return Math.max(1, months);
-}
+function fmtTime(iso: string | null) {
 
 function fmtTime(iso: string | null) {
   if (!iso) return "—";
