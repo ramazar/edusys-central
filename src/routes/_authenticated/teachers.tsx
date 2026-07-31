@@ -38,8 +38,6 @@ type AttendanceRow = {
 };
 
 function fmtTime(iso: string | null) {
-
-function fmtTime(iso: string | null) {
   if (!iso) return "—";
   const d = new Date(iso);
   return d.toLocaleTimeString("ar", { hour: "2-digit", minute: "2-digit" });
