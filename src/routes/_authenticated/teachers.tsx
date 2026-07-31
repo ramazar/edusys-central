@@ -253,8 +253,9 @@ function TeachersPage() {
 
       <TeacherDialog open={dialogOpen} onOpenChange={setDialogOpen} onSaved={() => qc.invalidateQueries({ queryKey: ["teachers"] })} />
       {payOpen && <SalaryDialog teacherId={payOpen} onClose={() => setPayOpen(null)} onSaved={() => { qc.invalidateQueries({ queryKey: ["teachers"] }); qc.invalidateQueries({ queryKey: ["teacher_payments_all"] }); }} />}
-      {historyOpen && <HistoryDialog teacher={historyOpen} canManage={canManage} onClose={() => setHistoryOpen(null)} onChanged={() => qc.invalidateQueries({ queryKey: ["teacher_payments_all"] })} />}
-      {editOpen && <EditTeacherDialog teacher={editOpen} onClose={() => setEditOpen(null)} onSaved={() => qc.invalidateQueries({ queryKey: ["teachers"] })} />}
+      {historyOpen && <HistoryDialog teacher={historyOpen} due={dueOf(historyOpen)} canManage={canManage} onClose={() => setHistoryOpen(null)} onChanged={() => qc.invalidateQueries({ queryKey: ["teacher_payments_all"] })} />}
+      {editOpen && <EditTeacherDialog teacher={editOpen} autoDue={lectureTotals[editOpen.id]?.amount ?? 0} onClose={() => setEditOpen(null)} onSaved={() => qc.invalidateQueries({ queryKey: ["teachers"] })} />}
+      {lecturesOpen && <LecturesDialog teacherId={lecturesOpen.id} teacherName={lecturesOpen.full_name} canManage={canManage} onClose={() => setLecturesOpen(null)} />}
     </div>
   );
 }
