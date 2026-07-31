@@ -286,6 +286,18 @@ function MarksPage() {
                 onSaved={() => qc.invalidateQueries({ queryKey: ["marks"] })}
               />
             </Dialog>
+            <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
+              <DialogTrigger asChild>
+                <Button variant="secondary">
+                  <Users className="h-4 w-4 ml-1" /> علامات لشعبة كاملة
+                </Button>
+              </DialogTrigger>
+              <BulkMarksDialog
+                students={students}
+                onClose={() => setBulkOpen(false)}
+                onSaved={() => qc.invalidateQueries({ queryKey: ["marks"] })}
+              />
+            </Dialog>
             <Dialog open={addOpen} onOpenChange={setAddOpen}>
               <DialogTrigger asChild>
                 <Button><Plus className="h-4 w-4 ml-1" /> إضافة علامة</Button>
