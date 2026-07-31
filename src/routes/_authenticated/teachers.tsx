@@ -62,6 +62,7 @@ function TeachersPage() {
   const [payOpen, setPayOpen] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState<Teacher | null>(null);
   const [editOpen, setEditOpen] = useState<Teacher | null>(null);
+  const [lecturesOpen, setLecturesOpen] = useState<Teacher | null>(null);
   const [code, setCode] = useState("");
   const codeRef = useRef<HTMLInputElement>(null);
 
