@@ -286,7 +286,7 @@ function TeacherDialog({ open, onOpenChange, onSaved }: { open: boolean; onOpenC
           <div><Label>التخصص</Label><Input value={form.specialty} onChange={(e) => setForm({ ...form, specialty: e.target.value })} /></div>
           <div><Label>الهاتف</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
           <div><Label>البريد الإلكتروني</Label><Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-          <div><Label>الراتب الشهري</Label><Input type="number" value={form.salary_amount} onChange={(e) => setForm({ ...form, salary_amount: Number(e.target.value) })} /></div>
+          <div className="md:col-span-2 text-xs text-muted-foreground">أجر المعلم يُحدد بأنواع الحصص وعددها من زر «الحصص» بعد الإضافة.</div>
           <div>
             <Label>رمز الحضور</Label>
             <div className="flex gap-2">
