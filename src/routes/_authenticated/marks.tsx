@@ -15,8 +15,9 @@ import {
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Plus, StickyNote, MessageSquarePlus } from "lucide-react";
+import { Trash2, Plus, StickyNote, MessageSquarePlus, Users } from "lucide-react";
 import { ExportMenu } from "@/components/ExportMenu";
+import { BulkMarksDialog } from "@/components/marks/BulkMarksDialog";
 import { toast } from "sonner";
 import { useAuthSession, useMyRoles, hasAny, logAudit } from "@/hooks/useAuth";
 
@@ -50,6 +51,7 @@ function MarksPage() {
   const [sectionId, setSectionId] = useState<string>("all");
   const [addOpen, setAddOpen] = useState(false);
   const [noteOpen, setNoteOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   const { data: sections = [] } = useQuery({
     queryKey: ["marks-sections", gradeId],
@@ -283,6 +285,18 @@ function MarksPage() {
               <AddNoteDialog
                 students={students}
                 onClose={() => setNoteOpen(false)}
+                onSaved={() => qc.invalidateQueries({ queryKey: ["marks"] })}
+              />
+            </Dialog>
+            <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
+              <DialogTrigger asChild>
+                <Button variant="secondary">
+                  <Users className="h-4 w-4 ml-1" /> علامات لشعبة كاملة
+                </Button>
+              </DialogTrigger>
+              <BulkMarksDialog
+                students={students}
+                onClose={() => setBulkOpen(false)}
                 onSaved={() => qc.invalidateQueries({ queryKey: ["marks"] })}
               />
             </Dialog>
