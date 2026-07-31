@@ -97,8 +97,13 @@ function TeachersPage() {
   const attByTeacher: Record<string, AttendanceRow> = {};
   todayAtt.forEach((r) => (attByTeacher[r.teacher_id] = r));
 
+  const { data: lectureTotals = {} } = useLectureTotals();
+
+  const dueOf = (t: Teacher) =>
+    t.due_override != null ? Number(t.due_override) : (lectureTotals[t.id]?.amount ?? 0);
+
   const totalPaid = Object.values(paymentsByTeacher).reduce((s, v) => s + v, 0);
-  const totalDue = teachers.reduce((s, t) => s + (t.due_override != null ? Number(t.due_override) : Number(t.salary_amount) * monthsBetween(t.hire_date)), 0);
+  const totalDue = teachers.reduce((s, t) => s + dueOf(t), 0);
   const totalRemaining = totalDue - totalPaid;
 
   const submitCode = async (raw: string) => {
