@@ -51,7 +51,7 @@ export function BulkMarksDialog({
     const { error } = await supabase.from("daily_marks").insert(rows);
     setSaving(false);
     if (error) return toast.error(error.message);
-    await logAudit(user, "bulk_create", "daily_marks", null, null, {
+    await logAudit(user, "bulk_create", "daily_marks", undefined, null, {
       count: rows.length, subject: subject.trim(), date,
     });
     toast.success(`تم حفظ علامات ${rows.length} طالب`);
