@@ -9,9 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, DollarSign, History, Trash2, ScanLine, LogIn, LogOut, Pencil } from "lucide-react";
+import { Plus, DollarSign, History, Trash2, ScanLine, LogIn, LogOut, Pencil, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthSession, useMyRoles, hasAny, logAudit } from "@/hooks/useAuth";
+import { LecturesDialog, useLectureTotals } from "@/components/teachers/LecturesDialog";
 
 export const Route = createFileRoute("/_authenticated/teachers")({ component: TeachersPage });
 
@@ -36,13 +37,6 @@ type AttendanceRow = {
   check_out: string | null;
 };
 
-function monthsBetween(from: string) {
-  const start = new Date(from);
-  const now = new Date();
-  const months = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth()) + 1;
-  return Math.max(1, months);
-}
-
 function fmtTime(iso: string | null) {
   if (!iso) return "—";
   const d = new Date(iso);
@@ -61,6 +55,7 @@ function TeachersPage() {
   const [payOpen, setPayOpen] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState<Teacher | null>(null);
   const [editOpen, setEditOpen] = useState<Teacher | null>(null);
+  const [lecturesOpen, setLecturesOpen] = useState<Teacher | null>(null);
   const [code, setCode] = useState("");
   const codeRef = useRef<HTMLInputElement>(null);
 
@@ -95,8 +90,13 @@ function TeachersPage() {
   const attByTeacher: Record<string, AttendanceRow> = {};
   todayAtt.forEach((r) => (attByTeacher[r.teacher_id] = r));
 
+  const { data: lectureTotals = {} } = useLectureTotals();
+
+  const dueOf = (t: Teacher) =>
+    t.due_override != null ? Number(t.due_override) : (lectureTotals[t.id]?.amount ?? 0);
+
   const totalPaid = Object.values(paymentsByTeacher).reduce((s, v) => s + v, 0);
-  const totalDue = teachers.reduce((s, t) => s + (t.due_override != null ? Number(t.due_override) : Number(t.salary_amount) * monthsBetween(t.hire_date)), 0);
+  const totalDue = teachers.reduce((s, t) => s + dueOf(t), 0);
   const totalRemaining = totalDue - totalPaid;
 
   const submitCode = async (raw: string) => {
@@ -183,7 +183,7 @@ function TeachersPage() {
           <TableHead className="text-right">الرمز</TableHead>
           <TableHead className="text-right">حضور اليوم</TableHead>
           <TableHead className="text-right">انصراف اليوم</TableHead>
-          <TableHead className="text-right">الراتب</TableHead>
+          <TableHead className="text-right">عدد الحصص</TableHead>
           <TableHead className="text-right">المستحق</TableHead>
           <TableHead className="text-right">المدفوع</TableHead>
           <TableHead className="text-right">المتبقي</TableHead>
@@ -193,7 +193,7 @@ function TeachersPage() {
           {teachers.length === 0 && <TableRow><TableCell colSpan={10} className="py-8 text-center text-muted-foreground">لا يوجد معلمون</TableCell></TableRow>}
           {teachers.map((t) => {
             const paid = paymentsByTeacher[t.id] ?? 0;
-            const due = t.due_override != null ? Number(t.due_override) : Number(t.salary_amount) * monthsBetween(t.hire_date);
+            const due = dueOf(t);
             const remaining = due - paid;
             const att = attByTeacher[t.id];
             return (
@@ -211,7 +211,7 @@ function TeachersPage() {
                     ? <Badge className="gap-1" variant="outline"><LogOut className="h-3 w-3" />{fmtTime(att.check_out)}</Badge>
                     : <span className="text-muted-foreground">—</span>}
                 </TableCell>
-                <TableCell className="font-mono">{Number(t.salary_amount || 0).toLocaleString("ar")}</TableCell>
+                <TableCell className="font-mono">{(lectureTotals[t.id]?.lectures ?? 0).toLocaleString("ar")}</TableCell>
                 <TableCell className="font-mono">
                   <span className={t.due_override != null ? "text-primary font-semibold" : ""}>{due.toLocaleString("ar")}</span>
                   {t.due_override != null && <span className="ms-1 text-[10px] text-muted-foreground">(مخصص)</span>}
@@ -220,6 +220,7 @@ function TeachersPage() {
                 <TableCell className={`font-mono ${remaining > 0 ? "text-destructive" : "text-success"}`}>{remaining.toLocaleString("ar")}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
+                    <Button size="sm" variant="outline" onClick={() => setLecturesOpen(t)}><BookOpen className="ml-1 h-4 w-4" /> الحصص</Button>
                     <Button size="sm" variant="outline" onClick={() => setHistoryOpen(t)}><History className="ml-1 h-4 w-4" /> السجل</Button>
                     {canManage && <Button size="sm" variant="outline" onClick={() => setEditOpen(t)}><Pencil className="ml-1 h-4 w-4" /> تعديل</Button>}
                     {canManage && <Button size="sm" onClick={() => setPayOpen(t.id)}><DollarSign className="ml-1 h-4 w-4" /> صرف</Button>}
@@ -245,8 +246,9 @@ function TeachersPage() {
 
       <TeacherDialog open={dialogOpen} onOpenChange={setDialogOpen} onSaved={() => qc.invalidateQueries({ queryKey: ["teachers"] })} />
       {payOpen && <SalaryDialog teacherId={payOpen} onClose={() => setPayOpen(null)} onSaved={() => { qc.invalidateQueries({ queryKey: ["teachers"] }); qc.invalidateQueries({ queryKey: ["teacher_payments_all"] }); }} />}
-      {historyOpen && <HistoryDialog teacher={historyOpen} canManage={canManage} onClose={() => setHistoryOpen(null)} onChanged={() => qc.invalidateQueries({ queryKey: ["teacher_payments_all"] })} />}
-      {editOpen && <EditTeacherDialog teacher={editOpen} onClose={() => setEditOpen(null)} onSaved={() => qc.invalidateQueries({ queryKey: ["teachers"] })} />}
+      {historyOpen && <HistoryDialog teacher={historyOpen} due={dueOf(historyOpen)} canManage={canManage} onClose={() => setHistoryOpen(null)} onChanged={() => qc.invalidateQueries({ queryKey: ["teacher_payments_all"] })} />}
+      {editOpen && <EditTeacherDialog teacher={editOpen} autoDue={lectureTotals[editOpen.id]?.amount ?? 0} onClose={() => setEditOpen(null)} onSaved={() => qc.invalidateQueries({ queryKey: ["teachers"] })} />}
+      {lecturesOpen && <LecturesDialog teacherId={lecturesOpen.id} teacherName={lecturesOpen.full_name} canManage={canManage} onClose={() => setLecturesOpen(null)} />}
     </div>
   );
 }
@@ -277,7 +279,7 @@ function TeacherDialog({ open, onOpenChange, onSaved }: { open: boolean; onOpenC
           <div><Label>التخصص</Label><Input value={form.specialty} onChange={(e) => setForm({ ...form, specialty: e.target.value })} /></div>
           <div><Label>الهاتف</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
           <div><Label>البريد الإلكتروني</Label><Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-          <div><Label>الراتب الشهري</Label><Input type="number" value={form.salary_amount} onChange={(e) => setForm({ ...form, salary_amount: Number(e.target.value) })} /></div>
+          <div className="md:col-span-2 text-xs text-muted-foreground">أجر المعلم يُحدد بأنواع الحصص وعددها من زر «الحصص» بعد الإضافة.</div>
           <div>
             <Label>رمز الحضور</Label>
             <div className="flex gap-2">
@@ -319,7 +321,7 @@ function SalaryDialog({ teacherId, onClose, onSaved }: { teacherId: string; onCl
   );
 }
 
-function HistoryDialog({ teacher, canManage, onClose, onChanged }: { teacher: Teacher; canManage: boolean; onClose: () => void; onChanged: () => void }) {
+function HistoryDialog({ teacher, due, canManage, onClose, onChanged }: { teacher: Teacher; due: number; canManage: boolean; onClose: () => void; onChanged: () => void }) {
   const { user } = useAuthSession();
   const qc = useQueryClient();
   const { data: payments = [] } = useQuery({
@@ -331,7 +333,6 @@ function HistoryDialog({ teacher, canManage, onClose, onChanged }: { teacher: Te
   });
 
   const paid = payments.reduce((s, p) => s + Number(p.amount), 0);
-  const due = Number(teacher.salary_amount) * monthsBetween(teacher.hire_date);
   const remaining = due - paid;
 
   const remove = async (id: string, row: unknown) => {
@@ -380,19 +381,16 @@ function HistoryDialog({ teacher, canManage, onClose, onChanged }: { teacher: Te
   );
 }
 
-function EditTeacherDialog({ teacher, onClose, onSaved }: { teacher: Teacher; onClose: () => void; onSaved: () => void }) {
+function EditTeacherDialog({ teacher, autoDue, onClose, onSaved }: { teacher: Teacher; autoDue: number; onClose: () => void; onSaved: () => void }) {
   const { user } = useAuthSession();
-  const autoDue = Number(teacher.salary_amount) * monthsBetween(teacher.hire_date);
-  const [salary, setSalary] = useState(String(teacher.salary_amount ?? 0));
   const [dueOverride, setDueOverride] = useState<string>(teacher.due_override != null ? String(teacher.due_override) : "");
   const save = async () => {
-    const payload: { salary_amount: number; due_override: number | null } = {
-      salary_amount: Number(salary) || 0,
+    const payload: { due_override: number | null } = {
       due_override: dueOverride.trim() === "" ? null : Number(dueOverride),
     };
     const { error } = await supabase.from("teachers").update(payload as never).eq("id", teacher.id);
     if (error) return toast.error(error.message);
-    await logAudit(user, "update", "teachers", teacher.id, { salary_amount: teacher.salary_amount, due_override: teacher.due_override }, payload);
+    await logAudit(user, "update", "teachers", teacher.id, { due_override: teacher.due_override }, payload);
     toast.success("تم الحفظ");
     onSaved();
     onClose();
@@ -402,10 +400,9 @@ function EditTeacherDialog({ teacher, onClose, onSaved }: { teacher: Teacher; on
       <DialogContent>
         <DialogHeader><DialogTitle>تعديل — {teacher.full_name}</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <div>
-            <Label>الراتب الشهري</Label>
-            <Input type="number" value={salary} onChange={(e) => setSalary(e.target.value)} />
-          </div>
+          <p className="text-xs text-muted-foreground">
+            المستحق يُحتسب تلقائيًا من الحصص المُعطاة (عدد الحصص × أجر كل نوع). لتعديل أنواع الحصص أو تسجيل حصص استخدم زر «الحصص».
+          </p>
           <div>
             <Label>المستحق (مخصص)</Label>
             <Input
