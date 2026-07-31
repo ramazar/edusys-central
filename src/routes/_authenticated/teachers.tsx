@@ -388,19 +388,16 @@ function HistoryDialog({ teacher, due, canManage, onClose, onChanged }: { teache
   );
 }
 
-function EditTeacherDialog({ teacher, onClose, onSaved }: { teacher: Teacher; onClose: () => void; onSaved: () => void }) {
+function EditTeacherDialog({ teacher, autoDue, onClose, onSaved }: { teacher: Teacher; autoDue: number; onClose: () => void; onSaved: () => void }) {
   const { user } = useAuthSession();
-  const autoDue = Number(teacher.salary_amount) * monthsBetween(teacher.hire_date);
-  const [salary, setSalary] = useState(String(teacher.salary_amount ?? 0));
   const [dueOverride, setDueOverride] = useState<string>(teacher.due_override != null ? String(teacher.due_override) : "");
   const save = async () => {
-    const payload: { salary_amount: number; due_override: number | null } = {
-      salary_amount: Number(salary) || 0,
+    const payload: { due_override: number | null } = {
       due_override: dueOverride.trim() === "" ? null : Number(dueOverride),
     };
     const { error } = await supabase.from("teachers").update(payload as never).eq("id", teacher.id);
     if (error) return toast.error(error.message);
-    await logAudit(user, "update", "teachers", teacher.id, { salary_amount: teacher.salary_amount, due_override: teacher.due_override }, payload);
+    await logAudit(user, "update", "teachers", teacher.id, { due_override: teacher.due_override }, payload);
     toast.success("تم الحفظ");
     onSaved();
     onClose();
@@ -410,10 +407,9 @@ function EditTeacherDialog({ teacher, onClose, onSaved }: { teacher: Teacher; on
       <DialogContent>
         <DialogHeader><DialogTitle>تعديل — {teacher.full_name}</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <div>
-            <Label>الراتب الشهري</Label>
-            <Input type="number" value={salary} onChange={(e) => setSalary(e.target.value)} />
-          </div>
+          <p className="text-xs text-muted-foreground">
+            المستحق يُحتسب تلقائيًا من الحصص المُعطاة (عدد الحصص × أجر كل نوع). لتعديل أنواع الحصص أو تسجيل حصص استخدم زر «الحصص».
+          </p>
           <div>
             <Label>المستحق (مخصص)</Label>
             <Input
