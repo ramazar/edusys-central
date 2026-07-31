@@ -15,8 +15,9 @@ import {
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Plus, StickyNote, MessageSquarePlus } from "lucide-react";
+import { Trash2, Plus, StickyNote, MessageSquarePlus, Users } from "lucide-react";
 import { ExportMenu } from "@/components/ExportMenu";
+import { BulkMarksDialog } from "@/components/marks/BulkMarksDialog";
 import { toast } from "sonner";
 import { useAuthSession, useMyRoles, hasAny, logAudit } from "@/hooks/useAuth";
 
