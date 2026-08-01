@@ -22,7 +22,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Trash2, UserPlus, Pencil } from "lucide-react";
-import { useAuthSession, useMyRoles, logAudit, hasAny, roleLabels, type AppRole } from "@/hooks/useAuth";
+import { useAuthSession, useMyRoles, logAudit, hasAny, roleLabels, type AppRole, type SchoolRole } from "@/hooks/useAuth";
 import {
   createUserWithRoles,
   updateUserRoles,
@@ -33,9 +33,9 @@ import { BrandingTab } from "@/components/settings/BrandingTab";
 
 export const Route = createFileRoute("/_authenticated/settings")({ component: SettingsPage });
 
-const ALL_ROLES: AppRole[] = ["admin", "accountant", "reception", "teacher"];
+const ALL_ROLES: SchoolRole[] = ["admin", "accountant", "reception", "teacher"];
 
-const roleTabs: Record<AppRole, string[]> = {
+const roleTabs: Record<SchoolRole, string[]> = {
   admin: [
     "لوحة التحكم","الطلاب","الحضور","العلامات","الحصاد العلمي",
     "المعلمون","العمال","المالية","التقارير","سجل المراجعة","الإعدادات",
@@ -263,12 +263,12 @@ function AddUserDialog({ onDone }: { onDone: () => void }) {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [selected, setSelected] = useState<AppRole[]>(["reception"]);
+  const [selected, setSelected] = useState<SchoolRole[]>(["reception"]);
   const [loading, setLoading] = useState(false);
   const create = useServerFn(createUserWithRoles);
   const { user } = useAuthSession();
 
-  const toggle = (r: AppRole) =>
+  const toggle = (r: SchoolRole) =>
     setSelected((prev) => (prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]));
 
   const submit = async () => {
@@ -331,12 +331,12 @@ function AddUserDialog({ onDone }: { onDone: () => void }) {
 function EditRolesDialog({
   userRow, onClose, onDone,
 }: { userRow: UserRow; onClose: () => void; onDone: () => void }) {
-  const [selected, setSelected] = useState<AppRole[]>(userRow.roles);
+  const [selected, setSelected] = useState<SchoolRole[]>(userRow.roles as SchoolRole[]);
   const [loading, setLoading] = useState(false);
   const update = useServerFn(updateUserRoles);
   const { user } = useAuthSession();
 
-  const toggle = (r: AppRole) =>
+  const toggle = (r: SchoolRole) =>
     setSelected((prev) => (prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]));
 
   const save = async () => {

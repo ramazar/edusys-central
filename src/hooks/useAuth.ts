@@ -5,6 +5,9 @@ import { useQuery } from "@tanstack/react-query";
 
 export type AppRole = "admin" | "accountant" | "reception" | "teacher" | "super_admin";
 
+/** Roles that are granted inside a specific school (super_admin is system-wide). */
+export type SchoolRole = Exclude<AppRole, "super_admin">;
+
 export function useAuthSession() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -78,6 +81,7 @@ export const roleLabels: Record<AppRole, string> = {
   accountant: "المحاسب",
   reception: "موظف الاستقبال",
   teacher: "المعلم",
+  super_admin: "مدير النظام العام",
 };
 
 export function hasAny(roles: AppRole[] | undefined, allowed: AppRole[]): boolean {
