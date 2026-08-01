@@ -26,6 +26,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import type { AppRole } from "@/hooks/useAuth";
+import { useBranding } from "@/hooks/useBranding";
 
 type Item = { title: string; url: string; icon: React.ComponentType<{ className?: string }>; roles: AppRole[] };
 
@@ -49,17 +50,26 @@ export function AppSidebar({ roles }: { roles: AppRole[] }) {
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const visible = items.filter((i) => i.roles.some((r) => roles.includes(r)));
+  const { data: branding } = useBranding();
 
   return (
     <Sidebar side="right" collapsible="icon">
       <SidebarHeader className="border-b px-3 py-4">
         <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <GraduationCap className="h-5 w-5" />
-          </div>
+          {branding?.logoUrl ? (
+            <img
+              src={branding.logoUrl}
+              alt="شعار المدرسة"
+              className="h-9 w-9 shrink-0 rounded-lg object-contain"
+            />
+          ) : (
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <GraduationCap className="h-5 w-5" />
+            </div>
+          )}
           {!collapsed && (
             <div className="min-w-0">
-              <div className="truncate text-sm font-bold">SchoolDesk</div>
+              <div className="truncate text-sm font-bold">{branding?.schoolName ?? "SchoolDesk"}</div>
               <div className="truncate text-xs text-muted-foreground">إدارة المدرسة</div>
             </div>
           )}

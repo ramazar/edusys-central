@@ -1,3 +1,5 @@
+import { brandName } from "@/lib/brand-header";
+
 // Plain-text rendering of reports so any report that can be exported as PDF
 // can also be downloaded as a .txt file or sent as a WhatsApp message.
 
