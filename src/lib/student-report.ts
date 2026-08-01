@@ -58,7 +58,8 @@ export async function generateStudentReport(student: Student, from: string, to: 
     .empty { color: #94a3b8; text-align: center; padding: 10px; font-size: 12px; }
     .date { color: #64748b; font-size: 12px; }
     footer { margin-top: 14px; font-size: 10px; color: #94a3b8; display: flex; justify-content: space-between; }
-  `;
+    ${brandStyles}
+`;
 
   const marksTable = marksRows.length
     ? `<table><thead><tr><th>التاريخ</th><th>المادة</th><th>الدرجة</th><th>من</th><th>النسبة</th><th>ملاحظات</th></tr></thead>

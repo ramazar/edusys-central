@@ -60,6 +60,7 @@ const baseStyles = `
   .stamp { margin-top: 30px; display: flex; justify-content: space-between; font-size: 12px; color: #64748b; }
   .stamp .box { border-top: 1px dashed #94a3b8; padding-top: 6px; min-width: 160px; text-align: center; }
   footer { position: fixed; bottom: 6mm; left: 14mm; right: 14mm; font-size: 10px; color: #94a3b8; display: flex; justify-content: space-between; }
+  ${brandStyles}
 `;
 
 const fontLinks = `

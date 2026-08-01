@@ -46,7 +46,7 @@ export function buildReportText(doc: ExportTextDoc): string {
   }
 
   lines.push("");
-  lines.push(`SchoolDesk — ${new Date().toLocaleString("ar")}`);
+  lines.push(`${brandName()} — ${new Date().toLocaleString("ar")}`);
   return lines.join("\n");
 }
 

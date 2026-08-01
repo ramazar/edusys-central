@@ -36,6 +36,7 @@ export function printReport(opts: {
     .rank-3 td:first-child { background: #fed7aa; font-weight: 700; }
     footer { position: fixed; bottom: 6mm; left: 14mm; right: 14mm; font-size: 10px; color: #94a3b8; display: flex; justify-content: space-between; }
     @media print { .noprint { display: none; } }
+    ${brandStyles}
   `;
 
   const colgroup = `<colgroup>${columns.map((c) => `<col${c.width ? ` style="width:${c.width}"` : ""}/>`).join("")}</colgroup>`;
