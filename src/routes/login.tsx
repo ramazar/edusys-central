@@ -6,9 +6,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "sonner";
-import { GraduationCap } from "lucide-react";
+import { GraduationCap, LoaderCircle } from "lucide-react";
 
 export const Route = createFileRoute("/login")({
+  head: () => ({
+    meta: [
+      { title: "تسجيل الدخول | SchoolDesk" },
+      { name: "description", content: "تسجيل الدخول الآمن إلى لوحة إدارة المدرسة SchoolDesk." },
+      { property: "og:title", content: "تسجيل الدخول | SchoolDesk" },
+      { property: "og:description", content: "تسجيل الدخول الآمن إلى لوحة إدارة المدرسة SchoolDesk." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: LoginPage,
 });
 
@@ -17,9 +27,11 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    setReady(true);
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) navigate({ to: "/dashboard" });
     });
@@ -30,10 +42,15 @@ function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
-        password,
-      });
+      const { error } = await Promise.race([
+        supabase.auth.signInWithPassword({
+          email: email.trim().toLowerCase(),
+          password,
+        }),
+        new Promise<never>((_, reject) => {
+          window.setTimeout(() => reject(new Error("LOGIN_TIMEOUT")), 15000);
+        }),
+      ]);
       if (error) throw error;
       toast.success("مرحباً بعودتك");
       navigate({ to: "/dashboard" });
@@ -41,6 +58,8 @@ function LoginPage() {
       const msg = err instanceof Error ? err.message : "حدث خطأ";
       const friendly = /invalid login|invalid_credentials/i.test(msg)
         ? "بريد إلكتروني أو كلمة مرور غير صحيحة"
+        : /LOGIN_TIMEOUT/i.test(msg)
+          ? "تعذر الاتصال بخدمة تسجيل الدخول. تحقق من الإنترنت وحاول مرة أخرى."
         : /email not confirmed/i.test(msg)
           ? "لم يتم تأكيد البريد الإلكتروني بعد"
           : msg;
@@ -102,8 +121,9 @@ function LoginPage() {
                   {error}
                 </p>
               )}
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "..." : "دخول"}
+              <Button type="submit" className="w-full" disabled={!ready || loading}>
+                {loading && <LoaderCircle className="animate-spin" aria-hidden="true" />}
+                {loading ? "جارٍ تسجيل الدخول" : "دخول"}
               </Button>
 
             </form>
