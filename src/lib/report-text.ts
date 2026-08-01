@@ -1,3 +1,5 @@
+import { brandName } from "@/lib/brand-header";
+
 // Plain-text rendering of reports so any report that can be exported as PDF
 // can also be downloaded as a .txt file or sent as a WhatsApp message.
 
@@ -46,7 +48,7 @@ export function buildReportText(doc: ExportTextDoc): string {
   }
 
   lines.push("");
-  lines.push(`SchoolDesk — ${new Date().toLocaleString("ar")}`);
+  lines.push(`${brandName()} — ${new Date().toLocaleString("ar")}`);
   return lines.join("\n");
 }
 

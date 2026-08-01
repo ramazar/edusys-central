@@ -1,6 +1,8 @@
 // Generates a comprehensive per-student PDF report over a date range:
 // marks, behavioral comments, and attendance day counts.
 
+import { brandBlockHtml, brandName, brandStyles } from "@/lib/brand-header";
+
 import { supabase } from "@/integrations/supabase/client";
 import type { ExportTextDoc } from "@/lib/report-text";
 
@@ -56,7 +58,8 @@ export async function generateStudentReport(student: Student, from: string, to: 
     .empty { color: #94a3b8; text-align: center; padding: 10px; font-size: 12px; }
     .date { color: #64748b; font-size: 12px; }
     footer { margin-top: 14px; font-size: 10px; color: #94a3b8; display: flex; justify-content: space-between; }
-  `;
+    ${brandStyles}
+`;
 
   const marksTable = marksRows.length
     ? `<table><thead><tr><th>التاريخ</th><th>المادة</th><th>الدرجة</th><th>من</th><th>النسبة</th><th>ملاحظات</th></tr></thead>
@@ -95,7 +98,7 @@ export async function generateStudentReport(student: Student, from: string, to: 
     <style>${style}</style></head><body>
     <header>
       <div>
-        <div class="brand">SchoolDesk — إدارة المدرسة</div>
+        ${brandBlockHtml()}
         <h1>تقرير الطالب: ${esc(student.full_name)}</h1>
         <div class="meta">
           <span><b>رقم الطالب:</b> ${esc(String(student.student_number))}</span>
@@ -120,7 +123,7 @@ export async function generateStudentReport(student: Student, from: string, to: 
     <h2>الملاحظات والتعليقات</h2>
     ${notesTable}
 
-    <footer><span>SchoolDesk</span><span>${new Date().toISOString().slice(0, 10)}</span></footer>
+    <footer><span>${brandName()}</span><span>${new Date().toISOString().slice(0, 10)}</span></footer>
     <script>window.addEventListener("load",()=>setTimeout(()=>{window.focus();window.print();},400));</script>
     </body></html>`;
 

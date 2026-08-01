@@ -29,6 +29,7 @@ import {
   deleteUser,
 } from "@/lib/admin-users.functions";
 import { SectionGroupsTab } from "@/components/settings/SectionGroupsTab";
+import { BrandingTab } from "@/components/settings/BrandingTab";
 
 export const Route = createFileRoute("/_authenticated/settings")({ component: SettingsPage });
 
@@ -54,12 +55,14 @@ function SettingsPage() {
         <h1 className="text-2xl font-bold">الإعدادات</h1>
         <p className="text-sm text-muted-foreground">إدارة الشُعب ومستخدمي النظام</p>
       </div>
-      <Tabs defaultValue="sections">
+      <Tabs defaultValue="branding">
         <TabsList>
+          <TabsTrigger value="branding">الشعار</TabsTrigger>
           <TabsTrigger value="sections">الشُعب</TabsTrigger>
           <TabsTrigger value="groups">مجموعات واتساب</TabsTrigger>
           <TabsTrigger value="users">المستخدمون</TabsTrigger>
         </TabsList>
+        <TabsContent value="branding"><BrandingTab isAdmin={isAdmin} /></TabsContent>
         <TabsContent value="sections"><SectionsTab /></TabsContent>
         <TabsContent value="groups"><SectionGroupsTab isAdmin={isAdmin} /></TabsContent>
         <TabsContent value="users"><UsersTab isAdmin={isAdmin} /></TabsContent>

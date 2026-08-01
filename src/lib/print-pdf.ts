@@ -2,6 +2,8 @@
 // "Save as PDF" dialog. Using the browser's print pipeline avoids the Arabic
 // glyph limitations of jsPDF's built-in fonts.
 
+import { brandBlockHtml, brandName, brandStyles } from "@/lib/brand-header";
+
 export type PrintColumn = { header: string; width?: string; align?: "right" | "left" | "center" };
 
 export function printReport(opts: {
@@ -34,6 +36,7 @@ export function printReport(opts: {
     .rank-3 td:first-child { background: #fed7aa; font-weight: 700; }
     footer { position: fixed; bottom: 6mm; left: 14mm; right: 14mm; font-size: 10px; color: #94a3b8; display: flex; justify-content: space-between; }
     @media print { .noprint { display: none; } }
+    ${brandStyles}
   `;
 
   const colgroup = `<colgroup>${columns.map((c) => `<col${c.width ? ` style="width:${c.width}"` : ""}/>`).join("")}</colgroup>`;
@@ -55,7 +58,7 @@ export function printReport(opts: {
     <style>${style}</style></head><body>
     <header>
       <div>
-        <div class="brand">SchoolDesk — إدارة المدرسة</div>
+        ${brandBlockHtml()}
         <h1>${escape(title)}</h1>
         ${subtitle ? `<div class="subtitle">${escape(subtitle)}</div>` : ""}
       </div>
@@ -63,7 +66,7 @@ export function printReport(opts: {
     </header>
     ${meta.length ? `<div class="meta">${meta.map((m) => `<span><b>${escape(m.label)}:</b> ${escape(m.value)}</span>`).join("")}</div>` : ""}
     <table>${colgroup}${thead}${tbody}</table>
-    <footer><span>SchoolDesk</span><span>${new Date().toISOString().slice(0, 10)}</span></footer>
+    <footer><span>${brandName()}</span><span>${new Date().toISOString().slice(0, 10)}</span></footer>
     <script>window.addEventListener("load",()=>setTimeout(()=>{window.focus();window.print();},350));</script>
     </body></html>`;
 
