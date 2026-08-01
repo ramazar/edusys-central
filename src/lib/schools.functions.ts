@@ -46,11 +46,11 @@ export const updateSchool = createServerFn({ method: "POST" })
     if (typeof data.isActive === "boolean") patch.is_active = data.isActive;
     const { error } = await supabaseAdmin.from("schools").update(patch).eq("id", data.id);
     if (error) throw new Error(error.message);
-    if (typeof patch['name'] === "string") {
+    if (patch.name) {
       await supabaseAdmin
         .from("app_settings")
         .upsert(
-          [{ school_id: data.id, key: "school_name", value: patch['name'] as string }],
+          [{ school_id: data.id, key: "school_name", value: patch.name }],
           { onConflict: "school_id,key" },
         );
     }
