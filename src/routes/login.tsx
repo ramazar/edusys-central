@@ -16,9 +16,7 @@ function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [loading, setLoading] = useState(false);
-  const [fullName, setFullName] = useState("");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -30,24 +28,10 @@ function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      if (mode === "signin") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        toast.success("مرحباً بعودتك");
-        navigate({ to: "/dashboard" });
-      } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { full_name: fullName },
-            emailRedirectTo: window.location.origin,
-          },
-        });
-        if (error) throw error;
-        toast.success("تم إنشاء الحساب. سجّل الدخول الآن.");
-        setMode("signin");
-      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      toast.success("مرحباً بعودتك");
+      navigate({ to: "/dashboard" });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "حدث خطأ";
       toast.error(msg.includes("Invalid login") ? "بريد أو كلمة مرور غير صحيحة" : msg);
@@ -70,21 +54,11 @@ function LoginPage() {
         </div>
         <Card>
           <CardHeader>
-            <CardTitle>{mode === "signin" ? "تسجيل الدخول" : "إنشاء حساب جديد"}</CardTitle>
-            <CardDescription>
-              {mode === "signin"
-                ? "أدخل بياناتك للوصول إلى لوحة التحكم"
-                : "أنشئ حساب المدير الأول للنظام"}
-            </CardDescription>
+            <CardTitle>تسجيل الدخول</CardTitle>
+            <CardDescription>أدخل بياناتك للوصول إلى لوحة التحكم</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={submit} className="space-y-4">
-              {mode === "signup" && (
-                <div className="space-y-2">
-                  <Label htmlFor="name">الاسم الكامل</Label>
-                  <Input id="name" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
-                </div>
-              )}
               <div className="space-y-2">
                 <Label htmlFor="email">البريد الإلكتروني</Label>
                 <Input
@@ -105,27 +79,19 @@ function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={6}
-                  autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                  autoComplete="current-password"
                 />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "..." : mode === "signin" ? "دخول" : "إنشاء الحساب"}
+                {loading ? "..." : "دخول"}
               </Button>
-              <button
-                type="button"
-                onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-                className="w-full text-center text-sm text-muted-foreground hover:text-foreground"
-              >
-                {mode === "signin"
-                  ? "لا تملك حساباً؟ إنشاء حساب جديد"
-                  : "لديك حساب؟ تسجيل الدخول"}
-              </button>
             </form>
           </CardContent>
         </Card>
         <p className="mt-4 text-center text-xs text-muted-foreground">
-          الحساب الأول يُنشئ كمدير عبر إعدادات قاعدة البيانات
+          الحسابات تُنشأ من قِبل مدير النظام فقط — راجع الإدارة للحصول على حساب.
         </p>
+
       </div>
     </div>
   );
