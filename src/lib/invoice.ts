@@ -1,6 +1,8 @@
 // Arabic-friendly PDF generation via browser print window (Cairo font).
 // Avoids jsPDF's built-in font glyph limitations.
 
+import { brandBlockHtml, brandName, brandStyles } from "@/lib/brand-header";
+
 type Student = {
   full_name: string;
   student_number: string;
@@ -108,7 +110,7 @@ export function generateInvoicePDF(student: Student, plans: Plan[], payments: Pa
     ${fontLinks}<style>${baseStyles}</style></head><body>
     <header>
       <div>
-        <div class="brand">SchoolDesk — إدارة المدرسة</div>
+        ${brandBlockHtml()}
         <h1>فاتورة الطالب</h1>
         <div class="subtitle">كشف الأقساط والمدفوعات</div>
       </div>
@@ -140,7 +142,7 @@ export function generateInvoicePDF(student: Student, plans: Plan[], payments: Pa
       <div class="row big balance"><span>الرصيد المتبقي</span><span>${fmt(balance)}</span></div>
     </div>
 
-    <footer><span>SchoolDesk</span><span>${new Date().toISOString().slice(0, 10)}</span></footer>
+    <footer><span>${brandName()}</span><span>${new Date().toISOString().slice(0, 10)}</span></footer>
     ${autoPrint}
     </body></html>`;
 
@@ -158,7 +160,7 @@ export function generateReceiptPDF(student: Student, payment: Payment, opts?: { 
     ${fontLinks}<style>${baseStyles}</style></head><body>
     <header>
       <div>
-        <div class="brand">SchoolDesk — إدارة المدرسة</div>
+        ${brandBlockHtml()}
         <h1>إيصال قبض</h1>
         <div class="subtitle">رقم الإيصال: ${receiptNo}</div>
       </div>
@@ -189,7 +191,7 @@ export function generateReceiptPDF(student: Student, payment: Payment, opts?: { 
       </div>
     </div>
 
-    <footer><span>SchoolDesk — إيصال رسمي</span><span>${new Date().toISOString().slice(0, 10)}</span></footer>
+    <footer><span>${brandName()} — إيصال رسمي</span><span>${new Date().toISOString().slice(0, 10)}</span></footer>
     ${autoPrint}
     </body></html>`;
 
