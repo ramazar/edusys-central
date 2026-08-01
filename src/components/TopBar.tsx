@@ -14,15 +14,20 @@ import { Badge } from "@/components/ui/badge";
 import { roleLabels, signOut, type AppRole } from "@/hooks/useAuth";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { SchoolSwitcher } from "@/components/SchoolSwitcher";
 
 export function TopBar({
   fullName,
   email,
   roles,
+  userId,
+  activeSchoolId,
 }: {
   fullName?: string | null;
   email?: string | null;
   roles: AppRole[];
+  userId?: string;
+  activeSchoolId: string | null;
 }) {
   const navigate = useNavigate();
   const [q, setQ] = useState("");
@@ -44,6 +49,7 @@ export function TopBar({
           className="pr-9 text-right"
         />
       </form>
+      <SchoolSwitcher userId={userId} activeSchoolId={activeSchoolId} />
       <Button variant="ghost" size="icon" aria-label="الإشعارات">
         <Bell className="h-5 w-5" />
       </Button>

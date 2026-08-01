@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { TopBar } from "@/components/TopBar";
-import { useAuthSession, useMyProfile, useMyRoles } from "@/hooks/useAuth";
+import { useAuthSession, useMyAccess, useMyProfile } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/_authenticated")({
   component: AuthedLayout,
@@ -12,7 +12,8 @@ export const Route = createFileRoute("/_authenticated")({
 function AuthedLayout() {
   const { session, user, loading } = useAuthSession();
   const navigate = useNavigate();
-  const { data: roles = [], isLoading: rolesLoading } = useMyRoles(user?.id);
+  const { data: access, isLoading: rolesLoading } = useMyAccess(user?.id);
+  const roles = access?.roles ?? [];
   const { data: profile } = useMyProfile(user?.id);
 
   useEffect(() => {
@@ -30,9 +31,15 @@ function AuthedLayout() {
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
-        <AppSidebar roles={roles} />
+        <AppSidebar roles={roles} isSuperAdmin={!!access?.isSuperAdmin} />
         <SidebarInset className="flex-1">
-          <TopBar fullName={profile?.full_name} email={user?.email} roles={roles} />
+          <TopBar
+            fullName={profile?.full_name}
+            email={user?.email}
+            roles={roles}
+            userId={user?.id}
+            activeSchoolId={access?.activeSchoolId ?? null}
+          />
           <main className="p-4 md:p-6">
             <Outlet />
           </main>

@@ -13,6 +13,7 @@ import {
   ClipboardList,
   Sprout,
   BookCheck,
+  Building2,
 } from "lucide-react";
 import {
   Sidebar,
@@ -45,11 +46,16 @@ const items: Item[] = [
   { title: "الإعدادات", url: "/settings", icon: Settings, roles: ["admin"] },
 ];
 
-export function AppSidebar({ roles }: { roles: AppRole[] }) {
+export function AppSidebar({ roles, isSuperAdmin = false }: { roles: AppRole[]; isSuperAdmin?: boolean }) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (r) => r.location.pathname });
-  const visible = items.filter((i) => i.roles.some((r) => roles.includes(r)));
+  const visible = [
+    ...(isSuperAdmin
+      ? [{ title: "المدارس", url: "/schools", icon: Building2, roles: [] as AppRole[] }]
+      : []),
+    ...items.filter((i) => i.roles.some((r) => roles.includes(r))),
+  ];
   const { data: branding } = useBranding();
 
   return (
