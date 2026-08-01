@@ -17,6 +17,7 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -27,18 +28,29 @@ function LoginPage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
       if (error) throw error;
       toast.success("مرحباً بعودتك");
       navigate({ to: "/dashboard" });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "حدث خطأ";
-      toast.error(msg.includes("Invalid login") ? "بريد أو كلمة مرور غير صحيحة" : msg);
+      const friendly = /invalid login|invalid_credentials/i.test(msg)
+        ? "بريد إلكتروني أو كلمة مرور غير صحيحة"
+        : /email not confirmed/i.test(msg)
+          ? "لم يتم تأكيد البريد الإلكتروني بعد"
+          : msg;
+      setError(friendly);
+      toast.error(friendly);
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
