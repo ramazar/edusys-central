@@ -69,7 +69,21 @@ export function useSaveBranding() {
         { key: "school_name", value: b.schoolName.trim() || DEFAULT_BRANDING.schoolName },
         { key: "logo_url", value: b.logoUrl },
       ];
-      const { error } = await supabase.from("app_settings").upsert(rows, { onConflict: "key" });
+      const { data: profile } = await supabase.auth.getUser();
+      const uid = profile.user?.id;
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("active_school_id")
+        .eq("id", uid!)
+        .maybeSingle();
+      const schoolId = prof?.active_school_id as string | null;
+      if (!schoolId) throw new Error("لا توجد مدرسة محددة لحسابك");
+      const { error } = await supabase
+        .from("app_settings")
+        .upsert(
+          rows.map((r) => ({ ...r, school_id: schoolId })),
+          { onConflict: "school_id,key" },
+        );
       if (error) throw error;
       cacheBranding({ schoolName: rows[0].value as string, logoUrl: b.logoUrl });
       return b;

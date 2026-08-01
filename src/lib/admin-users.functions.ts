@@ -3,10 +3,20 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 type AppRole = "admin" | "accountant" | "reception" | "teacher";
 
-async function assertAdmin(supabase: any, userId: string) {
+/** Confirms the caller is an admin and returns the school they are currently managing. */
+async function assertAdmin(supabase: any, userId: string): Promise<string> {
   const { data, error } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Forbidden: admin only");
+  const { data: profile, error: pErr } = await supabase
+    .from("profiles")
+    .select("active_school_id")
+    .eq("id", userId)
+    .maybeSingle();
+  if (pErr) throw new Error(pErr.message);
+  const schoolId = profile?.active_school_id as string | null;
+  if (!schoolId) throw new Error("لا توجد مدرسة محددة لحسابك");
+  return schoolId;
 }
 
 export const createUserWithRoles = createServerFn({ method: "POST" })
@@ -24,7 +34,7 @@ export const createUserWithRoles = createServerFn({ method: "POST" })
     },
   )
   .handler(async ({ data, context }) => {
-    await assertAdmin(context.supabase, context.userId);
+    const schoolId = await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: created, error: cErr } = await supabaseAdmin.auth.admin.createUser({
@@ -40,9 +50,12 @@ export const createUserWithRoles = createServerFn({ method: "POST" })
     // Ensure profile exists (in case trigger didn't run)
     await supabaseAdmin
       .from("profiles")
-      .upsert({ id: newId, full_name: data.fullName, email: data.email }, { onConflict: "id" });
+      .upsert(
+        { id: newId, full_name: data.fullName, email: data.email, active_school_id: schoolId },
+        { onConflict: "id" },
+      );
 
-    const rows = data.roles.map((role) => ({ user_id: newId, role }));
+    const rows = data.roles.map((role) => ({ user_id: newId, role, school_id: schoolId }));
     const { error: rErr } = await supabaseAdmin.from("user_roles").insert(rows);
     if (rErr) throw new Error(rErr.message);
 
@@ -57,7 +70,7 @@ export const updateUserRoles = createServerFn({ method: "POST" })
     return data;
   })
   .handler(async ({ data, context }) => {
-    await assertAdmin(context.supabase, context.userId);
+    const schoolId = await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     // Prevent an admin from removing their own admin role (avoid lockout)
@@ -68,11 +81,12 @@ export const updateUserRoles = createServerFn({ method: "POST" })
     const { error: dErr } = await supabaseAdmin
       .from("user_roles")
       .delete()
-      .eq("user_id", data.userId);
+      .eq("user_id", data.userId)
+      .eq("school_id", schoolId);
     if (dErr) throw new Error(dErr.message);
 
     if (data.roles.length > 0) {
-      const rows = data.roles.map((role) => ({ user_id: data.userId, role }));
+      const rows = data.roles.map((role) => ({ user_id: data.userId, role, school_id: schoolId }));
       const { error: iErr } = await supabaseAdmin.from("user_roles").insert(rows);
       if (iErr) throw new Error(iErr.message);
     }
@@ -86,12 +100,34 @@ export const deleteUser = createServerFn({ method: "POST" })
     return data;
   })
   .handler(async ({ data, context }) => {
-    await assertAdmin(context.supabase, context.userId);
+    const schoolId = await assertAdmin(context.supabase, context.userId);
     if (data.userId === context.userId) {
       throw new Error("لا يمكنك حذف حسابك الخاص");
     }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: memberships, error: mErr } = await supabaseAdmin
+      .from("user_roles")
+      .select("school_id")
+      .eq("user_id", data.userId);
+    if (mErr) throw new Error(mErr.message);
+    const schools = new Set(
+      (memberships ?? []).map((m) => m.school_id).filter((x): x is string => !!x),
+    );
+    if (!schools.has(schoolId)) throw new Error("هذا المستخدم ليس من مدرستك");
+
+    if (schools.size > 1) {
+      // Shared account: only unlink it from this school.
+      const { error } = await supabaseAdmin
+        .from("user_roles")
+        .delete()
+        .eq("user_id", data.userId)
+        .eq("school_id", schoolId);
+      if (error) throw new Error(error.message);
+      return { ok: true, removedFromSchoolOnly: true };
+    }
+
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
     if (error) throw new Error(error.message);
-    return { ok: true };
+    return { ok: true, removedFromSchoolOnly: false };
   });
