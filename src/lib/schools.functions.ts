@@ -41,9 +41,9 @@ export const updateSchool = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertSuperAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const patch: Record<string, unknown> = {};
-    if (typeof data.name === "string" && data.name.trim()) patch['name'] = data.name.trim();
-    if (typeof data.isActive === "boolean") patch['is_active'] = data.isActive;
+    const patch: { name?: string; is_active?: boolean } = {};
+    if (typeof data.name === "string" && data.name.trim()) patch.name = data.name.trim();
+    if (typeof data.isActive === "boolean") patch.is_active = data.isActive;
     const { error } = await supabaseAdmin.from("schools").update(patch).eq("id", data.id);
     if (error) throw new Error(error.message);
     if (typeof patch['name'] === "string") {
