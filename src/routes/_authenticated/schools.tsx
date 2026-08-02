@@ -18,9 +18,10 @@ import {
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Building2, Plus, UserPlus, Pencil } from "lucide-react";
+import { Building2, Plus, UserPlus, Pencil, Trash2 } from "lucide-react";
 import { useAuthSession, useMyAccess, logAudit } from "@/hooks/useAuth";
-import { createSchool, updateSchool, createSchoolAdmin, listAllSchools } from "@/lib/schools.functions";
+import { createSchool, updateSchool, createSchoolAdmin, listAllSchools, deleteSchool } from "@/lib/schools.functions";
+
 
 export const Route = createFileRoute("/_authenticated/schools")({
   component: SchoolsPage,
