@@ -40,26 +40,40 @@ export function useBranding() {
   return useQuery({
     queryKey: ["app-branding"],
     queryFn: async (): Promise<Branding> => {
-      const { data, error } = await supabase
-        .from("app_settings")
-        .select("key, value")
-        .in("key", ["school_name", "logo_url"]);
-      if (error) throw error;
+      const { data: auth } = await supabase.auth.getUser();
+      const uid = auth.user?.id;
+      const { data: prof } = uid
+        ? await supabase.from("profiles").select("active_school_id").eq("id", uid).maybeSingle()
+        : { data: null };
+      const schoolId = (prof?.active_school_id as string | null) ?? null;
+      if (!schoolId) return DEFAULT_BRANDING;
+
+      const [settingsRes, schoolRes] = await Promise.all([
+        supabase
+          .from("app_settings")
+          .select("key, value")
+          .eq("school_id", schoolId)
+          .in("key", ["school_name", "logo_url"]),
+        supabase.from("schools").select("name, logo_url").eq("id", schoolId).maybeSingle(),
+      ]);
+      if (settingsRes.error) throw settingsRes.error;
       const map: Record<string, string | null> = {};
-      (data ?? []).forEach((r) => {
+      (settingsRes.data ?? []).forEach((r) => {
         map[r.key] = r.value;
       });
+      // Per-school overrides win; otherwise fall back to the school record itself.
       const b: Branding = {
-        schoolName: map["school_name"]?.trim() || DEFAULT_BRANDING.schoolName,
-        logoUrl: map["logo_url"] || null,
+        schoolName:
+          map["school_name"]?.trim() || schoolRes.data?.name?.trim() || DEFAULT_BRANDING.schoolName,
+        logoUrl: map["logo_url"] || (schoolRes.data?.logo_url as string | null) || null,
       };
       cacheBranding(b);
       return b;
     },
     staleTime: 5 * 60 * 1000,
-    initialData: getBranding,
   });
 }
+
 
 export function useSaveBranding() {
   const qc = useQueryClient();
