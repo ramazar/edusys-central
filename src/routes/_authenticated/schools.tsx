@@ -60,7 +60,9 @@ function SchoolsPage() {
 
   const [editing, setEditing] = useState<SchoolRow | null>(null);
   const [adminFor, setAdminFor] = useState<SchoolRow | null>(null);
+  const [deleting, setDeleting] = useState<SchoolRow | null>(null);
   const refresh = () => qc.invalidateQueries({ queryKey: ["all-schools"] });
+
 
   if (isLoading) return <div className="text-muted-foreground">جارٍ التحميل…</div>;
   if (!access?.isSuperAdmin) {
