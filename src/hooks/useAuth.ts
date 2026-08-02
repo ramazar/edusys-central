@@ -47,12 +47,21 @@ export function useMyAccess(userId?: string) {
       ]);
       if (rolesRes.error) throw rolesRes.error;
       const rows = rolesRes.data ?? [];
-      const activeSchoolId = (profileRes.data?.active_school_id as string | null) ?? null;
+      const schoolIds = Array.from(new Set(rows.filter((r) => r.school_id).map((r) => r.school_id as string)));
+      let activeSchoolId = (profileRes.data?.active_school_id as string | null) ?? null;
+
+      // A member whose active school is unset (or points at a school they left)
+      // would see an empty app — repair it to their first membership.
+      if (schoolIds.length > 0 && (!activeSchoolId || !schoolIds.includes(activeSchoolId))) {
+        activeSchoolId = schoolIds[0];
+        await supabase.from("profiles").update({ active_school_id: activeSchoolId }).eq("id", userId!);
+      }
+
       return {
         activeSchoolId,
         roles: rows.filter((r) => r.school_id && r.school_id === activeSchoolId).map((r) => r.role as AppRole),
         isSuperAdmin: rows.some((r) => (r.role as string) === "super_admin"),
-        schoolIds: Array.from(new Set(rows.filter((r) => r.school_id).map((r) => r.school_id as string))),
+        schoolIds,
       };
     },
   });

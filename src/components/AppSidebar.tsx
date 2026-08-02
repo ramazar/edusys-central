@@ -54,7 +54,8 @@ export function AppSidebar({ roles, isSuperAdmin = false }: { roles: AppRole[]; 
     ...(isSuperAdmin
       ? [{ title: "المدارس", url: "/schools", icon: Building2, roles: [] as AppRole[] }]
       : []),
-    ...items.filter((i) => i.roles.some((r) => roles.includes(r))),
+    // A super admin browsing a school holds no role inside it, but still sees everything.
+    ...items.filter((i) => isSuperAdmin || i.roles.some((r) => roles.includes(r))),
   ];
   const { data: branding } = useBranding();
 

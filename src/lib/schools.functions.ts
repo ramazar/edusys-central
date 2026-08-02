@@ -80,16 +80,20 @@ export const createSchoolAdmin = createServerFn({ method: "POST" })
     const newId = created.user?.id;
     if (!newId) throw new Error("فشل إنشاء المستخدم");
 
-    await supabaseAdmin
+    // The role row must exist first: profiles.active_school_id is validated
+    // against the user's memberships by a database trigger.
+    const { error: rErr } = await supabaseAdmin
+      .from("user_roles")
+      .insert([{ user_id: newId, role: "admin", school_id: data.schoolId }]);
+    if (rErr) throw new Error(rErr.message);
+
+    const { error: pErr } = await supabaseAdmin
       .from("profiles")
       .upsert(
         { id: newId, full_name: data.fullName, email: data.email, active_school_id: data.schoolId },
         { onConflict: "id" },
       );
-    const { error: rErr } = await supabaseAdmin
-      .from("user_roles")
-      .insert([{ user_id: newId, role: "admin", school_id: data.schoolId }]);
-    if (rErr) throw new Error(rErr.message);
+    if (pErr) throw new Error(pErr.message);
     return { id: newId };
   });
 
