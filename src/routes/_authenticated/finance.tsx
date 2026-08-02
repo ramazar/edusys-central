@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, TrendingUp, TrendingDown } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthSession, logAudit } from "@/hooks/useAuth";
+
+const PaymentDues = lazy(() => import("@/components/finance/PaymentDues"));
 
 export const Route = createFileRoute("/_authenticated/finance")({ component: FinancePage });
 
@@ -47,7 +49,12 @@ function FinancePage() {
       </div>
 
       <Tabs defaultValue="income">
-        <TabsList><TabsTrigger value="income">الإيرادات</TabsTrigger><TabsTrigger value="expenses">المصروفات</TabsTrigger></TabsList>
+        <TabsList><TabsTrigger value="income">الإيرادات</TabsTrigger><TabsTrigger value="expenses">المصروفات</TabsTrigger><TabsTrigger value="dues">المتأخرات والاستحقاقات</TabsTrigger></TabsList>
+        <TabsContent value="dues">
+          <Suspense fallback={<div className="h-64 animate-pulse rounded-lg border bg-card" />}>
+            <PaymentDues />
+          </Suspense>
+        </TabsContent>
         <TabsContent value="income" className="space-y-3">
           <Button onClick={() => setIncomeOpen(true)}><Plus className="ml-2 h-4 w-4" /> إضافة إيراد</Button>
           <Card><CardContent className="p-0"><Table>
