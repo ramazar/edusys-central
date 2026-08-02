@@ -6,6 +6,7 @@ import { TopBar } from "@/components/TopBar";
 import { useAuthSession, useMyAccess, useMyProfile } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/_authenticated")({
+  ssr: false,
   component: AuthedLayout,
 });
 

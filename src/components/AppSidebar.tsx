@@ -14,6 +14,7 @@ import {
   Sprout,
   BookCheck,
   Building2,
+  Code2,
 } from "lucide-react";
 import {
   Sidebar,
@@ -44,6 +45,7 @@ const items: Item[] = [
   { title: "التقارير", url: "/reports", icon: FileBarChart, roles: ["admin","accountant","reception","teacher"] },
   { title: "سجل المراجعة", url: "/audit", icon: ScrollText, roles: ["admin"] },
   { title: "الإعدادات", url: "/settings", icon: Settings, roles: ["admin"] },
+  { title: "عن المطوّر", url: "/developer", icon: Code2, roles: ["admin","accountant","reception","teacher"] },
 ];
 
 export function AppSidebar({ roles, isSuperAdmin = false }: { roles: AppRole[]; isSuperAdmin?: boolean }) {
