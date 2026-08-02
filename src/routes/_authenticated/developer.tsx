@@ -23,7 +23,7 @@ export const Route = createFileRoute("/_authenticated/developer")({
   }),
 });
 
-const PHONES = ["0964782596", "0980162900"];
+const PHONES = ["0964782596", "0980321264"];
 
 function DeveloperPage() {
   return (
