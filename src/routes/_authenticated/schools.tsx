@@ -128,6 +128,10 @@ function SchoolsPage() {
                       <Button size="sm" variant="outline" onClick={() => setAdminFor(s)}>
                         <UserPlus className="ml-1 h-3.5 w-3.5" /> مدير للمدرسة
                       </Button>
+                      <Button size="sm" variant="destructive" onClick={() => setDeleting(s)}>
+                        <Trash2 className="ml-1 h-3.5 w-3.5" /> حذف
+                      </Button>
+
                     </div>
                   </TableCell>
                 </TableRow>
