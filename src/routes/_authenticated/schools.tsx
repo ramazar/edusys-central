@@ -342,3 +342,56 @@ function AddSchoolAdminDialog({
     </Dialog>
   );
 }
+
+function DeleteSchoolDialog({
+  school,
+  onClose,
+  onDone,
+}: {
+  school: SchoolRow;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [confirm, setConfirm] = useState("");
+  const remove = useServerFn(deleteSchool);
+  const { user } = useAuthSession();
+  const m = useMutation({
+    mutationFn: async () => remove({ data: { id: school.id } }),
+    onSuccess: async () => {
+      await logAudit(user, "delete", "schools", school.id, school, null);
+      toast.success("تم حذف المدرسة");
+      onDone();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "فشل الحذف"),
+  });
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>حذف {school.name}</DialogTitle>
+          <DialogDescription>
+            سيتم حذف كل بيانات هذه المدرسة نهائيًا (الطلاب، المعلمون، العمال، الحضور، الدرجات،
+            الحسابات المالية والصلاحيات). لا يمكن التراجع.
+          </DialogDescription>
+        </DialogHeader>
+        <div>
+          <Label>اكتب اسم المدرسة للتأكيد</Label>
+          <Input className="mt-1" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            إلغاء
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={() => m.mutate()}
+            disabled={m.isPending || confirm.trim() !== school.name}
+          >
+            {m.isPending ? "..." : "حذف نهائي"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
