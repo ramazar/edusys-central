@@ -161,7 +161,18 @@ function SchoolsPage() {
           }}
         />
       )}
+      {deleting && (
+        <DeleteSchoolDialog
+          school={deleting}
+          onClose={() => setDeleting(null)}
+          onDone={() => {
+            setDeleting(null);
+            refresh();
+          }}
+        />
+      )}
     </div>
+
   );
 }
 
