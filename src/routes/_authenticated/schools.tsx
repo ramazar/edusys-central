@@ -18,9 +18,10 @@ import {
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Building2, Plus, UserPlus, Pencil } from "lucide-react";
+import { Building2, Plus, UserPlus, Pencil, Trash2 } from "lucide-react";
 import { useAuthSession, useMyAccess, logAudit } from "@/hooks/useAuth";
-import { createSchool, updateSchool, createSchoolAdmin, listAllSchools } from "@/lib/schools.functions";
+import { createSchool, updateSchool, createSchoolAdmin, listAllSchools, deleteSchool } from "@/lib/schools.functions";
+
 
 export const Route = createFileRoute("/_authenticated/schools")({
   component: SchoolsPage,
@@ -59,7 +60,9 @@ function SchoolsPage() {
 
   const [editing, setEditing] = useState<SchoolRow | null>(null);
   const [adminFor, setAdminFor] = useState<SchoolRow | null>(null);
+  const [deleting, setDeleting] = useState<SchoolRow | null>(null);
   const refresh = () => qc.invalidateQueries({ queryKey: ["all-schools"] });
+
 
   if (isLoading) return <div className="text-muted-foreground">جارٍ التحميل…</div>;
   if (!access?.isSuperAdmin) {
@@ -125,6 +128,10 @@ function SchoolsPage() {
                       <Button size="sm" variant="outline" onClick={() => setAdminFor(s)}>
                         <UserPlus className="ml-1 h-3.5 w-3.5" /> مدير للمدرسة
                       </Button>
+                      <Button size="sm" variant="destructive" onClick={() => setDeleting(s)}>
+                        <Trash2 className="ml-1 h-3.5 w-3.5" /> حذف
+                      </Button>
+
                     </div>
                   </TableCell>
                 </TableRow>
@@ -154,7 +161,18 @@ function SchoolsPage() {
           }}
         />
       )}
+      {deleting && (
+        <DeleteSchoolDialog
+          school={deleting}
+          onClose={() => setDeleting(null)}
+          onDone={() => {
+            setDeleting(null);
+            refresh();
+          }}
+        />
+      )}
     </div>
+
   );
 }
 
@@ -318,6 +336,59 @@ function AddSchoolAdminDialog({
           </Button>
           <Button onClick={() => m.mutate()} disabled={m.isPending || !email || !password || !fullName}>
             {m.isPending ? "..." : "إنشاء"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DeleteSchoolDialog({
+  school,
+  onClose,
+  onDone,
+}: {
+  school: SchoolRow;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [confirm, setConfirm] = useState("");
+  const remove = useServerFn(deleteSchool);
+  const { user } = useAuthSession();
+  const m = useMutation({
+    mutationFn: async () => remove({ data: { id: school.id } }),
+    onSuccess: async () => {
+      await logAudit(user, "delete", "schools", school.id, school, null);
+      toast.success("تم حذف المدرسة");
+      onDone();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "فشل الحذف"),
+  });
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>حذف {school.name}</DialogTitle>
+          <DialogDescription>
+            سيتم حذف كل بيانات هذه المدرسة نهائيًا (الطلاب، المعلمون، العمال، الحضور، الدرجات،
+            الحسابات المالية والصلاحيات). لا يمكن التراجع.
+          </DialogDescription>
+        </DialogHeader>
+        <div>
+          <Label>اكتب اسم المدرسة للتأكيد</Label>
+          <Input className="mt-1" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            إلغاء
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={() => m.mutate()}
+            disabled={m.isPending || confirm.trim() !== school.name}
+          >
+            {m.isPending ? "..." : "حذف نهائي"}
           </Button>
         </DialogFooter>
       </DialogContent>
