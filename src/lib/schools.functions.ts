@@ -114,3 +114,56 @@ export const listAllSchools = createServerFn({ method: "GET" })
     });
     return (schools.data ?? []).map((s) => ({ ...s, members: counts[s.id] ?? 0 }));
   });
+
+/** Permanently deletes a school and every record that belongs to it. */
+export const deleteSchool = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { id: string }) => {
+    if (!data?.id) throw new Error("Missing school id");
+    return data;
+  })
+  .handler(async ({ data, context }) => {
+    await assertSuperAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Child rows first, then parents — foreign keys are not cascading.
+    const tables = [
+      "homework_records",
+      "homework_assignments",
+      "academic_harvest",
+      "attendance",
+      "daily_marks",
+      "student_documents",
+      "student_payment_plans",
+      "student_payments",
+      "students",
+      "teacher_attendance",
+      "teacher_lectures",
+      "teacher_lecture_types",
+      "teacher_payments",
+      "teacher_section_assignments",
+      "teachers",
+      "worker_attendance",
+      "worker_payments",
+      "workers",
+      "expenses",
+      "income_entries",
+      "notifications",
+      "audit_logs",
+      "app_settings",
+      "sections",
+      "user_roles",
+    ] as const;
+
+    for (const t of tables) {
+      const { error } = await supabaseAdmin.from(t).delete().eq("school_id", data.id);
+      if (error) throw new Error(`${t}: ${error.message}`);
+    }
+
+    // Users whose active school was this one must be detached before the row goes.
+    await supabaseAdmin.from("profiles").update({ active_school_id: null }).eq("active_school_id", data.id);
+
+    const { error } = await supabaseAdmin.from("schools").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
