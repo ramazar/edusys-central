@@ -10,12 +10,12 @@ export const Route = createFileRoute("/_authenticated/developer")({
       { title: "عن المطوّر — SchoolDesk" },
       {
         name: "description",
-        content: "تم تصميم وتطوير نظام SchoolDesk بالكامل بواسطة رام آزار الزاهر — للدعم والمساندة.",
+        content: "تم تصميم وتطوير نظام SchoolDesk بالكامل بواسطة رام عازر الزهر — للدعم والمساندة.",
       },
       { property: "og:title", content: "عن المطوّر — SchoolDesk" },
       {
         property: "og:description",
-        content: "تم تصميم وتطوير نظام SchoolDesk بالكامل بواسطة رام آزار الزاهر — للدعم والمساندة.",
+        content: "تم تصميم وتطوير نظام SchoolDesk بالكامل بواسطة رام عازر الزهر — للدعم والمساندة.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -36,13 +36,13 @@ function DeveloperPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Code2 className="h-4 w-4" /> رام آزار الزاهر
+            <Code2 className="h-4 w-4" /> رام عازر الزهر
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="leading-relaxed">
             تم بناء وتصميم هذا النظام بالكامل بواسطة{" "}
-            <span className="font-bold">رام آزار الزاهر</span>.
+            <span className="font-bold">رام عازر الزهر</span>.
           </p>
           <p className="text-sm text-muted-foreground">
             للمساعدة والدعم الفني، يُرجى التواصل على أحد الرقمين التاليين:
