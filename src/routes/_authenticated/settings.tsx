@@ -22,7 +22,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Trash2, UserPlus, Pencil } from "lucide-react";
-import { genderLabel, sectionLabel } from "@/lib/section-label";
+import { genderLabel } from "@/lib/section-label";
 import { useAuthSession, useMyRoles, logAudit, hasAny, roleLabels, type AppRole, type SchoolRole } from "@/hooks/useAuth";
 import {
   createUserWithRoles,
