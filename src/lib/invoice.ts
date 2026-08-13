@@ -2,12 +2,13 @@
 // Avoids jsPDF's built-in font glyph limitations.
 
 import { brandBlockHtml, brandName, brandStyles } from "@/lib/brand-header";
+import { sectionLabel } from "@/lib/section-label";
 
 type Student = {
   full_name: string;
   student_number: string;
   grade_id: number;
-  sections?: { section_number: number } | null;
+  sections?: { section_number: number; gender?: string | null } | null;
   guardian_name?: string | null;
   guardian_phone?: string | null;
 };
@@ -121,7 +122,7 @@ export function generateInvoicePDF(student: Student, plans: Plan[], payments: Pa
     <div class="meta">
       <span><b>اسم الطالب:</b> ${escapeHtml(student.full_name)}</span>
       <span><b>رقم الطالب:</b> ${escapeHtml(student.student_number)}</span>
-      <span><b>الصف:</b> ${student.grade_id} — الشعبة ${student.sections?.section_number ?? "—"}</span>
+      <span><b>الصف:</b> ${student.grade_id} — ${sectionLabel(student.sections?.section_number, student.sections?.gender)}</span>
       <span><b>ولي الأمر:</b> ${escapeHtml(student.guardian_name ?? "—")}</span>
     </div>
 
@@ -172,7 +173,7 @@ export function generateReceiptPDF(student: Student, payment: Payment, opts?: { 
       <div class="meta">
         <span><b>اسم الطالب:</b> ${escapeHtml(student.full_name)}</span>
         <span><b>رقم الطالب:</b> ${escapeHtml(student.student_number)}</span>
-        <span><b>الصف:</b> ${student.grade_id} — الشعبة ${student.sections?.section_number ?? "—"}</span>
+        <span><b>الصف:</b> ${student.grade_id} — ${sectionLabel(student.sections?.section_number, student.sections?.gender)}</span>
         <span><b>ولي الأمر:</b> ${escapeHtml(student.guardian_name ?? "—")}</span>
         <span><b>تاريخ الدفع:</b> ${escapeHtml(payment.payment_date)}</span>
         <span><b>طريقة الدفع:</b> ${escapeHtml(payment.method ?? "—")}</span>

@@ -11,6 +11,7 @@ import { Check, X, Clock, CheckCheck, MessageCircle } from "lucide-react";
 import { useAuthSession, logAudit } from "@/hooks/useAuth";
 import { ExportMenu } from "@/components/ExportMenu";
 import { WhatsAppSendDialog } from "@/components/attendance/WhatsAppSendDialog";
+import { sectionLabel } from "@/lib/section-label";
 
 
 export const Route = createFileRoute("/_authenticated/attendance")({
@@ -30,7 +31,7 @@ function AttendancePage() {
   const { data: sections = [] } = useQuery({
     queryKey: ["sections-att", gradeId],
     queryFn: async () => {
-      const { data } = await supabase.from("sections").select("id, section_number").eq("grade_id", gradeId).eq("is_active", true).order("section_number");
+      const { data } = await supabase.from("sections").select("id, section_number, gender").eq("grade_id", gradeId).eq("is_active", true).order("section_number");
       return data ?? [];
     },
   });
@@ -85,11 +86,11 @@ function AttendancePage() {
       return [i + 1, s.full_name, s.student_number, statusLabel(st)];
     });
     return {
-      title: `كشف الحضور — الصف ${gradeId} / الشعبة ${section?.section_number ?? "-"}`,
+      title: `كشف الحضور — الصف ${gradeId} / ${sectionLabel(section?.section_number, section?.gender)}`,
       subtitle: `التاريخ: ${date}`,
       meta: [
         { label: "الصف", value: String(gradeId) },
-        { label: "الشعبة", value: String(section?.section_number ?? "-") },
+        { label: "الشعبة", value: sectionLabel(section?.section_number, section?.gender) },
         { label: "التاريخ", value: date },
         { label: "إجمالي الطلاب", value: String(students.length) },
         { label: "حاضر", value: String(counts.present) },
@@ -136,7 +137,7 @@ function AttendancePage() {
       inSec.forEach((s) => {
         const st = (map[s.id] || "present") as Status;
         counts[st]++;
-        rows.push([++idx, s.full_name, s.student_number, `الشعبة ${sec.section_number}`, statusLabel(st)]);
+        rows.push([++idx, s.full_name, s.student_number, sectionLabel(sec.section_number, sec.gender), statusLabel(st)]);
       });
     }
     return {
@@ -176,7 +177,7 @@ function AttendancePage() {
             </div>
             <div><Label>الشعبة</Label>
               <select className="mt-1 h-9 w-full rounded-md border bg-background px-3 text-sm" value={sectionId} onChange={(e) => setSectionId(e.target.value)}>
-                {sections.map((s) => <option key={s.id} value={s.id}>{`الشعبة ${s.section_number}`}</option>)}
+                {sections.map((s) => <option key={s.id} value={s.id}>{sectionLabel(s.section_number, s.gender)}</option>)}
                 {sections.length === 0 && <option value="">لا توجد شُعب</option>}
               </select>
             </div>
@@ -210,7 +211,7 @@ function AttendancePage() {
             />
             <ExportMenu
               label="تصدير كل الشُعب"
-              sectionTargets={sections.map((s) => ({ id: s.id, label: `الشعبة ${s.section_number}` }))}
+              sectionTargets={sections.map((s) => ({ id: s.id, label: sectionLabel(s.section_number, s.gender) }))}
               doc={buildGradeDoc}
               disabled={sections.length === 0}
               pdfColumns={[

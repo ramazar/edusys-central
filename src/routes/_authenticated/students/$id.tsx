@@ -17,6 +17,7 @@ import { generateInvoicePDF, generateReceiptPDF } from "@/lib/invoice";
 import { generateStudentReport, buildStudentReportDoc } from "@/lib/student-report";
 import { ExportMenu } from "@/components/ExportMenu";
 import { StudentDialog } from "@/components/students/StudentDialog";
+import { gradeSectionLabel } from "@/lib/section-label";
 
 export const Route = createFileRoute("/_authenticated/students/$id")({
   component: StudentDetail,
@@ -37,7 +38,7 @@ function StudentDetail() {
   const { data: student } = useQuery({
     queryKey: ["student", id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("students").select("*, sections(section_number)").eq("id", id).single();
+      const { data, error } = await supabase.from("students").select("*, sections(section_number, gender)").eq("id", id).single();
       if (error) throw error;
       return data;
     },
@@ -75,7 +76,7 @@ function StudentDetail() {
           <h1 className="text-2xl font-bold">{student.full_name}</h1>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             <Badge variant="secondary">رقم: {student.student_number}</Badge>
-            <Badge variant="secondary">الصف {student.grade_id} · الشعبة {(student.sections as { section_number: number } | null)?.section_number}</Badge>
+            <Badge variant="secondary">{gradeSectionLabel(student.grade_id, (student.sections as { section_number: number; gender: string | null } | null)?.section_number, (student.sections as { gender: string | null } | null)?.gender)}</Badge>
           </div>
         </div>
         {canEdit && (
