@@ -11,6 +11,7 @@ import { Trophy, Download } from "lucide-react";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { ExportMenu } from "@/components/ExportMenu";
+import { sectionLabel, genderLabel } from "@/lib/section-label";
 
 export const Route = createFileRoute("/_authenticated/reports")({ component: ReportsPage });
 
@@ -32,7 +33,7 @@ function ReportsPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("sections")
-        .select("id, section_number")
+        .select("id, section_number, gender")
         .eq("grade_id", gradeId)
         .eq("is_active", true)
         .order("section_number");
@@ -45,12 +46,12 @@ function ReportsPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("students")
-        .select("id, full_name, student_number, grade_id, section_id, sections(section_number)")
+        .select("id, full_name, student_number, grade_id, section_id, sections(section_number, gender)")
         .eq("grade_id", gradeId)
         .eq("is_active", true);
       const students = (data ?? []) as Array<{
         id: string; full_name: string; student_number: string; grade_id: number;
-        section_id: string | null; sections: { section_number: number } | null;
+        section_id: string | null; sections: { section_number: number; gender: string | null } | null;
       }>;
       const ids = students.map((s) => s.id);
       if (ids.length === 0) return [];
@@ -83,7 +84,7 @@ function ReportsPage() {
         "رقم الطالب": r.student_number,
         "الاسم": r.full_name,
         "الصف": r.grade_id,
-        "الشعبة": r.sections?.section_number ?? "-",
+        "الشعبة": r.sections ? `${r.sections.section_number} (${genderLabel(r.sections.gender)})` : "-",
         "المعدل": r.avg.toFixed(2),
         "عدد الدرجات": r.count,
       })),
@@ -129,7 +130,7 @@ function ReportsPage() {
             i + 1,
             r.full_name,
             r.student_number,
-            `الشعبة ${r.sections?.section_number ?? "-"}`,
+            sectionLabel(r.sections?.section_number, r.sections?.gender),
             r.avg.toFixed(2),
             r.count,
           ]),
@@ -139,18 +140,18 @@ function ReportsPage() {
     };
   };
 
-  const buildSectionDoc = (sectionId: string, sectionNumber: number) => () => {
+  const buildSectionDoc = (sectionId: string, sectionNumber: number, gender: string | null) => () => {
     const filtered = ranking.filter((r) => r.section_id === sectionId);
     if (filtered.length === 0) {
       toast.error("لا يوجد طلاب في هذه الشعبة");
       return null;
     }
     return {
-      title: `ترتيب الصف ${gradeId} — الشعبة ${sectionNumber}`,
+      title: `ترتيب الصف ${gradeId} — ${sectionLabel(sectionNumber, gender)}`,
       subtitle: periodLabel,
       meta: [
         { label: "الصف", value: String(gradeId) },
-        { label: "الشعبة", value: String(sectionNumber) },
+        { label: "الشعبة", value: sectionLabel(sectionNumber, gender) },
         { label: "الفترة", value: periodLabel },
         { label: "عدد الطلاب", value: String(filtered.length) },
       ],
@@ -205,7 +206,7 @@ function ReportsPage() {
             <ExportMenu
               variant="default"
               label="تصدير الصف بأكمله"
-              sectionTargets={sections.map((s) => ({ id: s.id, label: `الشعبة ${s.section_number}` }))}
+              sectionTargets={sections.map((s) => ({ id: s.id, label: sectionLabel(s.section_number, s.gender) }))}
               doc={buildGradeDoc}
               disabled={ranking.length === 0}
               pdfColumns={gradeCols}
@@ -222,9 +223,9 @@ function ReportsPage() {
                   key={s.id}
                   size="sm"
                   variant="secondary"
-                  label={`الشعبة ${s.section_number}`}
+                  label={sectionLabel(s.section_number, s.gender)}
                   sectionId={s.id}
-                  doc={buildSectionDoc(s.id, s.section_number)}
+                  doc={buildSectionDoc(s.id, s.section_number, s.gender)}
                   pdfColumns={sectionCols}
                 />
               ))}
@@ -274,7 +275,7 @@ function ReportsPage() {
                   </TableCell>
                   <TableCell className="font-medium">{r.full_name}</TableCell>
                   <TableCell className="font-mono">{r.student_number}</TableCell>
-                  <TableCell>{r.sections?.section_number ?? "-"}</TableCell>
+                  <TableCell>{r.sections ? `${r.sections.section_number} (${genderLabel(r.sections.gender)})` : "-"}</TableCell>
                   <TableCell className="font-mono">{r.avg.toFixed(2)}</TableCell>
                   <TableCell>{r.count}</TableCell>
                 </TableRow>

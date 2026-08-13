@@ -12,6 +12,7 @@ import { ExternalLink, Save } from "lucide-react";
 import { useSectionGroups } from "@/hooks/useSectionGroups";
 import { normalizeGroupLink } from "@/lib/report-text";
 import { useAuthSession, logAudit } from "@/hooks/useAuth";
+import { sectionLabel } from "@/lib/section-label";
 
 export function SectionGroupsTab({ isAdmin }: { isAdmin: boolean }) {
   const qc = useQueryClient();
@@ -89,7 +90,7 @@ export function SectionGroupsTab({ isAdmin }: { isAdmin: boolean }) {
                 return (
                   <TableRow key={s.id}>
                     <TableCell>{`الصف ${s.grade_id}`}</TableCell>
-                    <TableCell>{`الشعبة ${s.section_number}`}</TableCell>
+                    <TableCell>{sectionLabel(s.section_number, s.gender)}</TableCell>
                     <TableCell>
                       <Input
                         dir="ltr"

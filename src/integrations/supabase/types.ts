@@ -592,6 +592,7 @@ export type Database = {
       sections: {
         Row: {
           created_at: string
+          gender: Database["public"]["Enums"]["section_gender"]
           grade_id: number
           id: string
           is_active: boolean
@@ -601,6 +602,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          gender?: Database["public"]["Enums"]["section_gender"]
           grade_id: number
           id?: string
           is_active?: boolean
@@ -610,6 +612,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          gender?: Database["public"]["Enums"]["section_gender"]
           grade_id?: number
           id?: string
           is_active?: boolean
@@ -1426,6 +1429,7 @@ export type Database = {
       attendance_status: "present" | "absent" | "late"
       homework_status: "done" | "not_done" | "partial"
       salary_type: "fixed" | "hourly"
+      section_gender: "boys" | "girls"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1557,6 +1561,7 @@ export const Constants = {
       attendance_status: ["present", "absent", "late"],
       homework_status: ["done", "not_done", "partial"],
       salary_type: ["fixed", "hourly"],
+      section_gender: ["boys", "girls"],
     },
   },
 } as const

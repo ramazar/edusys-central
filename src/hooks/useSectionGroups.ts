@@ -7,6 +7,7 @@ export type SectionGroup = {
   id: string;
   grade_id: number;
   section_number: number;
+  gender: string | null;
   whatsapp_group_link: string | null;
 };
 
@@ -16,7 +17,7 @@ export function useSectionGroups() {
     queryFn: async (): Promise<SectionGroup[]> => {
       const { data, error } = await supabase
         .from("sections")
-        .select("id, grade_id, section_number, whatsapp_group_link")
+        .select("id, grade_id, section_number, gender, whatsapp_group_link")
         .order("grade_id")
         .order("section_number");
       if (error) throw error;

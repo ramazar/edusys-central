@@ -26,13 +26,14 @@ import { toast } from "sonner";
 import { Plus, Sprout, Trash2 } from "lucide-react";
 import { useAuthSession, useMyRoles, hasAny, logAudit } from "@/hooks/useAuth";
 import { ExportMenu } from "@/components/ExportMenu";
+import { sectionLabel } from "@/lib/section-label";
 
 export const Route = createFileRoute("/_authenticated/harvest")({
   component: HarvestPage,
 });
 
 type Grade = { id: number; name_ar: string };
-type Section = { id: string; grade_id: number; section_number: number };
+type Section = { id: string; grade_id: number; section_number: number; gender: string | null };
 type Harvest = {
   id: string;
   grade_id: number;
@@ -78,7 +79,7 @@ function HarvestPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("sections")
-        .select("id, grade_id, section_number")
+        .select("id, grade_id, section_number, gender")
         .eq("grade_id", gradeId)
         .eq("is_active", true)
         .order("section_number");
@@ -222,7 +223,7 @@ function HarvestPage() {
                 <SelectContent>
                   {sections.map((s) => (
                     <SelectItem key={s.id} value={s.id}>
-                      شعبة {s.section_number}
+                      {sectionLabel(s.section_number, s.gender)}
                     </SelectItem>
                   ))}
                 </SelectContent>

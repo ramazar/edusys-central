@@ -20,6 +20,7 @@ import { ExportMenu } from "@/components/ExportMenu";
 import { BulkMarksDialog } from "@/components/marks/BulkMarksDialog";
 import { toast } from "sonner";
 import { useAuthSession, useMyRoles, hasAny, logAudit } from "@/hooks/useAuth";
+import { sectionLabel } from "@/lib/section-label";
 
 
 export const Route = createFileRoute("/_authenticated/marks")({ component: MarksPage });
@@ -27,7 +28,7 @@ export const Route = createFileRoute("/_authenticated/marks")({ component: Marks
 type Student = {
   id: string; full_name: string; student_number: string;
   grade_id: number; section_id: string | null;
-  sections: { section_number: number } | null;
+  sections: { section_number: number; gender: string | null } | null;
 };
 
 type Mark = {
@@ -58,7 +59,7 @@ function MarksPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("sections")
-        .select("id, section_number")
+        .select("id, section_number, gender")
         .eq("grade_id", gradeId)
         .eq("is_active", true)
         .order("section_number");
@@ -71,7 +72,7 @@ function MarksPage() {
     queryFn: async () => {
       let q = supabase
         .from("students")
-        .select("id, full_name, student_number, grade_id, section_id, sections(section_number)")
+        .select("id, full_name, student_number, grade_id, section_id, sections(section_number, gender)")
         .eq("grade_id", gradeId)
         .eq("is_active", true)
         .order("full_name");
@@ -334,7 +335,7 @@ function MarksPage() {
               <SelectContent>
                 <SelectItem value="all">جميع الشعب</SelectItem>
                 {sections.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>شعبة {s.section_number}</SelectItem>
+                  <SelectItem key={s.id} value={s.id}>{sectionLabel(s.section_number, s.gender)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -343,7 +344,7 @@ function MarksPage() {
             className="mr-auto"
             label="تصدير الملخص"
             sectionId={sectionId !== "all" ? sectionId : null}
-            sectionTargets={sections.map((s) => ({ id: s.id, label: `الشعبة ${s.section_number}` }))}
+            sectionTargets={sections.map((s) => ({ id: s.id, label: sectionLabel(s.section_number, s.gender) }))}
             doc={buildWeeklyDoc}
             onPdf={exportWeeklyPDF}
           />

@@ -22,6 +22,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Trash2, UserPlus, Pencil } from "lucide-react";
+import { genderLabel } from "@/lib/section-label";
 import { useAuthSession, useMyRoles, logAudit, hasAny, roleLabels, type AppRole, type SchoolRole } from "@/hooks/useAuth";
 import {
   createUserWithRoles,
@@ -75,19 +76,35 @@ function SectionsTab() {
   const qc = useQueryClient();
   const { user } = useAuthSession();
   const [gradeId, setGradeId] = useState(1);
-  const [sectionNumber, setSectionNumber] = useState(1);
+  const [gender, setGender] = useState<"boys" | "girls">("boys");
+  const [numberOverride, setNumberOverride] = useState<number | null>(null);
 
   const { data: sections = [] } = useQuery({
     queryKey: ["all-sections"],
     queryFn: async () => (await supabase.from("sections").select("*").order("grade_id").order("section_number")).data ?? [],
   });
 
+  // الترقيم يبدأ من 1 لكل صف داخل المدرسة الحالية
+  const nextNumber = (() => {
+    const nums = sections.filter((s) => s.grade_id === gradeId).map((s) => s.section_number);
+    let n = 1;
+    while (nums.includes(n)) n++;
+    return n;
+  })();
+  const sectionNumber = numberOverride ?? nextNumber;
+
   const add = async () => {
-    const { data, error } = await supabase.from("sections").insert({ grade_id: gradeId, section_number: sectionNumber, is_active: true }).select().single();
+    const { data, error } = await supabase
+      .from("sections")
+      .insert({ grade_id: gradeId, section_number: sectionNumber, gender, is_active: true })
+      .select()
+      .single();
     if (error) return toast.error(error.message);
     await logAudit(user, "create", "sections", data.id, null, data);
     toast.success("تم الإضافة");
+    setNumberOverride(null);
     qc.invalidateQueries({ queryKey: ["all-sections"] });
+    qc.invalidateQueries({ queryKey: ["section-groups"] });
   };
 
   const toggle = async (id: string, isActive: boolean) => {
@@ -97,18 +114,51 @@ function SectionsTab() {
     qc.invalidateQueries({ queryKey: ["all-sections"] });
   };
 
+  const changeGender = async (id: string, next: "boys" | "girls") => {
+    const { error } = await supabase.from("sections").update({ gender: next }).eq("id", id);
+    if (error) return toast.error(error.message);
+    await logAudit(user, "update", "sections", id, null, { gender: next });
+    qc.invalidateQueries({ queryKey: ["all-sections"] });
+    qc.invalidateQueries({ queryKey: ["section-groups"] });
+  };
+
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader><CardTitle>إضافة شعبة</CardTitle></CardHeader>
         <CardContent className="flex flex-wrap items-end gap-3">
           <div><Label>الصف</Label>
-            <select className="mt-1 h-9 rounded-md border bg-background px-3 text-sm" value={gradeId} onChange={(e) => setGradeId(Number(e.target.value))}>
+            <select
+              className="mt-1 h-9 rounded-md border bg-background px-3 text-sm"
+              value={gradeId}
+              onChange={(e) => { setGradeId(Number(e.target.value)); setNumberOverride(null); }}
+            >
               {Array.from({ length: 12 }, (_, i) => i + 1).map((g) => <option key={g} value={g}>{`الصف ${g}`}</option>)}
             </select>
           </div>
-          <div><Label>رقم الشعبة</Label><Input type="number" value={sectionNumber} onChange={(e) => setSectionNumber(Number(e.target.value))} className="mt-1 w-24" /></div>
+          <div><Label>رقم الشعبة</Label>
+            <Input
+              type="number"
+              min={1}
+              value={sectionNumber}
+              onChange={(e) => setNumberOverride(Math.max(1, Number(e.target.value) || 1))}
+              className="mt-1 w-24"
+            />
+          </div>
+          <div><Label>النوع</Label>
+            <select
+              className="mt-1 h-9 rounded-md border bg-background px-3 text-sm"
+              value={gender}
+              onChange={(e) => setGender(e.target.value as "boys" | "girls")}
+            >
+              <option value="boys">بنين</option>
+              <option value="girls">بنات</option>
+            </select>
+          </div>
           <Button onClick={add}>إضافة</Button>
+          <p className="w-full text-xs text-muted-foreground">
+            الترقيم مستقل لكل مدرسة ويبدأ من 1 في كل صف — الرقم المقترح: {nextNumber}
+          </p>
         </CardContent>
       </Card>
 
@@ -116,17 +166,26 @@ function SectionsTab() {
         <TableHeader><TableRow>
           <TableHead className="text-right">الصف</TableHead>
           <TableHead className="text-right">الشعبة</TableHead>
+          <TableHead className="text-right">النوع</TableHead>
           <TableHead className="text-right">الحالة</TableHead>
           <TableHead className="text-right">إجراءات</TableHead>
         </TableRow></TableHeader>
         <TableBody>
-          {sections.length === 0 && <TableRow><TableCell colSpan={4} className="py-8 text-center text-muted-foreground">لا توجد شُعب</TableCell></TableRow>}
+          {sections.length === 0 && <TableRow><TableCell colSpan={5} className="py-8 text-center text-muted-foreground">لا توجد شُعب</TableCell></TableRow>}
           {sections.map((s) => (
             <TableRow key={s.id}>
               <TableCell>{`الصف ${s.grade_id}`}</TableCell>
               <TableCell>{`الشعبة ${s.section_number}`}</TableCell>
+              <TableCell>
+                <Badge variant={s.gender === "girls" ? "default" : "secondary"}>{genderLabel(s.gender)}</Badge>
+              </TableCell>
               <TableCell>{s.is_active ? "نشطة" : "موقوفة"}</TableCell>
-              <TableCell><Button size="sm" variant="outline" onClick={() => toggle(s.id, s.is_active)}>{s.is_active ? "إيقاف" : "تفعيل"}</Button></TableCell>
+              <TableCell className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => toggle(s.id, s.is_active)}>{s.is_active ? "إيقاف" : "تفعيل"}</Button>
+                <Button size="sm" variant="ghost" onClick={() => changeGender(s.id, s.gender === "girls" ? "boys" : "girls")}>
+                  تغيير إلى {genderLabel(s.gender === "girls" ? "boys" : "girls")}
+                </Button>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

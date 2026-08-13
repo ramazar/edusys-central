@@ -13,7 +13,7 @@ export default defineTool({
     const supabase = supabaseForUser(ctx);
 
     const [sectionsRes, gradesRes, studentsRes] = await Promise.all([
-      supabase.from("sections").select("id, grade_id, section_number, is_active"),
+      supabase.from("sections").select("id, grade_id, section_number, gender, is_active"),
       supabase.from("grades").select("id, name_ar"),
       supabase.from("students").select("section_id").eq("is_active", true),
     ]);
@@ -30,6 +30,7 @@ export default defineTool({
       section_id: s.id,
       grade: gradeName.get(s.grade_id) ?? String(s.grade_id),
       section_number: s.section_number,
+        gender: s.gender,
       is_active: s.is_active,
       active_students: counts.get(s.id) ?? 0,
     }));

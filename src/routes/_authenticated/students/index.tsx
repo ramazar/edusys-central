@@ -12,6 +12,7 @@ import {
 import { Plus, Search } from "lucide-react";
 import { useAuthSession, useMyRoles, hasAny } from "@/hooks/useAuth";
 import { StudentDialog } from "@/components/students/StudentDialog";
+import { gradeSectionLabel } from "@/lib/section-label";
 
 export const Route = createFileRoute("/_authenticated/students/")({
   validateSearch: (s: Record<string, unknown>) => ({ q: (s.q as string) ?? "" }),
@@ -33,7 +34,7 @@ function StudentsPage() {
     queryFn: async () => {
       let query = supabase
         .from("students")
-        .select("id, student_number, full_name, grade_id, section_id, guardian_name, guardian_phone, is_active, sections(section_number)")
+        .select("id, student_number, full_name, grade_id, section_id, guardian_name, guardian_phone, is_active, sections(section_number, gender)")
         .order("full_name")
         .limit(500);
       if (search) {
@@ -108,7 +109,7 @@ function StudentsPage() {
                   <TableCell><Link to="/students/$id" params={{ id: s.id }} className="font-mono text-primary">{s.student_number}</Link></TableCell>
                   <TableCell><Link to="/students/$id" params={{ id: s.id }} className="font-medium">{s.full_name}</Link></TableCell>
                   <TableCell>
-                    <Badge variant="secondary">الصف {s.grade_id} · الشعبة {(s.sections as { section_number: number } | null)?.section_number ?? "—"}</Badge>
+                    <Badge variant="secondary">{gradeSectionLabel(s.grade_id, (s.sections as { section_number: number; gender: string | null } | null)?.section_number, (s.sections as { gender: string | null } | null)?.gender)}</Badge>
                   </TableCell>
                   <TableCell>{s.guardian_name ?? "—"}</TableCell>
                   <TableCell>{s.guardian_phone ?? "—"}</TableCell>

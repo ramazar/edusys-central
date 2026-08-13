@@ -26,12 +26,13 @@ import { toast } from "sonner";
 import { BookCheck, Check, CircleSlash, CircleDot, Plus, Trash2 } from "lucide-react";
 import { useAuthSession, useMyRoles, hasAny, logAudit } from "@/hooks/useAuth";
 import { ExportMenu } from "@/components/ExportMenu";
+import { sectionLabel } from "@/lib/section-label";
 
 export const Route = createFileRoute("/_authenticated/homework")({
   component: HomeworkPage,
 });
 
-type Section = { id: string; grade_id: number; section_number: number };
+type Section = { id: string; grade_id: number; section_number: number; gender: string | null };
 type Assignment = {
   id: string;
   grade_id: number;
@@ -71,7 +72,7 @@ function HomeworkPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("sections")
-        .select("id, grade_id, section_number")
+        .select("id, grade_id, section_number, gender")
         .eq("grade_id", gradeId)
         .eq("is_active", true)
         .order("section_number");
@@ -160,7 +161,7 @@ function HomeworkPage() {
                 <SelectTrigger><SelectValue placeholder="اختر شعبة" /></SelectTrigger>
                 <SelectContent>
                   {sections.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>شعبة {s.section_number}</SelectItem>
+                    <SelectItem key={s.id} value={s.id}>{sectionLabel(s.section_number, s.gender)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useAuthSession, logAudit } from "@/hooks/useAuth";
+import { sectionLabel } from "@/lib/section-label";
 
 export function StudentDialog({
   open, onOpenChange, onSaved, student,
@@ -34,10 +35,10 @@ export function StudentDialog({
     notes: "",
   });
   const [saving, setSaving] = useState(false);
-  const [sections, setSections] = useState<{ id: string; section_number: number; grade_id: number }[]>([]);
+  const [sections, setSections] = useState<{ id: string; section_number: number; grade_id: number; gender: string | null }[]>([]);
 
   useEffect(() => {
-    supabase.from("sections").select("id, section_number, grade_id").eq("is_active", true)
+    supabase.from("sections").select("id, section_number, grade_id, gender").eq("is_active", true)
       .then(({ data }) => setSections(data ?? []));
   }, [open]);
 
@@ -129,7 +130,7 @@ export function StudentDialog({
             >
               <option value="">اختر الشعبة</option>
               {filteredSections.map((s) => (
-                <option key={s.id} value={s.id}>{`الشعبة ${s.section_number}`}</option>
+                <option key={s.id} value={s.id}>{sectionLabel(s.section_number, s.gender)}</option>
               ))}
             </select>
             {filteredSections.length === 0 && (
