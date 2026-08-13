@@ -19,11 +19,21 @@ export const Route = createFileRoute("/login")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
+  validateSearch: (s: Record<string, unknown>): { next?: string } =>
+    typeof s.next === "string" ? { next: s.next } : {},
   component: LoginPage,
 });
 
+/** Only same-origin relative paths are safe redirect targets. */
+function safeNext(next?: string): string | null {
+  if (!next || !next.startsWith("/") || next.startsWith("//")) return null;
+  return next;
+}
+
 function LoginPage() {
   const navigate = useNavigate();
+  const { next } = Route.useSearch();
+  const target = safeNext(next);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -33,9 +43,12 @@ function LoginPage() {
   useEffect(() => {
     setReady(true);
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/dashboard" });
+      if (data.session) {
+        if (target) window.location.href = target;
+        else navigate({ to: "/dashboard" });
+      }
     });
-  }, [navigate]);
+  }, [navigate, target]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,7 +66,8 @@ function LoginPage() {
       ]);
       if (error) throw error;
       toast.success("مرحباً بعودتك");
-      navigate({ to: "/dashboard" });
+      if (target) window.location.href = target;
+      else navigate({ to: "/dashboard" });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "حدث خطأ";
       const friendly = /invalid login|invalid_credentials/i.test(msg)
