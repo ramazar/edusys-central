@@ -10,7 +10,7 @@ import financeSummaryTool from "./tools/finance-summary";
 const projectRef = import.meta.env["VITE_SUPABASE_PROJECT_ID"] ?? "project-ref-unset";
 
 export default defineMcp({
-  name: "schooldesk-lohh-adar-almdrs",
+  name: "schooldesk-hub",
   title: "SchoolDesk Hub",
   version: "0.1.0",
   instructions:

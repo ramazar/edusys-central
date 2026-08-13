@@ -11,7 +11,7 @@
   },
   "mcp": {
     "server": {
-      "name": "schooldesk-lohh-adar-almdrs",
+      "name": "schooldesk-hub",
       "version": "0.1.0",
       "title": "SchoolDesk Hub"
     },
