@@ -155,28 +155,37 @@ function FinancePage() {
   );
 }
 
-function EntryDialog({ kind, open, onOpenChange, onSaved }: { kind: "income" | "expense"; open: boolean; onOpenChange: (v: boolean) => void; onSaved: () => void }) {
+function EntryDialog({ kind, entry, open, onOpenChange, onSaved }: { kind: "income" | "expense"; entry?: Entry; open: boolean; onOpenChange: (v: boolean) => void; onSaved: () => void }) {
   const { user } = useAuthSession();
-  const [amount, setAmount] = useState("");
-  const [category, setCategory] = useState("");
-  const [description, setDescription] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [amount, setAmount] = useState(entry ? String(entry.amount) : "");
+  const [category, setCategory] = useState(entry?.category ?? "");
+  const [description, setDescription] = useState(entry?.description ?? "");
+  const [date, setDate] = useState(entry?.entry_date ?? new Date().toISOString().slice(0, 10));
 
   const save = async () => {
     if (!amount) return toast.error("المبلغ مطلوب");
     const table = kind === "income" ? "income_entries" : "expenses";
-    const { data, error } = await supabase.from(table).insert({
-      amount: Number(amount), category, description, entry_date: date, recorded_by: user?.id,
-    }).select().single();
+    const values = { amount: Number(amount), category, description, entry_date: date };
+    if (entry) {
+      const { data, error } = await supabase.from(table).update(values).eq("id", entry.id).select().single();
+      if (error) return toast.error(error.message);
+      await logAudit(user, "update", table, entry.id, entry, data);
+      toast.success("تم تحديث القيد"); onSaved(); onOpenChange(false);
+      return;
+    }
+    const { data, error } = await supabase.from(table).insert({ ...values, recorded_by: user?.id }).select().single();
     if (error) return toast.error(error.message);
     await logAudit(user, "create", table, data.id, null, data);
     toast.success("تم الحفظ"); onSaved(); onOpenChange(false);
     setAmount(""); setCategory(""); setDescription("");
   };
+  const title = entry
+    ? kind === "income" ? "تعديل إيراد" : "تعديل مصروف"
+    : kind === "income" ? "إضافة إيراد" : "إضافة مصروف";
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader><DialogTitle>{kind === "income" ? "إضافة إيراد" : "إضافة مصروف"}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{title}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div><Label>الفئة</Label><Input value={category} onChange={(e) => setCategory(e.target.value)} /></div>
           <div><Label>الوصف</Label><Input value={description} onChange={(e) => setDescription(e.target.value)} /></div>
