@@ -9,9 +9,17 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, TrendingUp, TrendingDown } from "lucide-react";
+import { Plus, TrendingUp, TrendingDown, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { useAuthSession, logAudit } from "@/hooks/useAuth";
+import { useAuthSession, useMyRoles, hasAny, logAudit } from "@/hooks/useAuth";
+
+type Entry = {
+  id: string;
+  amount: number;
+  entry_date: string;
+  category: string | null;
+  description: string | null;
+};
 
 const PaymentDues = lazy(() => import("@/components/finance/PaymentDues"));
 
