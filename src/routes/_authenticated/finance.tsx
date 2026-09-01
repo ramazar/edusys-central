@@ -27,17 +27,43 @@ export const Route = createFileRoute("/_authenticated/finance")({ component: Fin
 
 function FinancePage() {
   const qc = useQueryClient();
+  const { user } = useAuthSession();
+  const { data: roles = [] } = useMyRoles(user?.id);
+  const canManage = hasAny(roles, ["admin", "accountant"]);
   const [incomeOpen, setIncomeOpen] = useState(false);
   const [expenseOpen, setExpenseOpen] = useState(false);
+  const [editing, setEditing] = useState<{ kind: "income" | "expense"; entry: Entry } | null>(null);
 
   const { data: income = [] } = useQuery({
     queryKey: ["income"],
-    queryFn: async () => (await supabase.from("income_entries").select("*").order("entry_date", { ascending: false }).limit(200)).data ?? [],
+    queryFn: async () => ((await supabase.from("income_entries").select("*").order("entry_date", { ascending: false }).limit(200)).data ?? []) as Entry[],
   });
   const { data: expenses = [] } = useQuery({
     queryKey: ["expenses"],
-    queryFn: async () => (await supabase.from("expenses").select("*").order("entry_date", { ascending: false }).limit(200)).data ?? [],
+    queryFn: async () => ((await supabase.from("expenses").select("*").order("entry_date", { ascending: false }).limit(200)).data ?? []) as Entry[],
   });
+
+  const removeEntry = async (kind: "income" | "expense", entry: Entry) => {
+    const label = kind === "income" ? "الإيراد" : "المصروف";
+    if (!confirm(`حذف ${label} بمبلغ ${Number(entry.amount).toLocaleString("ar")}؟ لا يمكن التراجع.`)) return;
+    const table = kind === "income" ? "income_entries" : "expenses";
+    const { error } = await supabase.from(table).delete().eq("id", entry.id);
+    if (error) return toast.error(error.message);
+    await logAudit(user, "delete", table, entry.id, entry, null);
+    toast.success(`تم حذف ${label}`);
+    qc.invalidateQueries({ queryKey: [kind === "income" ? "income" : "expenses"] });
+  };
+
+  const rowActions = (kind: "income" | "expense", entry: Entry) =>
+    canManage ? (
+      <div className="flex gap-1">
+        <Button size="sm" variant="outline" onClick={() => setEditing({ kind, entry })}><Pencil className="h-4 w-4" /></Button>
+        <Button size="sm" variant="destructive" onClick={() => removeEntry(kind, entry)}><Trash2 className="h-4 w-4" /></Button>
+      </div>
+    ) : (
+      <span className="text-muted-foreground">—</span>
+    );
+
 
   const totalIncome = income.reduce((s, r) => s + Number(r.amount), 0);
   const totalExpense = expenses.reduce((s, r) => s + Number(r.amount), 0);
