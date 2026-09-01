@@ -90,44 +90,48 @@ function FinancePage() {
           </Suspense>
         </TabsContent>
         <TabsContent value="income" className="space-y-3">
-          <Button onClick={() => setIncomeOpen(true)}><Plus className="ml-2 h-4 w-4" /> إضافة إيراد</Button>
+          {canManage && <Button onClick={() => setIncomeOpen(true)}><Plus className="ml-2 h-4 w-4" /> إضافة إيراد</Button>}
           <Card><CardContent className="p-0"><Table>
             <TableHeader><TableRow>
               <TableHead className="text-right">التاريخ</TableHead>
               <TableHead className="text-right">الفئة</TableHead>
               <TableHead className="text-right">الوصف</TableHead>
               <TableHead className="text-right">المبلغ</TableHead>
+              <TableHead className="text-right">إجراءات</TableHead>
             </TableRow></TableHeader>
             <TableBody>
-              {income.length === 0 && <TableRow><TableCell colSpan={4} className="py-8 text-center text-muted-foreground">لا توجد بيانات</TableCell></TableRow>}
+              {income.length === 0 && <TableRow><TableCell colSpan={5} className="py-8 text-center text-muted-foreground">لا توجد بيانات</TableCell></TableRow>}
               {income.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell>{r.entry_date}</TableCell>
                   <TableCell>{r.category || "—"}</TableCell>
                   <TableCell>{r.description || "—"}</TableCell>
                   <TableCell className="font-mono text-success">{Number(r.amount).toLocaleString("ar")}</TableCell>
+                  <TableCell>{rowActions("income", r)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table></CardContent></Card>
         </TabsContent>
         <TabsContent value="expenses" className="space-y-3">
-          <Button onClick={() => setExpenseOpen(true)}><Plus className="ml-2 h-4 w-4" /> إضافة مصروف</Button>
+          {canManage && <Button onClick={() => setExpenseOpen(true)}><Plus className="ml-2 h-4 w-4" /> إضافة مصروف</Button>}
           <Card><CardContent className="p-0"><Table>
             <TableHeader><TableRow>
               <TableHead className="text-right">التاريخ</TableHead>
               <TableHead className="text-right">الفئة</TableHead>
               <TableHead className="text-right">الوصف</TableHead>
               <TableHead className="text-right">المبلغ</TableHead>
+              <TableHead className="text-right">إجراءات</TableHead>
             </TableRow></TableHeader>
             <TableBody>
-              {expenses.length === 0 && <TableRow><TableCell colSpan={4} className="py-8 text-center text-muted-foreground">لا توجد بيانات</TableCell></TableRow>}
+              {expenses.length === 0 && <TableRow><TableCell colSpan={5} className="py-8 text-center text-muted-foreground">لا توجد بيانات</TableCell></TableRow>}
               {expenses.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell>{r.entry_date}</TableCell>
                   <TableCell>{r.category || "—"}</TableCell>
                   <TableCell>{r.description || "—"}</TableCell>
                   <TableCell className="font-mono text-destructive">{Number(r.amount).toLocaleString("ar")}</TableCell>
+                  <TableCell>{rowActions("expense", r)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -137,6 +141,16 @@ function FinancePage() {
 
       <EntryDialog kind="income" open={incomeOpen} onOpenChange={setIncomeOpen} onSaved={() => qc.invalidateQueries({ queryKey: ["income"] })} />
       <EntryDialog kind="expense" open={expenseOpen} onOpenChange={setExpenseOpen} onSaved={() => qc.invalidateQueries({ queryKey: ["expenses"] })} />
+      {editing && (
+        <EntryDialog
+          key={editing.entry.id}
+          kind={editing.kind}
+          entry={editing.entry}
+          open
+          onOpenChange={(o) => !o && setEditing(null)}
+          onSaved={() => qc.invalidateQueries({ queryKey: [editing.kind === "income" ? "income" : "expenses"] })}
+        />
+      )}
     </div>
   );
 }
