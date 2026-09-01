@@ -299,9 +299,10 @@ function SalaryDialog({ teacherId, onClose, onSaved }: { teacherId: string; onCl
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [notes, setNotes] = useState("");
+  const [currency, setCurrency] = useState<Currency>("SYP");
   const save = async () => {
     if (!amount) return toast.error("المبلغ مطلوب");
-    const { data, error } = await supabase.from("teacher_payments").insert({ teacher_id: teacherId, amount: Number(amount), payment_date: date, notes, recorded_by: user?.id }).select().single();
+    const { data, error } = await supabase.from("teacher_payments").insert({ teacher_id: teacherId, amount: Number(amount), payment_date: date, notes, currency, recorded_by: user?.id }).select().single();
     if (error) return toast.error(error.message);
     await logAudit(user, "create", "teacher_payments", data.id, null, data);
     toast.success("تم صرف الراتب"); onSaved(); onClose();
@@ -311,7 +312,18 @@ function SalaryDialog({ teacherId, onClose, onSaved }: { teacherId: string; onCl
       <DialogContent>
         <DialogHeader><DialogTitle>صرف راتب معلم</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <div><Label>المبلغ</Label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>المبلغ</Label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
+            <div>
+              <Label>العملة</Label>
+              <Select value={currency} onValueChange={(v) => setCurrency(v as Currency)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CURRENCIES.map((c) => <SelectItem key={c} value={c}>{currencyName[c]}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           <div><Label>التاريخ</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
           <div><Label>ملاحظات</Label><Input value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
         </div>
