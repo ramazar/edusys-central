@@ -267,6 +267,7 @@ export type Database = {
           amount: number
           category: string
           created_at: string
+          currency: Database["public"]["Enums"]["currency_code"]
           description: string | null
           entry_date: string
           id: string
@@ -277,6 +278,7 @@ export type Database = {
           amount: number
           category: string
           created_at?: string
+          currency?: Database["public"]["Enums"]["currency_code"]
           description?: string | null
           entry_date?: string
           id?: string
@@ -287,6 +289,7 @@ export type Database = {
           amount?: number
           category?: string
           created_at?: string
+          currency?: Database["public"]["Enums"]["currency_code"]
           description?: string | null
           entry_date?: string
           id?: string
@@ -441,6 +444,7 @@ export type Database = {
           amount: number
           category: string
           created_at: string
+          currency: Database["public"]["Enums"]["currency_code"]
           description: string | null
           entry_date: string
           id: string
@@ -451,6 +455,7 @@ export type Database = {
           amount: number
           category: string
           created_at?: string
+          currency?: Database["public"]["Enums"]["currency_code"]
           description?: string | null
           entry_date?: string
           id?: string
@@ -461,6 +466,7 @@ export type Database = {
           amount?: number
           category?: string
           created_at?: string
+          currency?: Database["public"]["Enums"]["currency_code"]
           description?: string | null
           entry_date?: string
           id?: string
@@ -740,6 +746,7 @@ export type Database = {
         Row: {
           amount: number
           created_at: string
+          currency: Database["public"]["Enums"]["currency_code"]
           id: string
           method: string | null
           notes: string | null
@@ -752,6 +759,7 @@ export type Database = {
         Insert: {
           amount: number
           created_at?: string
+          currency?: Database["public"]["Enums"]["currency_code"]
           id?: string
           method?: string | null
           notes?: string | null
@@ -764,6 +772,7 @@ export type Database = {
         Update: {
           amount?: number
           created_at?: string
+          currency?: Database["public"]["Enums"]["currency_code"]
           id?: string
           method?: string | null
           notes?: string | null
@@ -1039,6 +1048,7 @@ export type Database = {
         Row: {
           amount: number
           created_at: string
+          currency: Database["public"]["Enums"]["currency_code"]
           id: string
           notes: string | null
           payment_date: string
@@ -1051,6 +1061,7 @@ export type Database = {
         Insert: {
           amount: number
           created_at?: string
+          currency?: Database["public"]["Enums"]["currency_code"]
           id?: string
           notes?: string | null
           payment_date?: string
@@ -1063,6 +1074,7 @@ export type Database = {
         Update: {
           amount?: number
           created_at?: string
+          currency?: Database["public"]["Enums"]["currency_code"]
           id?: string
           notes?: string | null
           payment_date?: string
@@ -1293,6 +1305,7 @@ export type Database = {
         Row: {
           amount: number
           created_at: string
+          currency: Database["public"]["Enums"]["currency_code"]
           id: string
           notes: string | null
           payment_date: string
@@ -1305,6 +1318,7 @@ export type Database = {
         Insert: {
           amount: number
           created_at?: string
+          currency?: Database["public"]["Enums"]["currency_code"]
           id?: string
           notes?: string | null
           payment_date?: string
@@ -1317,6 +1331,7 @@ export type Database = {
         Update: {
           amount?: number
           created_at?: string
+          currency?: Database["public"]["Enums"]["currency_code"]
           id?: string
           notes?: string | null
           payment_date?: string
@@ -1427,6 +1442,7 @@ export type Database = {
     Enums: {
       app_role: "admin" | "accountant" | "reception" | "teacher" | "super_admin"
       attendance_status: "present" | "absent" | "late"
+      currency_code: "SYP" | "USD"
       homework_status: "done" | "not_done" | "partial"
       salary_type: "fixed" | "hourly"
       section_gender: "boys" | "girls"
@@ -1559,6 +1575,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "accountant", "reception", "teacher", "super_admin"],
       attendance_status: ["present", "absent", "late"],
+      currency_code: ["SYP", "USD"],
       homework_status: ["done", "not_done", "partial"],
       salary_type: ["fixed", "hourly"],
       section_gender: ["boys", "girls"],

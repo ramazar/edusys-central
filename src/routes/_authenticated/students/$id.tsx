@@ -11,6 +11,8 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CURRENCIES, type Currency, asCurrency, currencyName, formatMoney } from "@/lib/currency";
 import { toast } from "sonner";
 import { useAuthSession, useMyRoles, hasAny, logAudit } from "@/hooks/useAuth";
 import { generateInvoicePDF, generateReceiptPDF } from "@/lib/invoice";
@@ -160,7 +162,7 @@ function StudentDetail() {
               {payments.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell>{p.payment_date}</TableCell>
-                  <TableCell className="font-mono">{Number(p.amount).toLocaleString("ar")}</TableCell>
+                  <TableCell className="font-mono">{formatMoney(Number(p.amount), asCurrency(p.currency))}</TableCell>
                   <TableCell>{p.method || "—"}</TableCell>
                   <TableCell>{p.reference || "—"}</TableCell>
                   <TableCell>{p.notes || "—"}</TableCell>
@@ -270,10 +272,11 @@ function PaymentDialog({ open, onOpenChange, studentId, onSaved }: { open: boole
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [method, setMethod] = useState("نقدي");
   const [notes, setNotes] = useState("");
+  const [currency, setCurrency] = useState<Currency>("SYP");
   const save = async () => {
     if (!amount) return toast.error("المبلغ مطلوب");
     const { data, error } = await supabase.from("student_payments").insert({
-      student_id: studentId, amount: Number(amount), payment_date: date, method, notes, recorded_by: user?.id,
+      student_id: studentId, amount: Number(amount), payment_date: date, method, notes, currency, recorded_by: user?.id,
     }).select().single();
     if (error) return toast.error(error.message);
     await logAudit(user, "create", "student_payments", data.id, null, data);
@@ -285,7 +288,18 @@ function PaymentDialog({ open, onOpenChange, studentId, onSaved }: { open: boole
       <DialogContent>
         <DialogHeader><DialogTitle>تسجيل دفعة</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <div><Label>المبلغ</Label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>المبلغ</Label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
+            <div>
+              <Label>العملة</Label>
+              <Select value={currency} onValueChange={(v) => setCurrency(v as Currency)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CURRENCIES.map((c) => <SelectItem key={c} value={c}>{currencyName[c]}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           <div><Label>التاريخ</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
           <div><Label>الطريقة</Label><Input value={method} onChange={(e) => setMethod(e.target.value)} /></div>
           <div><Label>ملاحظات</Label><Input value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
