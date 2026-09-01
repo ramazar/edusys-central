@@ -13,6 +13,8 @@ import { Plus, DollarSign, History, Trash2, ScanLine, LogIn, LogOut, Pencil, Boo
 import { toast } from "sonner";
 import { useAuthSession, useMyRoles, hasAny, logAudit } from "@/hooks/useAuth";
 import { LecturesDialog, useLectureTotals } from "@/components/teachers/LecturesDialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CURRENCIES, type Currency, asCurrency, currencyName, formatMoney } from "@/lib/currency";
 
 export const Route = createFileRoute("/_authenticated/teachers")({ component: TeachersPage });
 
