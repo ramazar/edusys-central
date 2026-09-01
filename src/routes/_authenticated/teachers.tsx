@@ -381,7 +381,7 @@ function HistoryDialog({ teacher, due, canManage, onClose, onChanged }: { teache
               {payments.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell>{p.payment_date}</TableCell>
-                  <TableCell className="font-mono">{Number(p.amount).toLocaleString("ar")}</TableCell>
+                  <TableCell className="font-mono">{formatMoney(Number(p.amount), asCurrency(p.currency))}</TableCell>
                   <TableCell>{p.notes || "—"}</TableCell>
                   {canManage && <TableCell><Button variant="ghost" size="icon" onClick={() => remove(p.id, p)}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell>}
                 </TableRow>
