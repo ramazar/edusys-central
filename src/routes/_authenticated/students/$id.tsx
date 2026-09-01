@@ -162,7 +162,7 @@ function StudentDetail() {
               {payments.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell>{p.payment_date}</TableCell>
-                  <TableCell className="font-mono">{Number(p.amount).toLocaleString("ar")}</TableCell>
+                  <TableCell className="font-mono">{formatMoney(Number(p.amount), asCurrency(p.currency))}</TableCell>
                   <TableCell>{p.method || "—"}</TableCell>
                   <TableCell>{p.reference || "—"}</TableCell>
                   <TableCell>{p.notes || "—"}</TableCell>
