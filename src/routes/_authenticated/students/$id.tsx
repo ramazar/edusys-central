@@ -228,7 +228,7 @@ function StudentDetail() {
       <PaymentDialog open={payDialog} onOpenChange={setPayDialog} studentId={id} onSaved={() => qc.invalidateQueries({ queryKey: ["payments", id] })} />
       <PlanDialog open={planDialog} onOpenChange={setPlanDialog} studentId={id} nextNumber={plans.length + 1} onSaved={() => qc.invalidateQueries({ queryKey: ["plans", id] })} />
       <ReportDialog open={reportDialog} onOpenChange={setReportDialog} student={student} />
-      <StudentDialog open={editDialog} onOpenChange={setEditDialog} student={student} onSaved={() => qc.invalidateQueries({ queryKey: ["student", id] })} />
+      <StudentDialog open={editDialog} onOpenChange={setEditDialog} student={student} onSaved={() => { qc.invalidateQueries({ queryKey: ["student", id] }); qc.invalidateQueries({ queryKey: ["students"] }); }} />
     </div>
   );
 }
