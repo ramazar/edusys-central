@@ -19,6 +19,7 @@ import { generateInvoicePDF, generateReceiptPDF } from "@/lib/invoice";
 import { generateStudentReport, buildStudentReportDoc } from "@/lib/student-report";
 import { ExportMenu } from "@/components/ExportMenu";
 import { StudentDialog } from "@/components/students/StudentDialog";
+import { deleteStudent } from "@/lib/students.functions";
 import { gradeSectionLabel } from "@/lib/section-label";
 
 export const Route = createFileRoute("/_authenticated/students/$id")({
