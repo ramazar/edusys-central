@@ -372,7 +372,7 @@ function MarksPage() {
                   <TableCell className="font-medium">{r.student.full_name}</TableCell>
                   <TableCell>{r.total.toLocaleString("ar")} / {r.max.toLocaleString("ar")}</TableCell>
                   <TableCell>
-                    <Badge variant={r.pct >= 60 ? "default" : "destructive"}>{r.pct.toFixed(1)}%</Badge>
+                    <Badge variant={r.pct >= 50 ? "default" : "destructive"}>{r.pct.toFixed(1)}%</Badge>
                   </TableCell>
                   <TableCell>{r.count}</TableCell>
                   <TableCell className="text-xs">{Array.from(r.subjects).join("، ") || "-"}</TableCell>
@@ -443,7 +443,7 @@ function MarksPage() {
                     <TableCell>{st?.full_name ?? "-"}</TableCell>
                     <TableCell>{m.subject}</TableCell>
                     <TableCell>{Number(m.score).toLocaleString("ar")} / {Number(m.max_score).toLocaleString("ar")}</TableCell>
-                    <TableCell><Badge variant={pct >= 60 ? "default" : "destructive"}>{pct.toFixed(1)}%</Badge></TableCell>
+                    <TableCell><Badge variant={pct >= 50 ? "default" : "destructive"}>{pct.toFixed(1)}%</Badge></TableCell>
                     <TableCell className="text-xs max-w-xs truncate">{m.notes ?? "-"}</TableCell>
                     {canEdit && (
                       <TableCell>
