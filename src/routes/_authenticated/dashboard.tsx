@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { useAuthSession, useMyAccess } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Wallet, AlertTriangle, CalendarCheck } from "lucide-react";
@@ -13,6 +15,11 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 });
 
 function Dashboard() {
+  const navigate = useNavigate();
+  const { user } = useAuthSession();
+  const { data: access, isLoading: accessLoading } = useMyAccess(user?.id);
+  const allowed = !!access && (access.isSuperAdmin || access.roles.some((r) => r === "admin" || r === "accountant"));
+
   const { data: stats } = useQuery({
     queryKey: ["dashboard-stats"],
     queryFn: async () => {
@@ -76,12 +83,24 @@ function Dashboard() {
     },
   });
 
+  useEffect(() => {
+    if (!accessLoading && access && !allowed) navigate({ to: "/students", search: {} as never, replace: true });
+  }, [accessLoading, access, allowed, navigate]);
+
   const kpis = [
     { title: "إجمالي الطلاب", value: stats?.students ?? "—", icon: Users, tone: "text-primary" },
     { title: "الإيرادات هذا الشهر", value: `${(stats?.incomeTotal ?? 0).toLocaleString("ar")} `, icon: Wallet, tone: "text-success" },
     { title: "المصروفات هذا الشهر", value: `${(stats?.expenseTotal ?? 0).toLocaleString("ar")} `, icon: AlertTriangle, tone: "text-destructive" },
     { title: "معدل الحضور اليوم", value: `${stats?.attendanceRate ?? 0}%`, icon: CalendarCheck, tone: "text-primary" },
   ];
+
+  if (!allowed) {
+    return (
+      <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
+        {accessLoading ? "جارٍ التحميل..." : "لوحة التحكم متاحة لمدير النظام والمحاسب فقط"}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
