@@ -84,7 +84,7 @@ function Dashboard() {
   });
 
   useEffect(() => {
-    if (!accessLoading && access && !allowed) navigate({ to: "/students", replace: true });
+    if (!accessLoading && access && !allowed) navigate({ to: "/students", search: {} as never, replace: true });
   }, [accessLoading, access, allowed, navigate]);
 
   const kpis = [
