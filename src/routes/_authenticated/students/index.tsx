@@ -25,21 +25,24 @@ export const Route = createFileRoute("/_authenticated/students/")({
 function StudentsPage() {
   const { q } = Route.useSearch();
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const [search, setSearch] = useState(q);
   const [gradeFilter, setGradeFilter] = useState<number | "">("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editStudent, setEditStudent] = useState<any>(null);
   const { user } = useAuthSession();
   const { data: roles = [] } = useMyRoles(user?.id);
   const canManage = hasAny(roles, ["admin", "reception"]);
+  const removeStudent = useServerFn(deleteStudent);
 
   const { data: students = [], refetch } = useQuery({
     queryKey: ["students", search, gradeFilter],
     queryFn: async () => {
       let query = supabase
         .from("students")
-        .select("id, student_number, full_name, grade_id, section_id, guardian_name, guardian_phone, is_active, sections(section_number, gender)")
-        .order("full_name")
-        .limit(500);
+            .select("id, student_number, full_name, grade_id, section_id, guardian_name, guardian_phone, guardian_relation, address, enrollment_date, academic_year, gender, birth_date, notes, is_active, sections(section_number, gender)")
+            .order("full_name")
+            .limit(500);
       if (search) {
         query = query.or(
           `full_name.ilike.%${search}%,student_number.ilike.%${search}%,guardian_name.ilike.%${search}%,guardian_phone.ilike.%${search}%`,
@@ -51,6 +54,7 @@ function StudentsPage() {
       return data ?? [];
     },
   });
+
 
   return (
     <div className="space-y-4">
