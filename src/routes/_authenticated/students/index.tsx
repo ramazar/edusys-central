@@ -156,6 +156,14 @@ function StudentsPage() {
       {canManage && (
         <StudentDialog open={dialogOpen} onOpenChange={setDialogOpen} onSaved={() => refetch()} />
       )}
+      {canManage && (
+        <StudentDialog
+          open={!!editStudent}
+          onOpenChange={(v) => { if (!v) setEditStudent(null); }}
+          student={editStudent}
+          onSaved={() => { setEditStudent(null); refetch(); }}
+        />
+      )}
     </div>
   );
 }
