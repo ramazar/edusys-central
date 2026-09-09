@@ -175,6 +175,15 @@ function FinancePage() {
     },
   });
 
+  const removeWithdrawal = async (id: string, amount: number, cur: Currency) => {
+    if (!confirm(`حذف سحب بمبلغ ${formatMoney(amount, cur)}؟ سيعود المبلغ إلى الصندوق.`)) return;
+    const { error } = await supabase.from("vault_withdrawals").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    await logAudit(user, "delete", "vault_withdrawals", id, { amount, currency: cur }, null);
+    toast.success("تم حذف السحب");
+    qc.invalidateQueries({ queryKey: ["vault-withdrawals"] });
+  };
+
   const removeEntry = async (kind: "income" | "expense", entry: Entry) => {
     const label = kind === "income" ? "الإيراد" : "المصروف";
     if (!confirm(`حذف ${label} بمبلغ ${formatMoney(entry.amount, entry.currency)}؟ لا يمكن التراجع.`)) return;
