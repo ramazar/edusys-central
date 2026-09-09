@@ -1247,6 +1247,50 @@ export type Database = {
           },
         ]
       }
+      vault_withdrawals: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: Database["public"]["Enums"]["currency_code"]
+          id: string
+          notes: string | null
+          recorded_by: string | null
+          school_id: string
+          updated_at: string
+          withdrawn_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: Database["public"]["Enums"]["currency_code"]
+          id?: string
+          notes?: string | null
+          recorded_by?: string | null
+          school_id: string
+          updated_at?: string
+          withdrawn_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: Database["public"]["Enums"]["currency_code"]
+          id?: string
+          notes?: string | null
+          recorded_by?: string | null
+          school_id?: string
+          updated_at?: string
+          withdrawn_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vault_withdrawals_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       worker_attendance: {
         Row: {
           check_in: string | null
