@@ -251,14 +251,59 @@ function FinancePage() {
         </Tabs>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm">إجمالي الإيرادات</CardTitle><TrendingUp className="h-4 w-4 text-success" /></CardHeader><CardContent><div className="text-2xl font-bold text-success">{formatMoney(totalIncome, currency)}</div></CardContent></Card>
         <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm">إجمالي المصروفات</CardTitle><TrendingDown className="h-4 w-4 text-destructive" /></CardHeader><CardContent><div className="text-2xl font-bold text-destructive">{formatMoney(totalExpense, currency)}</div></CardContent></Card>
         <Card><CardHeader className="pb-2"><CardTitle className="text-sm">الصافي</CardTitle></CardHeader><CardContent><div className={`text-2xl font-bold ${net >= 0 ? "text-success" : "text-destructive"}`}>{formatMoney(net, currency)}</div></CardContent></Card>
+        <Card className="border-primary/40">
+          <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm">النقد في الصندوق</CardTitle><Wallet className="h-4 w-4 text-primary" /></CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${vaultBalance >= 0 ? "text-primary" : "text-destructive"}`}>{formatMoney(vaultBalance, currency)}</div>
+            <p className="mt-1 text-xs text-muted-foreground">المسحوب: {formatMoney(totalWithdrawn, currency)}</p>
+          </CardContent>
+        </Card>
       </div>
 
       <Tabs defaultValue="income">
-        <TabsList><TabsTrigger value="income">الإيرادات</TabsTrigger><TabsTrigger value="expenses">المصروفات</TabsTrigger><TabsTrigger value="dues">المتأخرات والاستحقاقات</TabsTrigger></TabsList>
+        <TabsList><TabsTrigger value="income">الإيرادات</TabsTrigger><TabsTrigger value="expenses">المصروفات</TabsTrigger><TabsTrigger value="vault">الصندوق</TabsTrigger><TabsTrigger value="dues">المتأخرات والاستحقاقات</TabsTrigger></TabsList>
+        <TabsContent value="vault" className="space-y-3">
+          <Card>
+            <CardHeader><CardTitle className="text-base">النقد المتوفر في الصندوق ({currencyName[currency]})</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              <div className="text-3xl font-bold text-primary">{formatMoney(vaultBalance, currency)}</div>
+              <p className="text-sm text-muted-foreground">يُحسب من الإيرادات ناقص المصروفات ناقص ما سحبه المالك — وهو مستقل عن إجمالي الإيرادات.</p>
+              {canManage && (
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={() => setWithdrawOpen(true)}><Plus className="ml-2 h-4 w-4" /> تسجيل سحب</Button>
+                  <Button variant="outline" disabled={vaultBalance <= 0} onClick={() => setResetAmount(vaultBalance)}>تصفير الصندوق (سحب الكل)</Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          <Card><CardContent className="p-0"><Table>
+            <TableHeader><TableRow>
+              <TableHead className="text-right">التاريخ</TableHead>
+              <TableHead className="text-right">الملاحظات</TableHead>
+              <TableHead className="text-right">المبلغ المسحوب</TableHead>
+              <TableHead className="text-right">إجراءات</TableHead>
+            </TableRow></TableHeader>
+            <TableBody>
+              {currencyWithdrawals.length === 0 && <TableRow><TableCell colSpan={4} className="py-8 text-center text-muted-foreground">لا توجد مسحوبات بـ{currencyName[currency]}</TableCell></TableRow>}
+              {currencyWithdrawals.map((w) => (
+                <TableRow key={w.id}>
+                  <TableCell>{w.withdrawn_at}</TableCell>
+                  <TableCell>{w.notes || "—"}</TableCell>
+                  <TableCell className="font-mono">{formatMoney(Number(w.amount), asCurrency(w.currency))}</TableCell>
+                  <TableCell>
+                    {canManage ? (
+                      <Button size="sm" variant="destructive" onClick={() => removeWithdrawal(w.id, Number(w.amount), asCurrency(w.currency))}><Trash2 className="h-4 w-4" /></Button>
+                    ) : <span className="text-muted-foreground">—</span>}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table></CardContent></Card>
+        </TabsContent>
         <TabsContent value="dues">
           <Suspense fallback={<div className="h-64 animate-pulse rounded-lg border bg-card" />}>
             <PaymentDues />
