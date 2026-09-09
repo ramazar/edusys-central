@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,10 +10,12 @@ import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Pencil, Trash2 } from "lucide-react";
 import { useAuthSession, useMyRoles, hasAny } from "@/hooks/useAuth";
 import { StudentDialog } from "@/components/students/StudentDialog";
 import { gradeSectionLabel } from "@/lib/section-label";
+import { deleteStudent } from "@/lib/students.functions";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/students/")({
   validateSearch: (s: Record<string, unknown>) => ({ q: (s.q as string) ?? "" }),
