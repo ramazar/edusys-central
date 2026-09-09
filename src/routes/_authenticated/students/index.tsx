@@ -110,7 +110,7 @@ function StudentsPage() {
             </TableHeader>
             <TableBody>
               {students.length === 0 && (
-                <TableRow><TableCell colSpan={6} className="py-8 text-center text-muted-foreground">لا يوجد طلاب</TableCell></TableRow>
+                <TableRow><TableCell colSpan={canManage ? 7 : 6} className="py-8 text-center text-muted-foreground">لا يوجد طلاب</TableCell></TableRow>
               )}
               {students.map((s) => (
                 <TableRow key={s.id} className="cursor-pointer hover:bg-muted/50">
@@ -126,6 +126,26 @@ function StudentsPage() {
                       ? <Badge className="bg-success text-success-foreground">نشط</Badge>
                       : <Badge variant="destructive">موقوف</Badge>}
                   </TableCell>
+                  {canManage && (
+                    <TableCell className="flex gap-1">
+                      <Button variant="ghost" size="icon" title="تعديل" onClick={(e) => { e.stopPropagation(); setEditStudent(s); }}>
+                        <Pencil className="h-4 w-4 text-primary" />
+                      </Button>
+                      <Button variant="ghost" size="icon" title="حذف" onClick={async (e) => {
+                        e.stopPropagation();
+                        if (!confirm(`حذف الطالب ${s.full_name} نهائيًا؟`)) return;
+                        try {
+                          await removeStudent({ data: { id: s.id } });
+                          toast.success("تم حذف الطالب");
+                          qc.invalidateQueries({ queryKey: ["students"] });
+                        } catch (err) {
+                          toast.error(err instanceof Error ? err.message : "تعذّر الحذف");
+                        }
+                      }}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
