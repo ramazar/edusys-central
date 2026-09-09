@@ -160,6 +160,19 @@ function FinancePage() {
     },
   });
 
+  const { data: withdrawals = [] } = useQuery({
+    queryKey: ["vault-withdrawals"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("vault_withdrawals")
+        .select("*")
+        .order("withdrawn_at", { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const removeEntry = async (kind: "income" | "expense", entry: Entry) => {
     const label = kind === "income" ? "الإيراد" : "المصروف";
     if (!confirm(`حذف ${label} بمبلغ ${formatMoney(entry.amount, entry.currency)}؟ لا يمكن التراجع.`)) return;
