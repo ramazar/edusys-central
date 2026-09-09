@@ -104,6 +104,11 @@ function StudentDetail() {
             <Pencil className="ml-2 h-4 w-4" /> تعديل البيانات
           </Button>
         )}
+        {canEdit && (
+          <Button variant="outline" className="text-destructive" onClick={handleDelete}>
+            <Trash2 className="ml-2 h-4 w-4" /> حذف الطالب
+          </Button>
+        )}
         <Button variant="outline" onClick={() => setReportDialog(true)}>
           <FileText className="ml-2 h-4 w-4" /> تقرير الطالب
         </Button>
