@@ -343,7 +343,62 @@ function FinancePage() {
           onSaved={() => qc.invalidateQueries({ queryKey: [editing.kind === "income" ? "finance-income" : "finance-expenses"] })}
         />
       )}
+      <WithdrawDialog
+        key={resetAmount ?? "manual"}
+        open={withdrawOpen || resetAmount !== null}
+        prefill={resetAmount}
+        defaultCurrency={currency}
+        onOpenChange={(o) => { if (!o) { setWithdrawOpen(false); setResetAmount(null); } }}
+        onSaved={() => qc.invalidateQueries({ queryKey: ["vault-withdrawals"] })}
+      />
     </div>
+  );
+}
+
+function WithdrawDialog({ open, prefill, defaultCurrency, onOpenChange, onSaved }: { open: boolean; prefill: number | null; defaultCurrency: Currency; onOpenChange: (v: boolean) => void; onSaved: () => void }) {
+  const { user } = useAuthSession();
+  const [amount, setAmount] = useState(prefill != null ? String(prefill) : "");
+  const [notes, setNotes] = useState(prefill != null ? "تصفير الصندوق" : "");
+  const [currency, setCurrency] = useState<Currency>(defaultCurrency);
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+
+  const save = async () => {
+    if (!amount || Number(amount) <= 0) return toast.error("المبلغ مطلوب");
+    const { data, error } = await supabase
+      .from("vault_withdrawals")
+      .insert({ amount: Number(amount), currency, withdrawn_at: date, notes, recorded_by: user?.id })
+      .select()
+      .single();
+    if (error) return toast.error(error.message);
+    await logAudit(user, "create", "vault_withdrawals", data.id, null, data);
+    toast.success("تم تسجيل السحب من الصندوق");
+    onSaved();
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>سحب من الصندوق</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>المبلغ</Label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
+            <div>
+              <Label>العملة</Label>
+              <Select value={currency} onValueChange={(v) => setCurrency(v as Currency)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CURRENCIES.map((c) => <SelectItem key={c} value={c}>{currencyName[c]}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div><Label>التاريخ</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
+          <div><Label>ملاحظات</Label><Input value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
+        </div>
+        <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)}>إلغاء</Button><Button onClick={save}>حفظ</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
