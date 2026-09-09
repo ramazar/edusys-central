@@ -1266,7 +1266,7 @@ export type Database = {
           id?: string
           notes?: string | null
           recorded_by?: string | null
-          school_id: string
+          school_id?: string
           updated_at?: string
           withdrawn_at?: string
         }

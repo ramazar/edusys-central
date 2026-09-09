@@ -1,0 +1,1 @@
+ALTER TABLE public.vault_withdrawals ALTER COLUMN school_id SET DEFAULT public.current_school_id();
