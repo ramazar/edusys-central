@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, TrendingUp, TrendingDown, Pencil, Trash2 } from "lucide-react";
+import { Plus, TrendingUp, TrendingDown, Pencil, Trash2, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthSession, useMyRoles, hasAny, logAudit } from "@/hooks/useAuth";
 import { CURRENCIES, type Currency, asCurrency, currencyLabel, currencyName, formatMoney } from "@/lib/currency";
@@ -57,6 +57,8 @@ function FinancePage() {
   const [incomeOpen, setIncomeOpen] = useState(false);
   const [expenseOpen, setExpenseOpen] = useState(false);
   const [editing, setEditing] = useState<{ kind: "income" | "expense"; entry: Entry } | null>(null);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [resetAmount, setResetAmount] = useState<number | null>(null);
 
   const { data: incomeRows = [] } = useQuery({
     queryKey: ["finance-income"],
@@ -160,6 +162,28 @@ function FinancePage() {
     },
   });
 
+  const { data: withdrawals = [] } = useQuery({
+    queryKey: ["vault-withdrawals"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("vault_withdrawals")
+        .select("*")
+        .order("withdrawn_at", { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const removeWithdrawal = async (id: string, amount: number, cur: Currency) => {
+    if (!confirm(`حذف سحب بمبلغ ${formatMoney(amount, cur)}؟ سيعود المبلغ إلى الصندوق.`)) return;
+    const { error } = await supabase.from("vault_withdrawals").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    await logAudit(user, "delete", "vault_withdrawals", id, { amount, currency: cur }, null);
+    toast.success("تم حذف السحب");
+    qc.invalidateQueries({ queryKey: ["vault-withdrawals"] });
+  };
+
   const removeEntry = async (kind: "income" | "expense", entry: Entry) => {
     const label = kind === "income" ? "الإيراد" : "المصروف";
     if (!confirm(`حذف ${label} بمبلغ ${formatMoney(entry.amount, entry.currency)}؟ لا يمكن التراجع.`)) return;
@@ -190,6 +214,9 @@ function FinancePage() {
   const totalIncome = income.reduce((s, r) => s + r.amount, 0);
   const totalExpense = expenses.reduce((s, r) => s + r.amount, 0);
   const net = totalIncome - totalExpense;
+  const currencyWithdrawals = withdrawals.filter((w) => asCurrency(w.currency) === currency);
+  const totalWithdrawn = currencyWithdrawals.reduce((s, w) => s + Number(w.amount), 0);
+  const vaultBalance = totalIncome - totalExpense - totalWithdrawn;
 
   const table = (kind: "income" | "expense", rows: Row[]) => (
     <Card><CardContent className="p-0"><Table>
@@ -235,14 +262,59 @@ function FinancePage() {
         </Tabs>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm">إجمالي الإيرادات</CardTitle><TrendingUp className="h-4 w-4 text-success" /></CardHeader><CardContent><div className="text-2xl font-bold text-success">{formatMoney(totalIncome, currency)}</div></CardContent></Card>
         <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm">إجمالي المصروفات</CardTitle><TrendingDown className="h-4 w-4 text-destructive" /></CardHeader><CardContent><div className="text-2xl font-bold text-destructive">{formatMoney(totalExpense, currency)}</div></CardContent></Card>
         <Card><CardHeader className="pb-2"><CardTitle className="text-sm">الصافي</CardTitle></CardHeader><CardContent><div className={`text-2xl font-bold ${net >= 0 ? "text-success" : "text-destructive"}`}>{formatMoney(net, currency)}</div></CardContent></Card>
+        <Card className="border-primary/40">
+          <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm">النقد في الصندوق</CardTitle><Wallet className="h-4 w-4 text-primary" /></CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${vaultBalance >= 0 ? "text-primary" : "text-destructive"}`}>{formatMoney(vaultBalance, currency)}</div>
+            <p className="mt-1 text-xs text-muted-foreground">المسحوب: {formatMoney(totalWithdrawn, currency)}</p>
+          </CardContent>
+        </Card>
       </div>
 
       <Tabs defaultValue="income">
-        <TabsList><TabsTrigger value="income">الإيرادات</TabsTrigger><TabsTrigger value="expenses">المصروفات</TabsTrigger><TabsTrigger value="dues">المتأخرات والاستحقاقات</TabsTrigger></TabsList>
+        <TabsList><TabsTrigger value="income">الإيرادات</TabsTrigger><TabsTrigger value="expenses">المصروفات</TabsTrigger><TabsTrigger value="vault">الصندوق</TabsTrigger><TabsTrigger value="dues">المتأخرات والاستحقاقات</TabsTrigger></TabsList>
+        <TabsContent value="vault" className="space-y-3">
+          <Card>
+            <CardHeader><CardTitle className="text-base">النقد المتوفر في الصندوق ({currencyName[currency]})</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              <div className="text-3xl font-bold text-primary">{formatMoney(vaultBalance, currency)}</div>
+              <p className="text-sm text-muted-foreground">يُحسب من الإيرادات ناقص المصروفات ناقص ما سحبه المالك — وهو مستقل عن إجمالي الإيرادات.</p>
+              {canManage && (
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={() => setWithdrawOpen(true)}><Plus className="ml-2 h-4 w-4" /> تسجيل سحب</Button>
+                  <Button variant="outline" disabled={vaultBalance <= 0} onClick={() => setResetAmount(vaultBalance)}>تصفير الصندوق (سحب الكل)</Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          <Card><CardContent className="p-0"><Table>
+            <TableHeader><TableRow>
+              <TableHead className="text-right">التاريخ</TableHead>
+              <TableHead className="text-right">الملاحظات</TableHead>
+              <TableHead className="text-right">المبلغ المسحوب</TableHead>
+              <TableHead className="text-right">إجراءات</TableHead>
+            </TableRow></TableHeader>
+            <TableBody>
+              {currencyWithdrawals.length === 0 && <TableRow><TableCell colSpan={4} className="py-8 text-center text-muted-foreground">لا توجد مسحوبات بـ{currencyName[currency]}</TableCell></TableRow>}
+              {currencyWithdrawals.map((w) => (
+                <TableRow key={w.id}>
+                  <TableCell>{w.withdrawn_at}</TableCell>
+                  <TableCell>{w.notes || "—"}</TableCell>
+                  <TableCell className="font-mono">{formatMoney(Number(w.amount), asCurrency(w.currency))}</TableCell>
+                  <TableCell>
+                    {canManage ? (
+                      <Button size="sm" variant="destructive" onClick={() => removeWithdrawal(w.id, Number(w.amount), asCurrency(w.currency))}><Trash2 className="h-4 w-4" /></Button>
+                    ) : <span className="text-muted-foreground">—</span>}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table></CardContent></Card>
+        </TabsContent>
         <TabsContent value="dues">
           <Suspense fallback={<div className="h-64 animate-pulse rounded-lg border bg-card" />}>
             <PaymentDues />
@@ -271,7 +343,62 @@ function FinancePage() {
           onSaved={() => qc.invalidateQueries({ queryKey: [editing.kind === "income" ? "finance-income" : "finance-expenses"] })}
         />
       )}
+      <WithdrawDialog
+        key={resetAmount ?? "manual"}
+        open={withdrawOpen || resetAmount !== null}
+        prefill={resetAmount}
+        defaultCurrency={currency}
+        onOpenChange={(o) => { if (!o) { setWithdrawOpen(false); setResetAmount(null); } }}
+        onSaved={() => qc.invalidateQueries({ queryKey: ["vault-withdrawals"] })}
+      />
     </div>
+  );
+}
+
+function WithdrawDialog({ open, prefill, defaultCurrency, onOpenChange, onSaved }: { open: boolean; prefill: number | null; defaultCurrency: Currency; onOpenChange: (v: boolean) => void; onSaved: () => void }) {
+  const { user } = useAuthSession();
+  const [amount, setAmount] = useState(prefill != null ? String(prefill) : "");
+  const [notes, setNotes] = useState(prefill != null ? "تصفير الصندوق" : "");
+  const [currency, setCurrency] = useState<Currency>(defaultCurrency);
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+
+  const save = async () => {
+    if (!amount || Number(amount) <= 0) return toast.error("المبلغ مطلوب");
+    const { data, error } = await supabase
+      .from("vault_withdrawals")
+      .insert({ amount: Number(amount), currency, withdrawn_at: date, notes, recorded_by: user?.id })
+      .select()
+      .single();
+    if (error) return toast.error(error.message);
+    await logAudit(user, "create", "vault_withdrawals", data.id, null, data);
+    toast.success("تم تسجيل السحب من الصندوق");
+    onSaved();
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>سحب من الصندوق</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>المبلغ</Label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
+            <div>
+              <Label>العملة</Label>
+              <Select value={currency} onValueChange={(v) => setCurrency(v as Currency)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CURRENCIES.map((c) => <SelectItem key={c} value={c}>{currencyName[c]}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div><Label>التاريخ</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
+          <div><Label>ملاحظات</Label><Input value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
+        </div>
+        <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)}>إلغاء</Button><Button onClick={save}>حفظ</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
