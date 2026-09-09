@@ -105,6 +105,7 @@ function StudentsPage() {
                 <TableHead className="text-right">ولي الأمر</TableHead>
                 <TableHead className="text-right">الهاتف</TableHead>
                 <TableHead className="text-right">الحالة</TableHead>
+                {canManage && <TableHead className="text-right">إجراءات</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
