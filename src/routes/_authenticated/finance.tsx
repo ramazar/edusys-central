@@ -57,6 +57,8 @@ function FinancePage() {
   const [incomeOpen, setIncomeOpen] = useState(false);
   const [expenseOpen, setExpenseOpen] = useState(false);
   const [editing, setEditing] = useState<{ kind: "income" | "expense"; entry: Entry } | null>(null);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [resetAmount, setResetAmount] = useState<number | null>(null);
 
   const { data: incomeRows = [] } = useQuery({
     queryKey: ["finance-income"],
