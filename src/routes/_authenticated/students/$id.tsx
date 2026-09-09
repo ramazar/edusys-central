@@ -1,5 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ import { generateInvoicePDF, generateReceiptPDF } from "@/lib/invoice";
 import { generateStudentReport, buildStudentReportDoc } from "@/lib/student-report";
 import { ExportMenu } from "@/components/ExportMenu";
 import { StudentDialog } from "@/components/students/StudentDialog";
+import { deleteStudent } from "@/lib/students.functions";
 import { gradeSectionLabel } from "@/lib/section-label";
 
 export const Route = createFileRoute("/_authenticated/students/$id")({
@@ -27,6 +29,7 @@ export const Route = createFileRoute("/_authenticated/students/$id")({
 
 function StudentDetail() {
   const { id } = Route.useParams();
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const { user } = useAuthSession();
   const { data: roles = [] } = useMyRoles(user?.id);
@@ -36,6 +39,21 @@ function StudentDetail() {
   const [reportDialog, setReportDialog] = useState(false);
   const [editDialog, setEditDialog] = useState(false);
   const canEdit = hasAny(roles, ["admin", "reception"]);
+  const removeStudent = useServerFn(deleteStudent);
+
+  const handleDelete = async () => {
+    if (!confirm("حذف الطالب نهائيًا؟ سيتم حذف جميع سجلاته (حضور، علامات، دفعات، أقساط، وثائق).")) return;
+    try {
+      await removeStudent({ data: { id } });
+      toast.success("تم حذف الطالب");
+      qc.invalidateQueries({ queryKey: ["students"] });
+      navigate({ to: "/students", search: { q: "" } });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "تعذّر الحذف");
+    }
+  };
+
+
 
   const { data: student } = useQuery({
     queryKey: ["student", id],
@@ -84,6 +102,11 @@ function StudentDetail() {
         {canEdit && (
           <Button variant="outline" onClick={() => setEditDialog(true)}>
             <Pencil className="ml-2 h-4 w-4" /> تعديل البيانات
+          </Button>
+        )}
+        {canEdit && (
+          <Button variant="outline" className="text-destructive" onClick={handleDelete}>
+            <Trash2 className="ml-2 h-4 w-4" /> حذف الطالب
           </Button>
         )}
         <Button variant="outline" onClick={() => setReportDialog(true)}>
@@ -205,7 +228,7 @@ function StudentDetail() {
       <PaymentDialog open={payDialog} onOpenChange={setPayDialog} studentId={id} onSaved={() => qc.invalidateQueries({ queryKey: ["payments", id] })} />
       <PlanDialog open={planDialog} onOpenChange={setPlanDialog} studentId={id} nextNumber={plans.length + 1} onSaved={() => qc.invalidateQueries({ queryKey: ["plans", id] })} />
       <ReportDialog open={reportDialog} onOpenChange={setReportDialog} student={student} />
-      <StudentDialog open={editDialog} onOpenChange={setEditDialog} student={student} onSaved={() => qc.invalidateQueries({ queryKey: ["student", id] })} />
+      <StudentDialog open={editDialog} onOpenChange={setEditDialog} student={student} onSaved={() => { qc.invalidateQueries({ queryKey: ["student", id] }); qc.invalidateQueries({ queryKey: ["students"] }); }} />
     </div>
   );
 }
