@@ -28,6 +28,7 @@ export const Route = createFileRoute("/_authenticated/students/$id")({
 
 function StudentDetail() {
   const { id } = Route.useParams();
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const { user } = useAuthSession();
   const { data: roles = [] } = useMyRoles(user?.id);
@@ -37,6 +38,19 @@ function StudentDetail() {
   const [reportDialog, setReportDialog] = useState(false);
   const [editDialog, setEditDialog] = useState(false);
   const canEdit = hasAny(roles, ["admin", "reception"]);
+
+  const handleDelete = async () => {
+    if (!confirm("حذف الطالب نهائيًا؟ سيتم حذف جميع سجلاته (حضور، علامات، دفعات، أقساط، وثائق).")) return;
+    try {
+      await deleteStudent({ id });
+      toast.success("تم حذف الطالب");
+      qc.invalidateQueries({ queryKey: ["students"] });
+      navigate({ to: "/students" });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "تعذّر الحذف");
+    }
+  };
+
 
   const { data: student } = useQuery({
     queryKey: ["student", id],
