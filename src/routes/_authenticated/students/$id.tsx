@@ -39,18 +39,20 @@ function StudentDetail() {
   const [reportDialog, setReportDialog] = useState(false);
   const [editDialog, setEditDialog] = useState(false);
   const canEdit = hasAny(roles, ["admin", "reception"]);
+  const removeStudent = useServerFn(deleteStudent);
 
   const handleDelete = async () => {
     if (!confirm("حذف الطالب نهائيًا؟ سيتم حذف جميع سجلاته (حضور، علامات، دفعات، أقساط، وثائق).")) return;
     try {
-      await deleteStudent({ id });
+      await removeStudent({ data: { id } });
       toast.success("تم حذف الطالب");
       qc.invalidateQueries({ queryKey: ["students"] });
-      navigate({ to: "/students" });
+      navigate({ to: "/students", search: { q: "" } });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "تعذّر الحذف");
     }
   };
+
 
 
   const { data: student } = useQuery({
