@@ -203,6 +203,9 @@ function FinancePage() {
   const totalIncome = income.reduce((s, r) => s + r.amount, 0);
   const totalExpense = expenses.reduce((s, r) => s + r.amount, 0);
   const net = totalIncome - totalExpense;
+  const currencyWithdrawals = withdrawals.filter((w) => asCurrency(w.currency) === currency);
+  const totalWithdrawn = currencyWithdrawals.reduce((s, w) => s + Number(w.amount), 0);
+  const vaultBalance = totalIncome - totalExpense - totalWithdrawn;
 
   const table = (kind: "income" | "expense", rows: Row[]) => (
     <Card><CardContent className="p-0"><Table>
