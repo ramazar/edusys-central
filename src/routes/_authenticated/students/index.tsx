@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Plus, Search, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, ArrowLeftRight } from "lucide-react";
 import { useAuthSession, useMyRoles, hasAny } from "@/hooks/useAuth";
 import { StudentDialog } from "@/components/students/StudentDialog";
 import { gradeSectionLabel } from "@/lib/section-label";
