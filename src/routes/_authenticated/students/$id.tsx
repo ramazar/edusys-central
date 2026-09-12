@@ -105,6 +105,11 @@ function StudentDetail() {
           </Button>
         )}
         {canEdit && (
+          <Button variant="outline" onClick={() => setTransferDialog(true)}>
+            <ArrowLeftRight className="ml-2 h-4 w-4" /> نقل الصف/الشعبة
+          </Button>
+        )}
+        {canEdit && (
           <Button variant="outline" className="text-destructive" onClick={handleDelete}>
             <Trash2 className="ml-2 h-4 w-4" /> حذف الطالب
           </Button>
