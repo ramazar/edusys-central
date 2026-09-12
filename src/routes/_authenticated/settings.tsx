@@ -159,7 +159,7 @@ function SectionsTab() {
           </div>
           <Button onClick={add}>إضافة</Button>
           <p className="w-full text-xs text-muted-foreground">
-            الترقيم مستقل لكل مدرسة ويبدأ من 1 في كل صف — الرقم المقترح: {nextNumber}
+            يمكن وجود نفس رقم الشعبة في الصف مرة للبنين ومرة للبنات — الرقم المقترح: {nextNumber}
           </p>
         </CardContent>
       </Card>
