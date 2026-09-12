@@ -38,6 +38,7 @@ function StudentDetail() {
   const [planDialog, setPlanDialog] = useState(false);
   const [reportDialog, setReportDialog] = useState(false);
   const [editDialog, setEditDialog] = useState(false);
+  const [transferDialog, setTransferDialog] = useState(false);
   const canEdit = hasAny(roles, ["admin", "reception"]);
   const removeStudent = useServerFn(deleteStudent);
 
