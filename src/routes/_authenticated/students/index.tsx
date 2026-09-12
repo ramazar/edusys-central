@@ -30,6 +30,7 @@ function StudentsPage() {
   const [gradeFilter, setGradeFilter] = useState<number | "">("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editStudent, setEditStudent] = useState<any>(null);
+  const [transferStudent, setTransferStudent] = useState<any>(null);
   const { user } = useAuthSession();
   const { data: roles = [] } = useMyRoles(user?.id);
   const canManage = hasAny(roles, ["admin", "reception"]);
