@@ -131,6 +131,9 @@ function StudentsPage() {
                       <Button variant="ghost" size="icon" title="تعديل" onClick={(e) => { e.stopPropagation(); setEditStudent(s); }}>
                         <Pencil className="h-4 w-4 text-primary" />
                       </Button>
+                      <Button variant="ghost" size="icon" title="نقل الصف/الشعبة" onClick={(e) => { e.stopPropagation(); setTransferStudent(s); }}>
+                        <ArrowLeftRight className="h-4 w-4 text-primary" />
+                      </Button>
                       <Button variant="ghost" size="icon" title="حذف" onClick={async (e) => {
                         e.stopPropagation();
                         if (!confirm(`حذف الطالب ${s.full_name} نهائيًا؟`)) return;
