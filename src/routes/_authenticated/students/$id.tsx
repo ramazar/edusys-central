@@ -257,7 +257,24 @@ function StudentDetail() {
       </Tabs>
 
       <PaymentDialog open={payDialog} onOpenChange={setPayDialog} studentId={id} onSaved={() => qc.invalidateQueries({ queryKey: ["payments", id] })} />
+      <PaymentDialog
+        key={editPayment?.id ?? "new-payment"}
+        open={!!editPayment}
+        onOpenChange={(v) => { if (!v) setEditPayment(null); }}
+        studentId={id}
+        payment={editPayment}
+        onSaved={() => qc.invalidateQueries({ queryKey: ["payments", id] })}
+      />
       <PlanDialog open={planDialog} onOpenChange={setPlanDialog} studentId={id} nextNumber={plans.length + 1} onSaved={() => qc.invalidateQueries({ queryKey: ["plans", id] })} />
+      <PlanDialog
+        key={editPlan?.id ?? "new-plan"}
+        open={!!editPlan}
+        onOpenChange={(v) => { if (!v) setEditPlan(null); }}
+        studentId={id}
+        nextNumber={editPlan?.installment_number ?? plans.length + 1}
+        plan={editPlan}
+        onSaved={() => qc.invalidateQueries({ queryKey: ["plans", id] })}
+      />
       <ReportDialog open={reportDialog} onOpenChange={setReportDialog} student={student} />
       <StudentDialog open={editDialog} onOpenChange={setEditDialog} student={student} onSaved={() => { qc.invalidateQueries({ queryKey: ["student", id] }); qc.invalidateQueries({ queryKey: ["students"] }); }} />
       <TransferStudentDialog
