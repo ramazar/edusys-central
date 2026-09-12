@@ -168,6 +168,14 @@ function StudentsPage() {
           onSaved={() => { setEditStudent(null); refetch(); }}
         />
       )}
+      {canManage && transferStudent && (
+        <TransferStudentDialog
+          open={!!transferStudent}
+          onOpenChange={(v) => { if (!v) setTransferStudent(null); }}
+          student={transferStudent}
+          onSaved={() => { setTransferStudent(null); refetch(); }}
+        />
+      )}
     </div>
   );
 }
