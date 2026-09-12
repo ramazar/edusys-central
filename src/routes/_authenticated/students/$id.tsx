@@ -20,6 +20,7 @@ import { generateInvoicePDF, generateReceiptPDF } from "@/lib/invoice";
 import { generateStudentReport, buildStudentReportDoc } from "@/lib/student-report";
 import { ExportMenu } from "@/components/ExportMenu";
 import { StudentDialog } from "@/components/students/StudentDialog";
+import { TransferStudentDialog } from "@/components/students/TransferStudentDialog";
 import { deleteStudent } from "@/lib/students.functions";
 import { gradeSectionLabel } from "@/lib/section-label";
 
