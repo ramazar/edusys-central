@@ -84,9 +84,11 @@ function SectionsTab() {
     queryFn: async () => (await supabase.from("sections").select("*").order("grade_id").order("section_number")).data ?? [],
   });
 
-  // الترقيم يبدأ من 1 لكل صف داخل المدرسة الحالية
+  // الترقيم يبدأ من 1 لكل صف ولكل نوع (بنين/بنات) داخل المدرسة الحالية
   const nextNumber = (() => {
-    const nums = sections.filter((s) => s.grade_id === gradeId).map((s) => s.section_number);
+    const nums = sections
+      .filter((s) => s.grade_id === gradeId && (s.gender ?? "boys") === gender)
+      .map((s) => s.section_number);
     let n = 1;
     while (nums.includes(n)) n++;
     return n;
