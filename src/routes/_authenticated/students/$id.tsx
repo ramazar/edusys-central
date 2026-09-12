@@ -343,17 +343,26 @@ function Info({ label, value }: { label: string; value?: string | null }) {
   );
 }
 
-function PaymentDialog({ open, onOpenChange, studentId, onSaved }: { open: boolean; onOpenChange: (v: boolean) => void; studentId: string; onSaved: () => void }) {
+function PaymentDialog({ open, onOpenChange, studentId, payment, onSaved }: { open: boolean; onOpenChange: (v: boolean) => void; studentId: string; payment?: PaymentRow | null; onSaved: () => void }) {
   const { user } = useAuthSession();
-  const [amount, setAmount] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [method, setMethod] = useState("نقدي");
-  const [notes, setNotes] = useState("");
-  const [currency, setCurrency] = useState<Currency>("SYP");
+  const [amount, setAmount] = useState(payment ? String(payment.amount) : "");
+  const [date, setDate] = useState(payment?.payment_date ?? new Date().toISOString().slice(0, 10));
+  const [method, setMethod] = useState(payment?.method ?? "نقدي");
+  const [notes, setNotes] = useState(payment?.notes ?? "");
+  const [currency, setCurrency] = useState<Currency>(payment ? asCurrency(payment.currency) : "SYP");
   const save = async () => {
     if (!amount) return toast.error("المبلغ مطلوب");
+    const values = { amount: Number(amount), payment_date: date, method, notes, currency };
+    if (payment) {
+      const { data, error } = await supabase.from("student_payments").update(values).eq("id", payment.id).select().single();
+      if (error) return toast.error(error.message);
+      await logAudit(user, "update", "student_payments", payment.id, payment, data);
+      toast.success("تم تحديث الدفعة");
+      onSaved(); onOpenChange(false);
+      return;
+    }
     const { data, error } = await supabase.from("student_payments").insert({
-      student_id: studentId, amount: Number(amount), payment_date: date, method, notes, currency, recorded_by: user?.id,
+      student_id: studentId, ...values, recorded_by: user?.id,
     }).select().single();
     if (error) return toast.error(error.message);
     await logAudit(user, "create", "student_payments", data.id, null, data);
@@ -363,7 +372,7 @@ function PaymentDialog({ open, onOpenChange, studentId, onSaved }: { open: boole
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader><DialogTitle>تسجيل دفعة</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{payment ? "تعديل الدفعة" : "تسجيل دفعة"}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div><Label>المبلغ</Label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
