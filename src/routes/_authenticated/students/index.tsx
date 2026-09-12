@@ -10,9 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Plus, Search, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, ArrowLeftRight } from "lucide-react";
 import { useAuthSession, useMyRoles, hasAny } from "@/hooks/useAuth";
 import { StudentDialog } from "@/components/students/StudentDialog";
+import { TransferStudentDialog } from "@/components/students/TransferStudentDialog";
 import { gradeSectionLabel } from "@/lib/section-label";
 import { deleteStudent } from "@/lib/students.functions";
 import { toast } from "sonner";
@@ -30,6 +31,7 @@ function StudentsPage() {
   const [gradeFilter, setGradeFilter] = useState<number | "">("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editStudent, setEditStudent] = useState<any>(null);
+  const [transferStudent, setTransferStudent] = useState<any>(null);
   const { user } = useAuthSession();
   const { data: roles = [] } = useMyRoles(user?.id);
   const canManage = hasAny(roles, ["admin", "reception"]);
@@ -131,6 +133,9 @@ function StudentsPage() {
                       <Button variant="ghost" size="icon" title="تعديل" onClick={(e) => { e.stopPropagation(); setEditStudent(s); }}>
                         <Pencil className="h-4 w-4 text-primary" />
                       </Button>
+                      <Button variant="ghost" size="icon" title="نقل الصف/الشعبة" onClick={(e) => { e.stopPropagation(); setTransferStudent(s); }}>
+                        <ArrowLeftRight className="h-4 w-4 text-primary" />
+                      </Button>
                       <Button variant="ghost" size="icon" title="حذف" onClick={async (e) => {
                         e.stopPropagation();
                         if (!confirm(`حذف الطالب ${s.full_name} نهائيًا؟`)) return;
@@ -162,6 +167,14 @@ function StudentsPage() {
           onOpenChange={(v) => { if (!v) setEditStudent(null); }}
           student={editStudent}
           onSaved={() => { setEditStudent(null); refetch(); }}
+        />
+      )}
+      {canManage && transferStudent && (
+        <TransferStudentDialog
+          open={!!transferStudent}
+          onOpenChange={(v) => { if (!v) setTransferStudent(null); }}
+          student={transferStudent}
+          onSaved={() => { setTransferStudent(null); refetch(); }}
         />
       )}
     </div>

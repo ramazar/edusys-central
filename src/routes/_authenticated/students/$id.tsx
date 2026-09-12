@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowRight, Printer, Plus, Trash2, Receipt, FileText, Pencil } from "lucide-react";
+import { ArrowRight, ArrowLeftRight, Printer, Plus, Trash2, Receipt, FileText, Pencil } from "lucide-react";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,7 @@ import { generateInvoicePDF, generateReceiptPDF } from "@/lib/invoice";
 import { generateStudentReport, buildStudentReportDoc } from "@/lib/student-report";
 import { ExportMenu } from "@/components/ExportMenu";
 import { StudentDialog } from "@/components/students/StudentDialog";
+import { TransferStudentDialog } from "@/components/students/TransferStudentDialog";
 import { deleteStudent } from "@/lib/students.functions";
 import { gradeSectionLabel } from "@/lib/section-label";
 
@@ -38,6 +39,7 @@ function StudentDetail() {
   const [planDialog, setPlanDialog] = useState(false);
   const [reportDialog, setReportDialog] = useState(false);
   const [editDialog, setEditDialog] = useState(false);
+  const [transferDialog, setTransferDialog] = useState(false);
   const canEdit = hasAny(roles, ["admin", "reception"]);
   const removeStudent = useServerFn(deleteStudent);
 
@@ -102,6 +104,11 @@ function StudentDetail() {
         {canEdit && (
           <Button variant="outline" onClick={() => setEditDialog(true)}>
             <Pencil className="ml-2 h-4 w-4" /> تعديل البيانات
+          </Button>
+        )}
+        {canEdit && (
+          <Button variant="outline" onClick={() => setTransferDialog(true)}>
+            <ArrowLeftRight className="ml-2 h-4 w-4" /> نقل الصف/الشعبة
           </Button>
         )}
         {canEdit && (
@@ -229,6 +236,12 @@ function StudentDetail() {
       <PlanDialog open={planDialog} onOpenChange={setPlanDialog} studentId={id} nextNumber={plans.length + 1} onSaved={() => qc.invalidateQueries({ queryKey: ["plans", id] })} />
       <ReportDialog open={reportDialog} onOpenChange={setReportDialog} student={student} />
       <StudentDialog open={editDialog} onOpenChange={setEditDialog} student={student} onSaved={() => { qc.invalidateQueries({ queryKey: ["student", id] }); qc.invalidateQueries({ queryKey: ["students"] }); }} />
+      <TransferStudentDialog
+        open={transferDialog}
+        onOpenChange={setTransferDialog}
+        student={student}
+        onSaved={() => { qc.invalidateQueries({ queryKey: ["student", id] }); qc.invalidateQueries({ queryKey: ["students"] }); }}
+      />
     </div>
   );
 }
