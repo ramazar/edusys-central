@@ -24,6 +24,24 @@ import { TransferStudentDialog } from "@/components/students/TransferStudentDial
 import { deleteStudent } from "@/lib/students.functions";
 import { gradeSectionLabel } from "@/lib/section-label";
 
+type PaymentRow = {
+  id: string;
+  amount: number | string;
+  payment_date: string;
+  method: string | null;
+  reference: string | null;
+  notes: string | null;
+  currency: string | null;
+};
+
+type PlanRow = {
+  id: string;
+  amount: number | string;
+  due_date: string;
+  description: string | null;
+  installment_number: number;
+};
+
 export const Route = createFileRoute("/_authenticated/students/$id")({
   component: StudentDetail,
 });
