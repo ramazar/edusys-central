@@ -37,6 +37,8 @@ function StudentDetail() {
   const canFinance = hasAny(roles, ["admin", "accountant"]);
   const [payDialog, setPayDialog] = useState(false);
   const [planDialog, setPlanDialog] = useState(false);
+  const [editPayment, setEditPayment] = useState<PaymentRow | null>(null);
+  const [editPlan, setEditPlan] = useState<PlanRow | null>(null);
   const [reportDialog, setReportDialog] = useState(false);
   const [editDialog, setEditDialog] = useState(false);
   const [transferDialog, setTransferDialog] = useState(false);
