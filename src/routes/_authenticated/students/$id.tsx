@@ -399,15 +399,24 @@ function PaymentDialog({ open, onOpenChange, studentId, payment, onSaved }: { op
   );
 }
 
-function PlanDialog({ open, onOpenChange, studentId, nextNumber, onSaved }: { open: boolean; onOpenChange: (v: boolean) => void; studentId: string; nextNumber: number; onSaved: () => void }) {
+function PlanDialog({ open, onOpenChange, studentId, nextNumber, plan, onSaved }: { open: boolean; onOpenChange: (v: boolean) => void; studentId: string; nextNumber: number; plan?: PlanRow | null; onSaved: () => void }) {
   const { user } = useAuthSession();
-  const [amount, setAmount] = useState("");
-  const [dueDate, setDueDate] = useState(new Date().toISOString().slice(0, 10));
-  const [desc, setDesc] = useState("");
+  const [amount, setAmount] = useState(plan ? String(plan.amount) : "");
+  const [dueDate, setDueDate] = useState(plan?.due_date ?? new Date().toISOString().slice(0, 10));
+  const [desc, setDesc] = useState(plan?.description ?? "");
   const save = async () => {
     if (!amount) return toast.error("المبلغ مطلوب");
+    const values = { amount: Number(amount), due_date: dueDate, description: desc };
+    if (plan) {
+      const { data, error } = await supabase.from("student_payment_plans").update(values).eq("id", plan.id).select().single();
+      if (error) return toast.error(error.message);
+      await logAudit(user, "update", "student_payment_plans", plan.id, plan, data);
+      toast.success("تم تحديث القسط");
+      onSaved(); onOpenChange(false);
+      return;
+    }
     const { data, error } = await supabase.from("student_payment_plans").insert({
-      student_id: studentId, amount: Number(amount), due_date: dueDate, description: desc, installment_number: nextNumber,
+      student_id: studentId, ...values, installment_number: nextNumber,
     }).select().single();
     if (error) return toast.error(error.message);
     await logAudit(user, "create", "student_payment_plans", data.id, null, data);
@@ -417,7 +426,7 @@ function PlanDialog({ open, onOpenChange, studentId, nextNumber, onSaved }: { op
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader><DialogTitle>إضافة قسط</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{plan ? "تعديل القسط" : "إضافة قسط"}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div><Label>الوصف</Label><Input value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="مثال: قسط الفصل الأول" /></div>
           <div><Label>المبلغ</Label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
