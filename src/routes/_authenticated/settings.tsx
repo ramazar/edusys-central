@@ -151,7 +151,7 @@ function SectionsTab() {
             <select
               className="mt-1 h-9 rounded-md border bg-background px-3 text-sm"
               value={gender}
-              onChange={(e) => setGender(e.target.value as "boys" | "girls")}
+              onChange={(e) => { setGender(e.target.value as "boys" | "girls"); setNumberOverride(null); }}
             >
               <option value="boys">بنين</option>
               <option value="girls">بنات</option>
