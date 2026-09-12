@@ -24,6 +24,24 @@ import { TransferStudentDialog } from "@/components/students/TransferStudentDial
 import { deleteStudent } from "@/lib/students.functions";
 import { gradeSectionLabel } from "@/lib/section-label";
 
+type PaymentRow = {
+  id: string;
+  amount: number | string;
+  payment_date: string;
+  method: string | null;
+  reference: string | null;
+  notes: string | null;
+  currency: string | null;
+};
+
+type PlanRow = {
+  id: string;
+  amount: number | string;
+  due_date: string;
+  description: string | null;
+  installment_number: number;
+};
+
 export const Route = createFileRoute("/_authenticated/students/$id")({
   component: StudentDetail,
 });
@@ -37,6 +55,8 @@ function StudentDetail() {
   const canFinance = hasAny(roles, ["admin", "accountant"]);
   const [payDialog, setPayDialog] = useState(false);
   const [planDialog, setPlanDialog] = useState(false);
+  const [editPayment, setEditPayment] = useState<PaymentRow | null>(null);
+  const [editPlan, setEditPlan] = useState<PlanRow | null>(null);
   const [reportDialog, setReportDialog] = useState(false);
   const [editDialog, setEditDialog] = useState(false);
   const [transferDialog, setTransferDialog] = useState(false);
@@ -158,8 +178,9 @@ function StudentDetail() {
                   <TableCell>{p.due_date}</TableCell>
                   <TableCell className="font-mono">{Number(p.amount).toLocaleString("ar")}</TableCell>
                   {canFinance && (
-                    <TableCell>
-                      <Button variant="ghost" size="icon" onClick={async () => {
+                     <TableCell className="flex gap-1">
+                      <Button variant="ghost" size="icon" title="تعديل" onClick={() => setEditPlan(p as PlanRow)}><Pencil className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" title="حذف" onClick={async () => {
                         if (!confirm("حذف هذا القسط؟")) return;
                         const { error } = await supabase.from("student_payment_plans").delete().eq("id", p.id);
                         if (error) return toast.error(error.message);
@@ -201,6 +222,9 @@ function StudentDetail() {
                       <Receipt className="h-4 w-4 text-primary" />
                     </Button>
                     {canFinance && (
+                      <Button variant="ghost" size="icon" title="تعديل" onClick={() => setEditPayment(p as PaymentRow)}><Pencil className="h-4 w-4" /></Button>
+                    )}
+                    {canFinance && (
                       <Button variant="ghost" size="icon" title="حذف" onClick={async () => {
                         if (!confirm("حذف هذه الدفعة؟")) return;
                         const { error } = await supabase.from("student_payments").delete().eq("id", p.id);
@@ -233,7 +257,24 @@ function StudentDetail() {
       </Tabs>
 
       <PaymentDialog open={payDialog} onOpenChange={setPayDialog} studentId={id} onSaved={() => qc.invalidateQueries({ queryKey: ["payments", id] })} />
+      <PaymentDialog
+        key={editPayment?.id ?? "new-payment"}
+        open={!!editPayment}
+        onOpenChange={(v) => { if (!v) setEditPayment(null); }}
+        studentId={id}
+        payment={editPayment}
+        onSaved={() => qc.invalidateQueries({ queryKey: ["payments", id] })}
+      />
       <PlanDialog open={planDialog} onOpenChange={setPlanDialog} studentId={id} nextNumber={plans.length + 1} onSaved={() => qc.invalidateQueries({ queryKey: ["plans", id] })} />
+      <PlanDialog
+        key={editPlan?.id ?? "new-plan"}
+        open={!!editPlan}
+        onOpenChange={(v) => { if (!v) setEditPlan(null); }}
+        studentId={id}
+        nextNumber={editPlan?.installment_number ?? plans.length + 1}
+        plan={editPlan}
+        onSaved={() => qc.invalidateQueries({ queryKey: ["plans", id] })}
+      />
       <ReportDialog open={reportDialog} onOpenChange={setReportDialog} student={student} />
       <StudentDialog open={editDialog} onOpenChange={setEditDialog} student={student} onSaved={() => { qc.invalidateQueries({ queryKey: ["student", id] }); qc.invalidateQueries({ queryKey: ["students"] }); }} />
       <TransferStudentDialog
@@ -302,17 +343,26 @@ function Info({ label, value }: { label: string; value?: string | null }) {
   );
 }
 
-function PaymentDialog({ open, onOpenChange, studentId, onSaved }: { open: boolean; onOpenChange: (v: boolean) => void; studentId: string; onSaved: () => void }) {
+function PaymentDialog({ open, onOpenChange, studentId, payment, onSaved }: { open: boolean; onOpenChange: (v: boolean) => void; studentId: string; payment?: PaymentRow | null; onSaved: () => void }) {
   const { user } = useAuthSession();
-  const [amount, setAmount] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [method, setMethod] = useState("نقدي");
-  const [notes, setNotes] = useState("");
-  const [currency, setCurrency] = useState<Currency>("SYP");
+  const [amount, setAmount] = useState(payment ? String(payment.amount) : "");
+  const [date, setDate] = useState(payment?.payment_date ?? new Date().toISOString().slice(0, 10));
+  const [method, setMethod] = useState(payment?.method ?? "نقدي");
+  const [notes, setNotes] = useState(payment?.notes ?? "");
+  const [currency, setCurrency] = useState<Currency>(payment ? asCurrency(payment.currency) : "SYP");
   const save = async () => {
     if (!amount) return toast.error("المبلغ مطلوب");
+    const values = { amount: Number(amount), payment_date: date, method, notes, currency };
+    if (payment) {
+      const { data, error } = await supabase.from("student_payments").update(values).eq("id", payment.id).select().single();
+      if (error) return toast.error(error.message);
+      await logAudit(user, "update", "student_payments", payment.id, payment, data);
+      toast.success("تم تحديث الدفعة");
+      onSaved(); onOpenChange(false);
+      return;
+    }
     const { data, error } = await supabase.from("student_payments").insert({
-      student_id: studentId, amount: Number(amount), payment_date: date, method, notes, currency, recorded_by: user?.id,
+      student_id: studentId, ...values, recorded_by: user?.id,
     }).select().single();
     if (error) return toast.error(error.message);
     await logAudit(user, "create", "student_payments", data.id, null, data);
@@ -322,7 +372,7 @@ function PaymentDialog({ open, onOpenChange, studentId, onSaved }: { open: boole
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader><DialogTitle>تسجيل دفعة</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{payment ? "تعديل الدفعة" : "تسجيل دفعة"}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div><Label>المبلغ</Label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
@@ -349,15 +399,24 @@ function PaymentDialog({ open, onOpenChange, studentId, onSaved }: { open: boole
   );
 }
 
-function PlanDialog({ open, onOpenChange, studentId, nextNumber, onSaved }: { open: boolean; onOpenChange: (v: boolean) => void; studentId: string; nextNumber: number; onSaved: () => void }) {
+function PlanDialog({ open, onOpenChange, studentId, nextNumber, plan, onSaved }: { open: boolean; onOpenChange: (v: boolean) => void; studentId: string; nextNumber: number; plan?: PlanRow | null; onSaved: () => void }) {
   const { user } = useAuthSession();
-  const [amount, setAmount] = useState("");
-  const [dueDate, setDueDate] = useState(new Date().toISOString().slice(0, 10));
-  const [desc, setDesc] = useState("");
+  const [amount, setAmount] = useState(plan ? String(plan.amount) : "");
+  const [dueDate, setDueDate] = useState(plan?.due_date ?? new Date().toISOString().slice(0, 10));
+  const [desc, setDesc] = useState(plan?.description ?? "");
   const save = async () => {
     if (!amount) return toast.error("المبلغ مطلوب");
+    const values = { amount: Number(amount), due_date: dueDate, description: desc };
+    if (plan) {
+      const { data, error } = await supabase.from("student_payment_plans").update(values).eq("id", plan.id).select().single();
+      if (error) return toast.error(error.message);
+      await logAudit(user, "update", "student_payment_plans", plan.id, plan, data);
+      toast.success("تم تحديث القسط");
+      onSaved(); onOpenChange(false);
+      return;
+    }
     const { data, error } = await supabase.from("student_payment_plans").insert({
-      student_id: studentId, amount: Number(amount), due_date: dueDate, description: desc, installment_number: nextNumber,
+      student_id: studentId, ...values, installment_number: nextNumber,
     }).select().single();
     if (error) return toast.error(error.message);
     await logAudit(user, "create", "student_payment_plans", data.id, null, data);
@@ -367,7 +426,7 @@ function PlanDialog({ open, onOpenChange, studentId, nextNumber, onSaved }: { op
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader><DialogTitle>إضافة قسط</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{plan ? "تعديل القسط" : "إضافة قسط"}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div><Label>الوصف</Label><Input value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="مثال: قسط الفصل الأول" /></div>
           <div><Label>المبلغ</Label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
