@@ -222,6 +222,9 @@ function StudentDetail() {
                       <Receipt className="h-4 w-4 text-primary" />
                     </Button>
                     {canFinance && (
+                      <Button variant="ghost" size="icon" title="تعديل" onClick={() => setEditPayment(p as PaymentRow)}><Pencil className="h-4 w-4" /></Button>
+                    )}
+                    {canFinance && (
                       <Button variant="ghost" size="icon" title="حذف" onClick={async () => {
                         if (!confirm("حذف هذه الدفعة؟")) return;
                         const { error } = await supabase.from("student_payments").delete().eq("id", p.id);
