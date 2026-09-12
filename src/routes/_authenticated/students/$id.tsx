@@ -178,8 +178,9 @@ function StudentDetail() {
                   <TableCell>{p.due_date}</TableCell>
                   <TableCell className="font-mono">{Number(p.amount).toLocaleString("ar")}</TableCell>
                   {canFinance && (
-                    <TableCell>
-                      <Button variant="ghost" size="icon" onClick={async () => {
+                     <TableCell className="flex gap-1">
+                      <Button variant="ghost" size="icon" title="تعديل" onClick={() => setEditPlan(p as PlanRow)}><Pencil className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" title="حذف" onClick={async () => {
                         if (!confirm("حذف هذا القسط؟")) return;
                         const { error } = await supabase.from("student_payment_plans").delete().eq("id", p.id);
                         if (error) return toast.error(error.message);
