@@ -13,6 +13,7 @@ import {
 import { Plus, Search, Pencil, Trash2, ArrowLeftRight } from "lucide-react";
 import { useAuthSession, useMyRoles, hasAny } from "@/hooks/useAuth";
 import { StudentDialog } from "@/components/students/StudentDialog";
+import { TransferStudentDialog } from "@/components/students/TransferStudentDialog";
 import { gradeSectionLabel } from "@/lib/section-label";
 import { deleteStudent } from "@/lib/students.functions";
 import { toast } from "sonner";
