@@ -141,15 +141,16 @@ function HarvestPage() {
       ],
       tables: [
         {
-          columns: ["المادة", "الصفحة", "ما تم تعلمه", "الواجب"],
+          columns: ["التاريخ", "المادة", "الصفحة", "ما تم تعلمه", "الواجب"],
           rows: rows.map((r) => [
+            r.date,
             r.subject,
             (r as any).page ?? "-",
             r.content,
             (r as any).homework ?? "-",
           ]),
           rowLines: (r: (string | number)[]) => {
-            const [subject, page, content, homework] = r.map((v) => String(v ?? "").trim());
+            const [ , subject, page, content, homework ] = r.map((v) => String(v ?? "").trim());
             const lines: string[] = [];
             const pageBit = page && page !== "-" ? ` (صفحة ${page})` : "";
             lines.push(`• *${subject}*${pageBit}`);
