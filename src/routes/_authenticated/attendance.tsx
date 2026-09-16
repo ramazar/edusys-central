@@ -115,7 +115,7 @@ function AttendancePage() {
         {
           columns: ["#", "اسم الطالب", "رقم الطالب", "الحالة"],
           rows,
-          rowLines: (r) => [`${r[1]} — ${r[3]}`],
+          rowLines: (r: (string | number)[]) => [`${r[1]} — ${r[3]}`],
         },
       ],
       filename: `attendance-section-${date}`,
@@ -178,7 +178,7 @@ function AttendancePage() {
         {
           columns: ["#", "اسم الطالب", "رقم الطالب", "الشعبة", "الحالة"],
           rows,
-          rowLines: (r) => [`${r[1]} — ${r[3]} — ${r[4]}`],
+          rowLines: (r: (string | number)[]) => [`${r[1]} — ${r[3]} — ${r[4]}`],
         },
       ],
       filename: `attendance-grade-${gradeId}-${date}`,
