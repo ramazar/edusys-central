@@ -115,6 +115,7 @@ export type Database = {
           created_at: string
           date: string
           id: string
+          late_minutes: number | null
           notes: string | null
           recorded_by: string | null
           school_id: string
@@ -126,6 +127,7 @@ export type Database = {
           created_at?: string
           date: string
           id?: string
+          late_minutes?: number | null
           notes?: string | null
           recorded_by?: string | null
           school_id?: string
@@ -137,6 +139,7 @@ export type Database = {
           created_at?: string
           date?: string
           id?: string
+          late_minutes?: number | null
           notes?: string | null
           recorded_by?: string | null
           school_id?: string
