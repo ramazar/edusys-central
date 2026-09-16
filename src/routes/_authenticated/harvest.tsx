@@ -149,6 +149,26 @@ function HarvestPage() {
             r.content,
             (r as any).homework ?? "-",
           ]),
+          rowLines: (r: (string | number)[]) => {
+            const [ , subject, page, content, homework ] = r.map((v) => String(v ?? "").trim());
+            const lines: string[] = [];
+            const pageBit = page && page !== "-" ? ` (صفحة ${page})` : "";
+            lines.push(`• *${subject}*${pageBit}`);
+            content
+              .split(/\r?\n/)
+              .map((l) => l.trim())
+              .filter(Boolean)
+              .forEach((l) => lines.push(l));
+            if (homework && homework !== "-") {
+              homework
+                .split(/\r?\n/)
+                .map((l) => l.trim())
+                .filter(Boolean)
+                .forEach((l, idx) => lines.push(idx === 0 ? `الواجب: ${l}` : l));
+            }
+            lines.push("");
+            return lines;
+          },
         },
       ],
       filename: `harvest-${from}-${to}`,
