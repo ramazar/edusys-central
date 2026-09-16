@@ -67,9 +67,16 @@ function AttendancePage() {
 
   const saveAll = async () => {
     if (!sectionId || students.length === 0) return;
-    const rows = students.map((s) => ({
-      student_id: s.id, date, status: attMap[s.id] || "present", recorded_by: user?.id,
-    }));
+    const rows = students.map((s) => {
+      const st = attMap[s.id] || "present";
+      return {
+        student_id: s.id,
+        date,
+        status: st,
+        late_minutes: st === "late" ? Number(lateMap[s.id] ?? 0) : null,
+        recorded_by: user?.id,
+      };
+    });
     const { error } = await supabase.from("attendance").upsert(rows, { onConflict: "student_id,date" });
     if (error) return toast.error(error.message);
     await logAudit(user, "bulk_upsert", "attendance", sectionId, null, { count: rows.length, date });
