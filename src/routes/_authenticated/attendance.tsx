@@ -93,12 +93,15 @@ function AttendancePage() {
       return null;
     }
     const section = sections.find((x) => x.id === sectionId);
-    const counts = { present: 0, late: 0, absent: 0 } as Record<Status, number>;
-    const rows = students.map((s, i) => {
-      const st = (attMap[s.id] || "present") as Status;
-      counts[st]++;
-      return [i + 1, s.full_name, s.student_number, statusLabel(st, lateMap[s.id])];
-    });
+    // Export only the students who were absent or late, with the lateness time.
+    const flagged = students
+      .map((s, i) => ({
+        name: s.full_name,
+        status: (attMap[s.id] || "present") as Status,
+        minutes: lateMap[s.id],
+      }))
+      .filter((x) => x.status !== "present")
+      .map((x, i) => [i + 1, x.name, statusLabel(x.status, x.minutes)]);
     return {
       title: `كشف الحضور — الصف ${gradeId} / ${sectionLabel(section?.section_number, section?.gender)}`,
       subtitle: `التاريخ: ${date}`,
@@ -107,15 +110,13 @@ function AttendancePage() {
         { label: "الشعبة", value: sectionLabel(section?.section_number, section?.gender) },
         { label: "التاريخ", value: date },
         { label: "إجمالي الطلاب", value: String(students.length) },
-        { label: "حاضر", value: String(counts.present) },
-        { label: "متأخر", value: String(counts.late) },
-        { label: "غائب", value: String(counts.absent) },
       ],
       tables: [
         {
-          columns: ["#", "اسم الطالب", "رقم الطالب", "الحالة"],
-          rows,
-          rowLines: (r: (string | number)[]) => [`${r[1]} — ${r[3]}`],
+          heading: "الغياب والتأخير",
+          columns: ["#", "اسم الطالب", "الحالة"],
+          rows: flagged,
+          rowLines: (r: (string | number)[]) => [`${r[1]} — ${r[2]}`],
         },
       ],
       filename: `attendance-section-${date}`,
