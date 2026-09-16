@@ -228,10 +228,9 @@ function AttendancePage() {
               doc={buildSectionDoc}
               disabled={students.length === 0}
               pdfColumns={[
-                { header: "#", width: "8%", align: "center" },
-                { header: "اسم الطالب", width: "50%" },
-                { header: "رقم الطالب", width: "22%" },
-                { header: "الحالة", width: "20%", align: "center" },
+                { header: "#", width: "10%", align: "center" },
+                { header: "اسم الطالب", width: "55%" },
+                { header: "الحالة", width: "35%", align: "center" },
               ]}
             />
             <ExportMenu
@@ -240,11 +239,10 @@ function AttendancePage() {
               doc={buildGradeDoc}
               disabled={sections.length === 0}
               pdfColumns={[
-                { header: "#", width: "7%", align: "center" },
-                { header: "اسم الطالب", width: "38%" },
-                { header: "رقم الطالب", width: "20%" },
-                { header: "الشعبة", width: "17%", align: "center" },
-                { header: "الحالة", width: "18%", align: "center" },
+                { header: "#", width: "10%", align: "center" },
+                { header: "اسم الطالب", width: "40%" },
+                { header: "الشعبة", width: "20%", align: "center" },
+                { header: "الحالة", width: "30%", align: "center" },
               ]}
             />
             <Button
