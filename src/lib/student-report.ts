@@ -137,6 +137,92 @@ export async function generateStudentReport(student: Student, from: string, to: 
   w.document.close();
 }
 
+/** Inline SVG charts: percentage trend over time + average per subject. */
+function chartsHtml(marksRows: any[], overallPct: number) {
+  if (!marksRows.length) return `<div class="empty">لا توجد علامات لرسمها في هذه الفترة</div>`;
+
+  // ---- Trend (oldest -> newest) ----
+  const pts = [...marksRows]
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)))
+    .map((m) => ({
+      date: String(m.date),
+      pct: Math.max(0, Math.min(100, (Number(m.score) / Number(m.max_score)) * 100)),
+    }));
+
+  const W = 700;
+  const H = 220;
+  const padX = 40;
+  const padY = 24;
+  const innerW = W - padX * 2;
+  const innerH = H - padY * 2;
+  const x = (i: number) => (pts.length === 1 ? padX + innerW / 2 : padX + (i * innerW) / (pts.length - 1));
+  const y = (p: number) => padY + innerH - (p / 100) * innerH;
+
+  const grid = [0, 25, 50, 75, 100]
+    .map(
+      (g) =>
+        `<line x1="${padX}" y1="${y(g)}" x2="${W - padX}" y2="${y(g)}" stroke="${g === 50 ? "#f59e0b" : "#e2e8f0"}" stroke-width="1" ${g === 50 ? 'stroke-dasharray="4 3"' : ""}/>
+         <text x="${padX - 6}" y="${y(g) + 4}" font-size="9" fill="#64748b" text-anchor="end">${g}%</text>`,
+    )
+    .join("");
+
+  const line = pts.map((p, i) => `${i === 0 ? "M" : "L"}${x(i)},${y(p.pct)}`).join(" ");
+  const area = `${line} L${x(pts.length - 1)},${padY + innerH} L${x(0)},${padY + innerH} Z`;
+  const dots = pts
+    .map(
+      (p, i) =>
+        `<circle cx="${x(i)}" cy="${y(p.pct)}" r="3.2" fill="#1D4ED8"/>
+         <text x="${x(i)}" y="${y(p.pct) - 8}" font-size="8.5" fill="#0f172a" text-anchor="middle">${Math.round(p.pct)}%</text>`,
+    )
+    .join("");
+  const xLabels = pts
+    .map((p, i) =>
+      pts.length > 10 && i % Math.ceil(pts.length / 10) !== 0
+        ? ""
+        : `<text x="${x(i)}" y="${H - 6}" font-size="8" fill="#64748b" text-anchor="middle">${esc(p.date.slice(5))}</text>`,
+    )
+    .join("");
+
+  const trend = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" xmlns="http://www.w3.org/2000/svg">
+      ${grid}
+      <path d="${area}" fill="rgba(29,78,216,0.10)"/>
+      <path d="${line}" fill="none" stroke="#1D4ED8" stroke-width="2"/>
+      ${dots}${xLabels}
+    </svg>`;
+
+  // ---- Average per subject ----
+  const bySubject = new Map<string, { score: number; max: number }>();
+  for (const m of marksRows) {
+    const k = String(m.subject ?? "—");
+    const cur = bySubject.get(k) ?? { score: 0, max: 0 };
+    cur.score += Number(m.score ?? 0);
+    cur.max += Number(m.max_score ?? 0);
+    bySubject.set(k, cur);
+  }
+  const subjects = [...bySubject.entries()]
+    .map(([name, v]) => ({ name, pct: v.max > 0 ? (v.score / v.max) * 100 : 0 }))
+    .sort((a, b) => b.pct - a.pct);
+
+  const bars = subjects
+    .map(
+      (s) => `<div class="bar-row">
+        <div class="bar-name">${esc(s.name)}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(s.pct)}%;background:${s.pct >= 50 ? "#1D4ED8" : "#dc2626"}"></div></div>
+        <div class="bar-val">${Math.round(s.pct)}%</div>
+      </div>`,
+    )
+    .join("");
+
+  return `<div class="chart-box">
+      <div class="chart-title">تطور العلامات (نسبة مئوية)</div>
+      ${trend}
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">المعدل حسب المادة — المعدل العام ${Math.round(overallPct)}%</div>
+      ${bars}
+    </div>`;
+}
+
 function esc(s: string) {
   return String(s ?? "")
     .replace(/&/g, "&amp;")
