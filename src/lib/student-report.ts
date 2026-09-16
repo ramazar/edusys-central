@@ -58,6 +58,13 @@ export async function generateStudentReport(student: Student, from: string, to: 
     .empty { color: #94a3b8; text-align: center; padding: 10px; font-size: 12px; }
     .date { color: #64748b; font-size: 12px; }
     footer { margin-top: 14px; font-size: 10px; color: #94a3b8; display: flex; justify-content: space-between; }
+    .chart-box { border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; background: #fff; page-break-inside: avoid; }
+    .chart-title { font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px; }
+    .bar-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; font-size: 11px; }
+    .bar-name { width: 32%; color: #0f172a; }
+    .bar-track { flex: 1; height: 10px; background: #f1f5f9; border-radius: 6px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 6px; }
+    .bar-val { width: 40px; text-align: left; color: #334155; font-weight: 700; }
     ${brandStyles}
 `;
 
