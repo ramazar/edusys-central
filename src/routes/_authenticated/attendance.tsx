@@ -112,7 +112,11 @@ function AttendancePage() {
         { label: "غائب", value: String(counts.absent) },
       ],
       tables: [
-        { columns: ["#", "اسم الطالب", "رقم الطالب", "الحالة"], rows },
+        {
+          columns: ["#", "اسم الطالب", "رقم الطالب", "الحالة"],
+          rows,
+          rowLines: (r: (string | number)[]) => [`${r[1]} — ${r[3]}`],
+        },
       ],
       filename: `attendance-section-${date}`,
     };
@@ -171,7 +175,11 @@ function AttendancePage() {
         { label: "غائب", value: String(counts.absent) },
       ],
       tables: [
-        { columns: ["#", "اسم الطالب", "رقم الطالب", "الشعبة", "الحالة"], rows },
+        {
+          columns: ["#", "اسم الطالب", "رقم الطالب", "الشعبة", "الحالة"],
+          rows,
+          rowLines: (r: (string | number)[]) => [`${r[1]} — ${r[3]} — ${r[4]}`],
+        },
       ],
       filename: `attendance-grade-${gradeId}-${date}`,
     };
