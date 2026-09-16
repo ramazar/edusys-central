@@ -26,6 +26,7 @@ function AttendancePage() {
   const [sectionId, setSectionId] = useState<string>("");
   const [date, setDate] = useState<string>(new Date().toISOString().slice(0, 10));
   const [attMap, setAttMap] = useState<Record<string, Status>>({});
+  const [lateMap, setLateMap] = useState<Record<string, number>>({});
   const [waOpen, setWaOpen] = useState(false);
 
   const { data: sections = [] } = useQuery({
@@ -44,11 +45,16 @@ function AttendancePage() {
     queryFn: async () => {
       const { data: st } = await supabase.from("students").select("id, full_name, student_number, guardian_phone, guardian_name").eq("section_id", sectionId).eq("is_active", true).order("full_name");
       const students = st ?? [];
-      const { data: att } = await supabase.from("attendance").select("student_id, status").eq("date", date).in("student_id", students.map((s) => s.id));
+      const { data: att } = await supabase.from("attendance").select("student_id, status, late_minutes").eq("date", date).in("student_id", students.map((s) => s.id));
       const map: Record<string, Status> = {};
+      const lm: Record<string, number> = {};
       students.forEach((s) => (map[s.id] = "present"));
-      (att ?? []).forEach((a) => (map[a.student_id] = a.status as Status));
+      (att ?? []).forEach((a) => {
+        map[a.student_id] = a.status as Status;
+        if (a.late_minutes != null) lm[a.student_id] = Number(a.late_minutes);
+      });
       setAttMap(map);
+      setLateMap(lm);
       return students;
     },
   });
