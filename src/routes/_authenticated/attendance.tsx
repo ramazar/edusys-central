@@ -93,12 +93,15 @@ function AttendancePage() {
       return null;
     }
     const section = sections.find((x) => x.id === sectionId);
-    const counts = { present: 0, late: 0, absent: 0 } as Record<Status, number>;
-    const rows = students.map((s, i) => {
-      const st = (attMap[s.id] || "present") as Status;
-      counts[st]++;
-      return [i + 1, s.full_name, s.student_number, statusLabel(st, lateMap[s.id])];
-    });
+    // Export only the students who were absent or late, with the lateness time.
+    const flagged = students
+      .map((s, i) => ({
+        name: s.full_name,
+        status: (attMap[s.id] || "present") as Status,
+        minutes: lateMap[s.id],
+      }))
+      .filter((x) => x.status !== "present")
+      .map((x, i) => [i + 1, x.name, statusLabel(x.status, x.minutes)]);
     return {
       title: `كشف الحضور — الصف ${gradeId} / ${sectionLabel(section?.section_number, section?.gender)}`,
       subtitle: `التاريخ: ${date}`,
@@ -107,15 +110,13 @@ function AttendancePage() {
         { label: "الشعبة", value: sectionLabel(section?.section_number, section?.gender) },
         { label: "التاريخ", value: date },
         { label: "إجمالي الطلاب", value: String(students.length) },
-        { label: "حاضر", value: String(counts.present) },
-        { label: "متأخر", value: String(counts.late) },
-        { label: "غائب", value: String(counts.absent) },
       ],
       tables: [
         {
-          columns: ["#", "اسم الطالب", "رقم الطالب", "الحالة"],
-          rows,
-          rowLines: (r: (string | number)[]) => [`${r[1]} — ${r[3]}`],
+          heading: "الغياب والتأخير",
+          columns: ["#", "اسم الطالب", "الحالة"],
+          rows: flagged,
+          rowLines: (r: (string | number)[]) => [`${r[1]} — ${r[2]}`],
         },
       ],
       filename: `attendance-section-${date}`,
@@ -151,15 +152,15 @@ function AttendancePage() {
       if (a.late_minutes != null) lm[a.student_id] = Number(a.late_minutes);
     });
 
+    // Export only the students who were absent or late, with the lateness time.
     const rows: (string | number)[][] = [];
-    let idx = 0;
-    const counts = { present: 0, late: 0, absent: 0 } as Record<Status, number>;
     for (const sec of sections) {
       const inSec = list.filter((x) => x.section_id === sec.id);
+      let idx = 0;
       inSec.forEach((s) => {
         const st = (map[s.id] || "present") as Status;
-        counts[st]++;
-        rows.push([++idx, s.full_name, s.student_number, sectionLabel(sec.section_number, sec.gender), statusLabel(st, lm[s.id])]);
+        if (st === "present") return;
+        rows.push([++idx, s.full_name, sectionLabel(sec.section_number, sec.gender), statusLabel(st, lm[s.id])]);
       });
     }
     return {
@@ -170,15 +171,13 @@ function AttendancePage() {
         { label: "عدد الشُعب", value: String(sections.length) },
         { label: "التاريخ", value: date },
         { label: "إجمالي الطلاب", value: String(list.length) },
-        { label: "حاضر", value: String(counts.present) },
-        { label: "متأخر", value: String(counts.late) },
-        { label: "غائب", value: String(counts.absent) },
       ],
       tables: [
         {
-          columns: ["#", "اسم الطالب", "رقم الطالب", "الشعبة", "الحالة"],
+          heading: "الغياب والتأخير",
+          columns: ["#", "اسم الطالب", "الشعبة", "الحالة"],
           rows,
-          rowLines: (r: (string | number)[]) => [`${r[1]} — ${r[3]} — ${r[4]}`],
+          rowLines: (r: (string | number)[]) => [`${r[1]} — ${r[2]} — ${r[3]}`],
         },
       ],
       filename: `attendance-grade-${gradeId}-${date}`,
@@ -229,10 +228,9 @@ function AttendancePage() {
               doc={buildSectionDoc}
               disabled={students.length === 0}
               pdfColumns={[
-                { header: "#", width: "8%", align: "center" },
-                { header: "اسم الطالب", width: "50%" },
-                { header: "رقم الطالب", width: "22%" },
-                { header: "الحالة", width: "20%", align: "center" },
+                { header: "#", width: "10%", align: "center" },
+                { header: "اسم الطالب", width: "55%" },
+                { header: "الحالة", width: "35%", align: "center" },
               ]}
             />
             <ExportMenu
@@ -241,11 +239,10 @@ function AttendancePage() {
               doc={buildGradeDoc}
               disabled={sections.length === 0}
               pdfColumns={[
-                { header: "#", width: "7%", align: "center" },
-                { header: "اسم الطالب", width: "38%" },
-                { header: "رقم الطالب", width: "20%" },
-                { header: "الشعبة", width: "17%", align: "center" },
-                { header: "الحالة", width: "18%", align: "center" },
+                { header: "#", width: "10%", align: "center" },
+                { header: "اسم الطالب", width: "40%" },
+                { header: "الشعبة", width: "20%", align: "center" },
+                { header: "الحالة", width: "30%", align: "center" },
               ]}
             />
             <Button
