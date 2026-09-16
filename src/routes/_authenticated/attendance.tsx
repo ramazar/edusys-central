@@ -155,7 +155,7 @@ function AttendancePage() {
       inSec.forEach((s) => {
         const st = (map[s.id] || "present") as Status;
         counts[st]++;
-        rows.push([++idx, s.full_name, s.student_number, sectionLabel(sec.section_number, sec.gender), statusLabel(st)]);
+        rows.push([++idx, s.full_name, s.student_number, sectionLabel(sec.section_number, sec.gender), statusLabel(st, lm[s.id])]);
       });
     }
     return {
