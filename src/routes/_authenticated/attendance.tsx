@@ -26,6 +26,7 @@ function AttendancePage() {
   const [sectionId, setSectionId] = useState<string>("");
   const [date, setDate] = useState<string>(new Date().toISOString().slice(0, 10));
   const [attMap, setAttMap] = useState<Record<string, Status>>({});
+  const [lateMap, setLateMap] = useState<Record<string, number>>({});
   const [waOpen, setWaOpen] = useState(false);
 
   const { data: sections = [] } = useQuery({
@@ -44,11 +45,16 @@ function AttendancePage() {
     queryFn: async () => {
       const { data: st } = await supabase.from("students").select("id, full_name, student_number, guardian_phone, guardian_name").eq("section_id", sectionId).eq("is_active", true).order("full_name");
       const students = st ?? [];
-      const { data: att } = await supabase.from("attendance").select("student_id, status").eq("date", date).in("student_id", students.map((s) => s.id));
+      const { data: att } = await supabase.from("attendance").select("student_id, status, late_minutes").eq("date", date).in("student_id", students.map((s) => s.id));
       const map: Record<string, Status> = {};
+      const lm: Record<string, number> = {};
       students.forEach((s) => (map[s.id] = "present"));
-      (att ?? []).forEach((a) => (map[a.student_id] = a.status as Status));
+      (att ?? []).forEach((a) => {
+        map[a.student_id] = a.status as Status;
+        if (a.late_minutes != null) lm[a.student_id] = Number(a.late_minutes);
+      });
       setAttMap(map);
+      setLateMap(lm);
       return students;
     },
   });
@@ -61,9 +67,16 @@ function AttendancePage() {
 
   const saveAll = async () => {
     if (!sectionId || students.length === 0) return;
-    const rows = students.map((s) => ({
-      student_id: s.id, date, status: attMap[s.id] || "present", recorded_by: user?.id,
-    }));
+    const rows = students.map((s) => {
+      const st = attMap[s.id] || "present";
+      return {
+        student_id: s.id,
+        date,
+        status: st,
+        late_minutes: st === "late" ? Number(lateMap[s.id] ?? 0) : null,
+        recorded_by: user?.id,
+      };
+    });
     const { error } = await supabase.from("attendance").upsert(rows, { onConflict: "student_id,date" });
     if (error) return toast.error(error.message);
     await logAudit(user, "bulk_upsert", "attendance", sectionId, null, { count: rows.length, date });
@@ -71,7 +84,8 @@ function AttendancePage() {
     refetch();
   };
 
-  const statusLabel = (s: Status) => (s === "present" ? "حاضر" : s === "late" ? "متأخر" : "غائب");
+  const statusLabel = (s: Status, minutes?: number | null) =>
+    s === "present" ? "حاضر" : s === "late" ? `متأخر${minutes ? ` (${minutes} دقيقة)` : ""}` : "غائب";
 
   const buildSectionDoc = () => {
     if (students.length === 0) {
@@ -83,7 +97,7 @@ function AttendancePage() {
     const rows = students.map((s, i) => {
       const st = (attMap[s.id] || "present") as Status;
       counts[st]++;
-      return [i + 1, s.full_name, s.student_number, statusLabel(st)];
+      return [i + 1, s.full_name, s.student_number, statusLabel(st, lateMap[s.id])];
     });
     return {
       title: `كشف الحضور — الصف ${gradeId} / ${sectionLabel(section?.section_number, section?.gender)}`,
@@ -123,11 +137,15 @@ function AttendancePage() {
     }
     const { data: att } = await supabase
       .from("attendance")
-      .select("student_id, status")
+      .select("student_id, status, late_minutes")
       .eq("date", date)
       .in("student_id", list.map((s) => s.id));
     const map: Record<string, Status> = {};
-    (att ?? []).forEach((a) => (map[a.student_id] = a.status as Status));
+    const lm: Record<string, number> = {};
+    (att ?? []).forEach((a) => {
+      map[a.student_id] = a.status as Status;
+      if (a.late_minutes != null) lm[a.student_id] = Number(a.late_minutes);
+    });
 
     const rows: (string | number)[][] = [];
     let idx = 0;
@@ -137,7 +155,7 @@ function AttendancePage() {
       inSec.forEach((s) => {
         const st = (map[s.id] || "present") as Status;
         counts[st]++;
-        rows.push([++idx, s.full_name, s.student_number, sectionLabel(sec.section_number, sec.gender), statusLabel(st)]);
+        rows.push([++idx, s.full_name, s.student_number, sectionLabel(sec.section_number, sec.gender), statusLabel(st, lm[s.id])]);
       });
     }
     return {
@@ -251,6 +269,20 @@ function AttendancePage() {
                   <Button size="sm" variant={status === "late" ? "default" : "outline"} className={status === "late" ? "bg-warning text-warning-foreground hover:bg-warning/90" : ""} onClick={() => setAttMap({ ...attMap, [s.id]: "late" })}>
                     <Clock className="ml-1 h-4 w-4" /> متأخر
                   </Button>
+                  {status === "late" && (
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        min={0}
+                        max={600}
+                        value={lateMap[s.id] ?? ""}
+                        placeholder="0"
+                        onChange={(e) => setLateMap({ ...lateMap, [s.id]: Math.max(0, Number(e.target.value || 0)) })}
+                        className="h-9 w-20 text-center"
+                      />
+                      <span className="text-xs text-muted-foreground">دقيقة</span>
+                    </div>
+                  )}
                   <Button size="sm" variant={status === "absent" ? "destructive" : "outline"} onClick={() => setAttMap({ ...attMap, [s.id]: "absent" })}>
                     <X className="ml-1 h-4 w-4" /> غائب
                   </Button>
