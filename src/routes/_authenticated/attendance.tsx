@@ -97,7 +97,7 @@ function AttendancePage() {
     const rows = students.map((s, i) => {
       const st = (attMap[s.id] || "present") as Status;
       counts[st]++;
-      return [i + 1, s.full_name, s.student_number, statusLabel(st)];
+      return [i + 1, s.full_name, s.student_number, statusLabel(st, lateMap[s.id])];
     });
     return {
       title: `كشف الحضور — الصف ${gradeId} / ${sectionLabel(section?.section_number, section?.gender)}`,
@@ -137,11 +137,15 @@ function AttendancePage() {
     }
     const { data: att } = await supabase
       .from("attendance")
-      .select("student_id, status")
+      .select("student_id, status, late_minutes")
       .eq("date", date)
       .in("student_id", list.map((s) => s.id));
     const map: Record<string, Status> = {};
-    (att ?? []).forEach((a) => (map[a.student_id] = a.status as Status));
+    const lm: Record<string, number> = {};
+    (att ?? []).forEach((a) => {
+      map[a.student_id] = a.status as Status;
+      if (a.late_minutes != null) lm[a.student_id] = Number(a.late_minutes);
+    });
 
     const rows: (string | number)[][] = [];
     let idx = 0;
@@ -265,6 +269,20 @@ function AttendancePage() {
                   <Button size="sm" variant={status === "late" ? "default" : "outline"} className={status === "late" ? "bg-warning text-warning-foreground hover:bg-warning/90" : ""} onClick={() => setAttMap({ ...attMap, [s.id]: "late" })}>
                     <Clock className="ml-1 h-4 w-4" /> متأخر
                   </Button>
+                  {status === "late" && (
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        min={0}
+                        max={600}
+                        value={lateMap[s.id] ?? ""}
+                        placeholder="0"
+                        onChange={(e) => setLateMap({ ...lateMap, [s.id]: Math.max(0, Number(e.target.value || 0)) })}
+                        className="h-9 w-20 text-center"
+                      />
+                      <span className="text-xs text-muted-foreground">دقيقة</span>
+                    </div>
+                  )}
                   <Button size="sm" variant={status === "absent" ? "destructive" : "outline"} onClick={() => setAttMap({ ...attMap, [s.id]: "absent" })}>
                     <X className="ml-1 h-4 w-4" /> غائب
                   </Button>
