@@ -84,7 +84,8 @@ function AttendancePage() {
     refetch();
   };
 
-  const statusLabel = (s: Status) => (s === "present" ? "حاضر" : s === "late" ? "متأخر" : "غائب");
+  const statusLabel = (s: Status, minutes?: number | null) =>
+    s === "present" ? "حاضر" : s === "late" ? `متأخر${minutes ? ` (${minutes} دقيقة)` : ""}` : "غائب";
 
   const buildSectionDoc = () => {
     if (students.length === 0) {
