@@ -73,7 +73,7 @@ const fontLinks = `
 const autoPrint = `<script>window.addEventListener("load",()=>setTimeout(()=>{window.focus();window.print();},400));</script>`;
 
 function fmt(n: number) {
-  return n.toLocaleString("ar-EG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return Number(n).toLocaleString("ar-EG", { maximumFractionDigits: 0 });
 }
 
 export function generateInvoicePDF(student: Student, plans: Plan[], payments: Payment[]) {
