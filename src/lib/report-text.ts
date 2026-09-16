@@ -7,6 +7,11 @@ export type TextTable = {
   heading?: string;
   columns: string[];
   rows: (string | number)[][];
+  /**
+   * Custom per-row rendering: returns the text lines for one row.
+   * Overrides the default "header: value — header: value" line.
+   */
+  rowLines?: (row: (string | number)[], index: number) => string[];
 };
 
 export type ExportTextDoc = {
@@ -35,6 +40,10 @@ export function buildReportText(doc: ExportTextDoc): string {
       continue;
     }
     t.rows.forEach((r, i) => {
+      if (t.rowLines) {
+        lines.push(...t.rowLines(r, i));
+        return;
+      }
       const cells = r
         .map((cell, ci) => {
           const value = String(cell ?? "").trim();
