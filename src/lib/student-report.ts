@@ -117,6 +117,9 @@ export async function generateStudentReport(student: Student, from: string, to: 
       <div class="kpi"><div class="l">إجمالي الأيام المسجّلة</div><div class="v">${totalDays.toLocaleString("ar")}</div></div>
     </div>
 
+    <h2>رسم بياني لمستوى الطالب</h2>
+    ${chartsHtml(marksRows, pct)}
+
     <h2>العلامات</h2>
     ${marksTable}
 
