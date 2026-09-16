@@ -152,15 +152,15 @@ function AttendancePage() {
       if (a.late_minutes != null) lm[a.student_id] = Number(a.late_minutes);
     });
 
+    // Export only the students who were absent or late, with the lateness time.
     const rows: (string | number)[][] = [];
-    let idx = 0;
-    const counts = { present: 0, late: 0, absent: 0 } as Record<Status, number>;
     for (const sec of sections) {
       const inSec = list.filter((x) => x.section_id === sec.id);
+      let idx = 0;
       inSec.forEach((s) => {
         const st = (map[s.id] || "present") as Status;
-        counts[st]++;
-        rows.push([++idx, s.full_name, s.student_number, sectionLabel(sec.section_number, sec.gender), statusLabel(st, lm[s.id])]);
+        if (st === "present") return;
+        rows.push([++idx, s.full_name, sectionLabel(sec.section_number, sec.gender), statusLabel(st, lm[s.id])]);
       });
     }
     return {
@@ -171,15 +171,13 @@ function AttendancePage() {
         { label: "عدد الشُعب", value: String(sections.length) },
         { label: "التاريخ", value: date },
         { label: "إجمالي الطلاب", value: String(list.length) },
-        { label: "حاضر", value: String(counts.present) },
-        { label: "متأخر", value: String(counts.late) },
-        { label: "غائب", value: String(counts.absent) },
       ],
       tables: [
         {
-          columns: ["#", "اسم الطالب", "رقم الطالب", "الشعبة", "الحالة"],
+          heading: "الغياب والتأخير",
+          columns: ["#", "اسم الطالب", "الشعبة", "الحالة"],
           rows,
-          rowLines: (r: (string | number)[]) => [`${r[1]} — ${r[3]} — ${r[4]}`],
+          rowLines: (r: (string | number)[]) => [`${r[1]} — ${r[2]} — ${r[3]}`],
         },
       ],
       filename: `attendance-grade-${gradeId}-${date}`,
