@@ -59,19 +59,21 @@ function ReportsPage() {
       let marksQuery = supabase.from("daily_marks").select("student_id, score, max_score, date").in("student_id", ids);
       if (from) marksQuery = marksQuery.gte("date", from);
       const { data: marks } = await marksQuery;
-      const totals: Record<string, { sum: number; count: number }> = {};
+      // Weighted average (total score / total max), same formula as the marks page and student report.
+      const totals: Record<string, { score: number; max: number; count: number }> = {};
       (marks ?? []).forEach((m) => {
         // Behavioral notes are stored with max_score = 0; they must not affect the average.
         if (!(Number(m.max_score) > 0)) return;
-        const t = totals[m.student_id] || { sum: 0, count: 0 };
-        const pct = (Number(m.score) / Number(m.max_score)) * 100;
-        t.sum += pct; t.count += 1;
+        const t = totals[m.student_id] || { score: 0, max: 0, count: 0 };
+        t.score += Number(m.score);
+        t.max += Number(m.max_score);
+        t.count += 1;
         totals[m.student_id] = t;
       });
       return students
         .map((s) => {
-          const t = totals[s.id] || { sum: 0, count: 0 };
-          return { ...s, avg: t.count > 0 ? t.sum / t.count : 0, count: t.count };
+          const t = totals[s.id] || { score: 0, max: 0, count: 0 };
+          return { ...s, avg: t.max > 0 ? (t.score / t.max) * 100 : 0, count: t.count };
         })
         .sort((a, b) => b.avg - a.avg);
     },
