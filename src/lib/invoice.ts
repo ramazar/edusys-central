@@ -145,9 +145,10 @@ export function generateInvoicePDF(student: Student, plans: Plan[], payments: Pa
     </table>
 
     <div class="totals">
-      <div class="row"><span>إجمالي المستحق</span><span>${fmt(totalDue)}</span></div>
-      <div class="row paid"><span>إجمالي المدفوع</span><span>${fmt(totalPaid)}</span></div>
-      <div class="row big balance"><span>الرصيد المتبقي</span><span>${fmt(balance)}</span></div>
+      <div class="row"><span>إجمالي المستحق</span><span>${withCur(totalDue, "SYP")}</span></div>
+      <div class="row paid"><span>إجمالي المدفوع</span><span>${withCur(totalPaid, "SYP")}</span></div>
+      ${totalPaidUsd > 0 ? `<div class="row paid"><span>مدفوع بالدولار</span><span>${withCur(totalPaidUsd, "USD")}</span></div>` : ""}
+      <div class="row big balance"><span>الرصيد المتبقي</span><span>${withCur(balance, "SYP")}</span></div>
     </div>
 
     <footer><span>${brandName()}</span><span>${new Date().toISOString().slice(0, 10)}</span></footer>
@@ -188,7 +189,7 @@ export function generateReceiptPDF(student: Student, payment: Payment, opts?: { 
       </div>
 
       <div class="receipt-amount">
-        ${fmt(Number(payment.amount))}
+        ${withCur(Number(payment.amount), curOf(payment.currency))}
         <small>المبلغ المستلم</small>
       </div>
 
