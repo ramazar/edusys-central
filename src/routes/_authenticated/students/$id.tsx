@@ -102,8 +102,15 @@ function StudentDetail() {
     },
   });
 
+  // Payment plans have no currency column: they are always SYP. Only SYP payments
+  // reduce the balance; USD payments are shown separately instead of being mixed in.
   const totalDue = plans.reduce((s, p) => s + Number(p.amount), 0);
-  const totalPaid = payments.reduce((s, p) => s + Number(p.amount), 0);
+  const totalPaid = payments
+    .filter((p) => asCurrency(p.currency) === "SYP")
+    .reduce((s, p) => s + Number(p.amount), 0);
+  const totalPaidUsd = payments
+    .filter((p) => asCurrency(p.currency) === "USD")
+    .reduce((s, p) => s + Number(p.amount), 0);
   const balance = totalDue - totalPaid;
 
   if (!student) return <div>جارٍ التحميل…</div>;

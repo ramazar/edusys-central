@@ -98,7 +98,7 @@ export default function PaymentDues() {
           <CardContent>
             <div className="text-2xl font-bold text-destructive">{late.length}</div>
             <p className="text-xs text-muted-foreground">
-              بمجموع {late.reduce((s, r) => s + r.amount, 0).toLocaleString("ar")}
+              بمجموع {formatMoney(late.reduce((s, r) => s + r.amount, 0), "SYP")}
             </p>
           </CardContent>
         </Card>
@@ -110,7 +110,7 @@ export default function PaymentDues() {
           <CardContent>
             <div className="text-2xl font-bold text-warning">{soon.length}</div>
             <p className="text-xs text-muted-foreground">
-              بمجموع {soon.reduce((s, r) => s + r.amount, 0).toLocaleString("ar")}
+              بمجموع {formatMoney(soon.reduce((s, r) => s + r.amount, 0), "SYP")}
             </p>
           </CardContent>
         </Card>
@@ -151,7 +151,7 @@ export default function PaymentDues() {
                   </TableCell>
                   <TableCell>الصف {r.gradeId}</TableCell>
                   <TableCell className="font-mono">{r.dueDate}</TableCell>
-                  <TableCell className="font-mono font-semibold">{r.amount.toLocaleString("ar")}</TableCell>
+                  <TableCell className="font-mono font-semibold">{formatMoney(r.amount, "SYP")}</TableCell>
                   <TableCell>
                     {r.status === "late" ? (
                       <Badge variant="destructive">متأخر {r.days} يوم</Badge>
