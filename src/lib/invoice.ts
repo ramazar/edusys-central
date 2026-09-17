@@ -83,7 +83,8 @@ function fmt(n: number) {
 
 export function generateInvoicePDF(student: Student, plans: Plan[], payments: Payment[]) {
   const totalDue = plans.reduce((s, p) => s + Number(p.amount), 0);
-  const totalPaid = payments.reduce((s, p) => s + Number(p.amount), 0);
+  const totalPaid = payments.filter((p) => curOf(p.currency) === "SYP").reduce((s, p) => s + Number(p.amount), 0);
+  const totalPaidUsd = payments.filter((p) => curOf(p.currency) === "USD").reduce((s, p) => s + Number(p.amount), 0);
   const balance = totalDue - totalPaid;
 
   const plansRows = plans.length
