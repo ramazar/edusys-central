@@ -63,10 +63,11 @@ function Dashboard() {
     queryKey: ["monthly-finance"],
     queryFn: async () => {
       const start = startOfMonth(subMonths(new Date(), 5)).toISOString().slice(0, 10);
+      // Chart shows SYP only; mixing currencies in one bar would be meaningless.
       const [inc, pay, exp] = await Promise.all([
-        supabase.from("income_entries").select("amount,entry_date").gte("entry_date", start),
-        supabase.from("student_payments").select("amount,payment_date").gte("payment_date", start),
-        supabase.from("expenses").select("amount,entry_date").gte("entry_date", start),
+        supabase.from("income_entries").select("amount,entry_date").eq("currency", "SYP").gte("entry_date", start),
+        supabase.from("student_payments").select("amount,payment_date").eq("currency", "SYP").gte("payment_date", start),
+        supabase.from("expenses").select("amount,entry_date").eq("currency", "SYP").gte("entry_date", start),
       ]);
       const buckets = new Map<string, { month: string; income: number; expense: number }>();
       for (let i = 5; i >= 0; i--) {
@@ -97,8 +98,20 @@ function Dashboard() {
 
   const kpis = [
     { title: "إجمالي الطلاب", value: stats?.students ?? "—", icon: Users, tone: "text-primary" },
-    { title: "الإيرادات هذا الشهر", value: `${(stats?.incomeTotal ?? 0).toLocaleString("ar")} `, icon: Wallet, tone: "text-success" },
-    { title: "المصروفات هذا الشهر", value: `${(stats?.expenseTotal ?? 0).toLocaleString("ar")} `, icon: AlertTriangle, tone: "text-destructive" },
+    {
+      title: "الإيرادات هذا الشهر",
+      value: formatMoney(stats?.incomeTotal ?? 0, "SYP"),
+      extra: (stats?.incomeTotalUsd ?? 0) > 0 ? formatMoney(stats?.incomeTotalUsd ?? 0, "USD") : null,
+      icon: Wallet,
+      tone: "text-success",
+    },
+    {
+      title: "المصروفات هذا الشهر",
+      value: formatMoney(stats?.expenseTotal ?? 0, "SYP"),
+      extra: (stats?.expenseTotalUsd ?? 0) > 0 ? formatMoney(stats?.expenseTotalUsd ?? 0, "USD") : null,
+      icon: AlertTriangle,
+      tone: "text-destructive",
+    },
     { title: "معدل الحضور اليوم", value: `${stats?.attendanceRate ?? 0}%`, icon: CalendarCheck, tone: "text-primary" },
   ];
 
