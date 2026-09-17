@@ -61,8 +61,10 @@ function ReportsPage() {
       const { data: marks } = await marksQuery;
       const totals: Record<string, { sum: number; count: number }> = {};
       (marks ?? []).forEach((m) => {
+        // Behavioral notes are stored with max_score = 0; they must not affect the average.
+        if (!(Number(m.max_score) > 0)) return;
         const t = totals[m.student_id] || { sum: 0, count: 0 };
-        const pct = Number(m.max_score) > 0 ? (Number(m.score) / Number(m.max_score)) * 100 : Number(m.score);
+        const pct = (Number(m.score) / Number(m.max_score)) * 100;
         t.sum += pct; t.count += 1;
         totals[m.student_id] = t;
       });
