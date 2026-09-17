@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Wallet, AlertTriangle, CalendarCheck } from "lucide-react";
 import { format, startOfMonth, subMonths } from "date-fns";
+import { type Currency, asCurrency, formatMoney } from "@/lib/currency";
 
 const FinanceCharts = lazy(() => import("@/components/dashboard/FinanceCharts"));
 
@@ -49,7 +50,9 @@ function Dashboard() {
         teachers: teachersC.count ?? 0,
         workers: workersC.count ?? 0,
         incomeTotal,
+        incomeTotalUsd,
         expenseTotal,
+        expenseTotalUsd,
         net: incomeTotal - expenseTotal,
         attendanceRate: rate,
       };
