@@ -199,7 +199,8 @@ function TeachersPage() {
         <TableBody>
           {teachers.length === 0 && <TableRow><TableCell colSpan={10} className="py-8 text-center text-muted-foreground">لا يوجد معلمون</TableCell></TableRow>}
           {teachers.map((t) => {
-            const paid = paymentsByTeacher[t.id] ?? 0;
+            const paid = paidOf(t.id);
+            const paidUsd = paymentsByTeacher[t.id]?.USD ?? 0;
             const due = dueOf(t);
             const remaining = due - paid;
             const att = attByTeacher[t.id];
