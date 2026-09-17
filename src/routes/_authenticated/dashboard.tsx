@@ -138,6 +138,7 @@ function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">{k.value}</div>
+              {"extra" in k && k.extra && <div className="mt-1 text-xs text-muted-foreground">و{k.extra}</div>}
             </CardContent>
           </Card>
         ))}
