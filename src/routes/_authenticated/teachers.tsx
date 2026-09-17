@@ -72,10 +72,13 @@ function TeachersPage() {
   const { data: paymentsByTeacher = {} } = useQuery({
     queryKey: ["teacher_payments_all"],
     queryFn: async () => {
-      const { data } = await supabase.from("teacher_payments").select("teacher_id, amount");
-      const map: Record<string, number> = {};
+      const { data } = await supabase.from("teacher_payments").select("teacher_id, amount, currency");
+      // Salaries and lecture rates are recorded in SYP, so keep currencies apart.
+      const map: Record<string, { SYP: number; USD: number }> = {};
       (data ?? []).forEach((p) => {
-        map[p.teacher_id] = (map[p.teacher_id] ?? 0) + Number(p.amount);
+        const row = map[p.teacher_id] ?? { SYP: 0, USD: 0 };
+        row[asCurrency(p.currency)] += Number(p.amount);
+        map[p.teacher_id] = row;
       });
       return map;
     },
@@ -97,7 +100,9 @@ function TeachersPage() {
   const dueOf = (t: Teacher) =>
     t.due_override != null ? Number(t.due_override) : (lectureTotals[t.id]?.amount ?? 0);
 
-  const totalPaid = Object.values(paymentsByTeacher).reduce((s, v) => s + v, 0);
+  const paidOf = (id: string) => paymentsByTeacher[id]?.SYP ?? 0;
+  const totalPaid = Object.values(paymentsByTeacher).reduce((s, v) => s + v.SYP, 0);
+  const totalPaidUsd = Object.values(paymentsByTeacher).reduce((s, v) => s + v.USD, 0);
   const totalDue = teachers.reduce((s, t) => s + dueOf(t), 0);
   const totalRemaining = totalDue - totalPaid;
 
