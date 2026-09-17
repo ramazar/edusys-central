@@ -134,6 +134,7 @@ function ReportsPage() {
             r.avg.toFixed(2),
             r.count,
           ]),
+          rowLines: (r) => [`${r[1]} — ${r[4]}`],
         },
       ],
       filename: `ranking-grade-${gradeId}`,
@@ -159,6 +160,7 @@ function ReportsPage() {
         {
           columns: sectionCols.map((c) => c.header),
           rows: filtered.map((r, i) => [i + 1, r.full_name, r.student_number, r.avg.toFixed(2), r.count]),
+          rowLines: (r) => [`${r[1]} — ${r[3]}`],
         },
       ],
       filename: `ranking-grade-${gradeId}-section-${sectionNumber}`,
