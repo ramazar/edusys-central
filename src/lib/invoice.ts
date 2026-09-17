@@ -105,7 +105,7 @@ export function generateInvoicePDF(student: Student, plans: Plan[], payments: Pa
         .map(
           (p) => `<tr>
         <td>${escapeHtml(p.payment_date)}</td>
-        <td>${fmt(Number(p.amount))}</td>
+        <td>${withCur(Number(p.amount), curOf(p.currency))}</td>
         <td>${escapeHtml(p.method ?? "—")}</td>
         <td>${escapeHtml(p.notes ?? "—")}</td>
       </tr>`,
