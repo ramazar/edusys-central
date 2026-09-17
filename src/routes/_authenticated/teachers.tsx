@@ -178,8 +178,8 @@ function TeachersPage() {
       )}
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">إجمالي المستحق</div><div className="text-2xl font-bold">{totalDue.toLocaleString("ar")}</div></CardContent></Card>
-        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">إجمالي المدفوع</div><div className="text-2xl font-bold text-success">{totalPaid.toLocaleString("ar")}</div></CardContent></Card>
+        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">إجمالي المستحق</div><div className="text-2xl font-bold">{formatMoney(totalDue, "SYP")}</div></CardContent></Card>
+        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">إجمالي المدفوع</div><div className="text-2xl font-bold text-success">{formatMoney(totalPaid, "SYP")}</div>{totalPaidUsd > 0 && <div className="text-xs text-muted-foreground">و{formatMoney(totalPaidUsd, "USD")}</div>}</CardContent></Card>
         <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">الرصيد المتبقي</div><div className={`text-2xl font-bold ${totalRemaining > 0 ? "text-destructive" : "text-success"}`}>{totalRemaining.toLocaleString("ar")}</div></CardContent></Card>
       </div>
 
@@ -224,7 +224,10 @@ function TeachersPage() {
                   <span className={t.due_override != null ? "text-primary font-semibold" : ""}>{due.toLocaleString("ar")}</span>
                   {t.due_override != null && <span className="ms-1 text-[10px] text-muted-foreground">(مخصص)</span>}
                 </TableCell>
-                <TableCell className="font-mono text-success">{paid.toLocaleString("ar")}</TableCell>
+                <TableCell className="font-mono text-success">
+                  {paid.toLocaleString("ar")}
+                  {paidUsd > 0 && <span className="ms-1 text-[10px] text-muted-foreground">+ {formatMoney(paidUsd, "USD")}</span>}
+                </TableCell>
                 <TableCell className={`font-mono ${remaining > 0 ? "text-destructive" : "text-success"}`}>{remaining.toLocaleString("ar")}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
