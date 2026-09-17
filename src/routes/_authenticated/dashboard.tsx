@@ -28,14 +28,19 @@ function Dashboard() {
         supabase.from("students").select("id", { count: "exact", head: true }).eq("is_active", true),
         supabase.from("teachers").select("id", { count: "exact", head: true }).eq("is_active", true),
         supabase.from("workers").select("id", { count: "exact", head: true }).eq("is_active", true),
-        supabase.from("income_entries").select("amount").gte("entry_date", startOfMonth(new Date()).toISOString().slice(0, 10)),
-        supabase.from("expenses").select("amount").gte("entry_date", startOfMonth(new Date()).toISOString().slice(0, 10)),
+        supabase.from("income_entries").select("amount,currency").gte("entry_date", startOfMonth(new Date()).toISOString().slice(0, 10)),
+        supabase.from("expenses").select("amount,currency").gte("entry_date", startOfMonth(new Date()).toISOString().slice(0, 10)),
         supabase.from("attendance").select("status").eq("date", today),
-        supabase.from("student_payments").select("amount").gte("payment_date", startOfMonth(new Date()).toISOString().slice(0, 10)),
+        supabase.from("student_payments").select("amount,currency").gte("payment_date", startOfMonth(new Date()).toISOString().slice(0, 10)),
       ]);
-      const incomeTotal = (incomeM.data ?? []).reduce((s, r) => s + Number(r.amount), 0)
-        + (paymentsSum.data ?? []).reduce((s, r) => s + Number(r.amount), 0);
-      const expenseTotal = (expenseM.data ?? []).reduce((s, r) => s + Number(r.amount), 0);
+      // Currencies are never converted: SYP and USD are totalled separately.
+      const sumBy = (rows: { amount: number | string; currency: unknown }[], c: Currency) =>
+        rows.filter((r) => asCurrency(r.currency) === c).reduce((s, r) => s + Number(r.amount), 0);
+      const incomeRows = [...(incomeM.data ?? []), ...(paymentsSum.data ?? [])];
+      const incomeTotal = sumBy(incomeRows, "SYP");
+      const incomeTotalUsd = sumBy(incomeRows, "USD");
+      const expenseTotal = sumBy(expenseM.data ?? [], "SYP");
+      const expenseTotalUsd = sumBy(expenseM.data ?? [], "USD");
       const presentToday = (attToday.data ?? []).filter((r) => r.status === "present").length;
       const totalAttToday = (attToday.data ?? []).length;
       const rate = totalAttToday ? Math.round((presentToday / totalAttToday) * 100) : 0;

@@ -148,6 +148,7 @@ export const deleteSchool = createServerFn({ method: "POST" })
       "workers",
       "expenses",
       "income_entries",
+      "vault_withdrawals",
       "notifications",
       "audit_logs",
       "app_settings",

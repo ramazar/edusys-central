@@ -180,7 +180,7 @@ function TeachersPage() {
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">إجمالي المستحق</div><div className="text-2xl font-bold">{formatMoney(totalDue, "SYP")}</div></CardContent></Card>
         <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">إجمالي المدفوع</div><div className="text-2xl font-bold text-success">{formatMoney(totalPaid, "SYP")}</div>{totalPaidUsd > 0 && <div className="text-xs text-muted-foreground">و{formatMoney(totalPaidUsd, "USD")}</div>}</CardContent></Card>
-        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">الرصيد المتبقي</div><div className={`text-2xl font-bold ${totalRemaining > 0 ? "text-destructive" : "text-success"}`}>{totalRemaining.toLocaleString("ar")}</div></CardContent></Card>
+        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">الرصيد المتبقي</div><div className={`text-2xl font-bold ${totalRemaining > 0 ? "text-destructive" : "text-success"}`}>{formatMoney(totalRemaining, "SYP")}</div></CardContent></Card>
       </div>
 
       <Card><CardContent className="p-0"><Table>
