@@ -20,7 +20,12 @@ type Payment = {
   method?: string | null;
   reference?: string | null;
   notes?: string | null;
+  currency?: string | null;
 };
+
+// Currencies are never converted; undefined is treated as SYP (plans are SYP-only).
+const curOf = (c?: string | null) => (c === "USD" ? "USD" : "SYP");
+const withCur = (n: number, c: "SYP" | "USD") => `${fmt(n)} ${c === "USD" ? "$" : "ل.س"}`;
 
 function escapeHtml(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
