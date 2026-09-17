@@ -72,10 +72,13 @@ function TeachersPage() {
   const { data: paymentsByTeacher = {} } = useQuery({
     queryKey: ["teacher_payments_all"],
     queryFn: async () => {
-      const { data } = await supabase.from("teacher_payments").select("teacher_id, amount");
-      const map: Record<string, number> = {};
+      const { data } = await supabase.from("teacher_payments").select("teacher_id, amount, currency");
+      // Salaries and lecture rates are recorded in SYP, so keep currencies apart.
+      const map: Record<string, { SYP: number; USD: number }> = {};
       (data ?? []).forEach((p) => {
-        map[p.teacher_id] = (map[p.teacher_id] ?? 0) + Number(p.amount);
+        const row = map[p.teacher_id] ?? { SYP: 0, USD: 0 };
+        row[asCurrency(p.currency)] += Number(p.amount);
+        map[p.teacher_id] = row;
       });
       return map;
     },
@@ -97,7 +100,9 @@ function TeachersPage() {
   const dueOf = (t: Teacher) =>
     t.due_override != null ? Number(t.due_override) : (lectureTotals[t.id]?.amount ?? 0);
 
-  const totalPaid = Object.values(paymentsByTeacher).reduce((s, v) => s + v, 0);
+  const paidOf = (id: string) => paymentsByTeacher[id]?.SYP ?? 0;
+  const totalPaid = Object.values(paymentsByTeacher).reduce((s, v) => s + v.SYP, 0);
+  const totalPaidUsd = Object.values(paymentsByTeacher).reduce((s, v) => s + v.USD, 0);
   const totalDue = teachers.reduce((s, t) => s + dueOf(t), 0);
   const totalRemaining = totalDue - totalPaid;
 
@@ -173,9 +178,9 @@ function TeachersPage() {
       )}
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">إجمالي المستحق</div><div className="text-2xl font-bold">{totalDue.toLocaleString("ar")}</div></CardContent></Card>
-        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">إجمالي المدفوع</div><div className="text-2xl font-bold text-success">{totalPaid.toLocaleString("ar")}</div></CardContent></Card>
-        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">الرصيد المتبقي</div><div className={`text-2xl font-bold ${totalRemaining > 0 ? "text-destructive" : "text-success"}`}>{totalRemaining.toLocaleString("ar")}</div></CardContent></Card>
+        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">إجمالي المستحق</div><div className="text-2xl font-bold">{formatMoney(totalDue, "SYP")}</div></CardContent></Card>
+        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">إجمالي المدفوع</div><div className="text-2xl font-bold text-success">{formatMoney(totalPaid, "SYP")}</div>{totalPaidUsd > 0 && <div className="text-xs text-muted-foreground">و{formatMoney(totalPaidUsd, "USD")}</div>}</CardContent></Card>
+        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">الرصيد المتبقي</div><div className={`text-2xl font-bold ${totalRemaining > 0 ? "text-destructive" : "text-success"}`}>{formatMoney(totalRemaining, "SYP")}</div></CardContent></Card>
       </div>
 
       <Card><CardContent className="p-0"><Table>
@@ -194,7 +199,8 @@ function TeachersPage() {
         <TableBody>
           {teachers.length === 0 && <TableRow><TableCell colSpan={10} className="py-8 text-center text-muted-foreground">لا يوجد معلمون</TableCell></TableRow>}
           {teachers.map((t) => {
-            const paid = paymentsByTeacher[t.id] ?? 0;
+            const paid = paidOf(t.id);
+            const paidUsd = paymentsByTeacher[t.id]?.USD ?? 0;
             const due = dueOf(t);
             const remaining = due - paid;
             const att = attByTeacher[t.id];
@@ -218,7 +224,10 @@ function TeachersPage() {
                   <span className={t.due_override != null ? "text-primary font-semibold" : ""}>{due.toLocaleString("ar")}</span>
                   {t.due_override != null && <span className="ms-1 text-[10px] text-muted-foreground">(مخصص)</span>}
                 </TableCell>
-                <TableCell className="font-mono text-success">{paid.toLocaleString("ar")}</TableCell>
+                <TableCell className="font-mono text-success">
+                  {paid.toLocaleString("ar")}
+                  {paidUsd > 0 && <span className="ms-1 text-[10px] text-muted-foreground">+ {formatMoney(paidUsd, "USD")}</span>}
+                </TableCell>
                 <TableCell className={`font-mono ${remaining > 0 ? "text-destructive" : "text-success"}`}>{remaining.toLocaleString("ar")}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">

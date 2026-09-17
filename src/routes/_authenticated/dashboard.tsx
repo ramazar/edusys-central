@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Wallet, AlertTriangle, CalendarCheck } from "lucide-react";
 import { format, startOfMonth, subMonths } from "date-fns";
+import { type Currency, asCurrency, formatMoney } from "@/lib/currency";
 
 const FinanceCharts = lazy(() => import("@/components/dashboard/FinanceCharts"));
 
@@ -28,14 +29,19 @@ function Dashboard() {
         supabase.from("students").select("id", { count: "exact", head: true }).eq("is_active", true),
         supabase.from("teachers").select("id", { count: "exact", head: true }).eq("is_active", true),
         supabase.from("workers").select("id", { count: "exact", head: true }).eq("is_active", true),
-        supabase.from("income_entries").select("amount").gte("entry_date", startOfMonth(new Date()).toISOString().slice(0, 10)),
-        supabase.from("expenses").select("amount").gte("entry_date", startOfMonth(new Date()).toISOString().slice(0, 10)),
+        supabase.from("income_entries").select("amount,currency").gte("entry_date", startOfMonth(new Date()).toISOString().slice(0, 10)),
+        supabase.from("expenses").select("amount,currency").gte("entry_date", startOfMonth(new Date()).toISOString().slice(0, 10)),
         supabase.from("attendance").select("status").eq("date", today),
-        supabase.from("student_payments").select("amount").gte("payment_date", startOfMonth(new Date()).toISOString().slice(0, 10)),
+        supabase.from("student_payments").select("amount,currency").gte("payment_date", startOfMonth(new Date()).toISOString().slice(0, 10)),
       ]);
-      const incomeTotal = (incomeM.data ?? []).reduce((s, r) => s + Number(r.amount), 0)
-        + (paymentsSum.data ?? []).reduce((s, r) => s + Number(r.amount), 0);
-      const expenseTotal = (expenseM.data ?? []).reduce((s, r) => s + Number(r.amount), 0);
+      // Currencies are never converted: SYP and USD are totalled separately.
+      const sumBy = (rows: { amount: number | string; currency: unknown }[], c: Currency) =>
+        rows.filter((r) => asCurrency(r.currency) === c).reduce((s, r) => s + Number(r.amount), 0);
+      const incomeRows = [...(incomeM.data ?? []), ...(paymentsSum.data ?? [])];
+      const incomeTotal = sumBy(incomeRows, "SYP");
+      const incomeTotalUsd = sumBy(incomeRows, "USD");
+      const expenseTotal = sumBy(expenseM.data ?? [], "SYP");
+      const expenseTotalUsd = sumBy(expenseM.data ?? [], "USD");
       const presentToday = (attToday.data ?? []).filter((r) => r.status === "present").length;
       const totalAttToday = (attToday.data ?? []).length;
       const rate = totalAttToday ? Math.round((presentToday / totalAttToday) * 100) : 0;
@@ -44,7 +50,9 @@ function Dashboard() {
         teachers: teachersC.count ?? 0,
         workers: workersC.count ?? 0,
         incomeTotal,
+        incomeTotalUsd,
         expenseTotal,
+        expenseTotalUsd,
         net: incomeTotal - expenseTotal,
         attendanceRate: rate,
       };
@@ -55,10 +63,11 @@ function Dashboard() {
     queryKey: ["monthly-finance"],
     queryFn: async () => {
       const start = startOfMonth(subMonths(new Date(), 5)).toISOString().slice(0, 10);
+      // Chart shows SYP only; mixing currencies in one bar would be meaningless.
       const [inc, pay, exp] = await Promise.all([
-        supabase.from("income_entries").select("amount,entry_date").gte("entry_date", start),
-        supabase.from("student_payments").select("amount,payment_date").gte("payment_date", start),
-        supabase.from("expenses").select("amount,entry_date").gte("entry_date", start),
+        supabase.from("income_entries").select("amount,entry_date").eq("currency", "SYP").gte("entry_date", start),
+        supabase.from("student_payments").select("amount,payment_date").eq("currency", "SYP").gte("payment_date", start),
+        supabase.from("expenses").select("amount,entry_date").eq("currency", "SYP").gte("entry_date", start),
       ]);
       const buckets = new Map<string, { month: string; income: number; expense: number }>();
       for (let i = 5; i >= 0; i--) {
@@ -89,8 +98,20 @@ function Dashboard() {
 
   const kpis = [
     { title: "إجمالي الطلاب", value: stats?.students ?? "—", icon: Users, tone: "text-primary" },
-    { title: "الإيرادات هذا الشهر", value: `${(stats?.incomeTotal ?? 0).toLocaleString("ar")} `, icon: Wallet, tone: "text-success" },
-    { title: "المصروفات هذا الشهر", value: `${(stats?.expenseTotal ?? 0).toLocaleString("ar")} `, icon: AlertTriangle, tone: "text-destructive" },
+    {
+      title: "الإيرادات هذا الشهر",
+      value: formatMoney(stats?.incomeTotal ?? 0, "SYP"),
+      extra: (stats?.incomeTotalUsd ?? 0) > 0 ? formatMoney(stats?.incomeTotalUsd ?? 0, "USD") : null,
+      icon: Wallet,
+      tone: "text-success",
+    },
+    {
+      title: "المصروفات هذا الشهر",
+      value: formatMoney(stats?.expenseTotal ?? 0, "SYP"),
+      extra: (stats?.expenseTotalUsd ?? 0) > 0 ? formatMoney(stats?.expenseTotalUsd ?? 0, "USD") : null,
+      icon: AlertTriangle,
+      tone: "text-destructive",
+    },
     { title: "معدل الحضور اليوم", value: `${stats?.attendanceRate ?? 0}%`, icon: CalendarCheck, tone: "text-primary" },
   ];
 
@@ -117,6 +138,7 @@ function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">{k.value}</div>
+              {"extra" in k && k.extra && <div className="mt-1 text-xs text-muted-foreground">و{k.extra}</div>}
             </CardContent>
           </Card>
         ))}

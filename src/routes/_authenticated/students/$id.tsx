@@ -102,8 +102,15 @@ function StudentDetail() {
     },
   });
 
+  // Payment plans have no currency column: they are always SYP. Only SYP payments
+  // reduce the balance; USD payments are shown separately instead of being mixed in.
   const totalDue = plans.reduce((s, p) => s + Number(p.amount), 0);
-  const totalPaid = payments.reduce((s, p) => s + Number(p.amount), 0);
+  const totalPaid = payments
+    .filter((p) => asCurrency(p.currency) === "SYP")
+    .reduce((s, p) => s + Number(p.amount), 0);
+  const totalPaidUsd = payments
+    .filter((p) => asCurrency(p.currency) === "USD")
+    .reduce((s, p) => s + Number(p.amount), 0);
   const balance = totalDue - totalPaid;
 
   if (!student) return <div>جارٍ التحميل…</div>;
@@ -145,9 +152,9 @@ function StudentDetail() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-        <Card><CardHeader><CardTitle className="text-sm">إجمالي المستحق</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{totalDue.toLocaleString("ar")}</div></CardContent></Card>
-        <Card><CardHeader><CardTitle className="text-sm">إجمالي المدفوع</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-success">{totalPaid.toLocaleString("ar")}</div></CardContent></Card>
-        <Card><CardHeader><CardTitle className="text-sm">الرصيد المتبقي</CardTitle></CardHeader><CardContent><div className={`text-2xl font-bold ${balance > 0 ? "text-destructive" : "text-success"}`}>{balance.toLocaleString("ar")}</div></CardContent></Card>
+        <Card><CardHeader><CardTitle className="text-sm">إجمالي المستحق</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{formatMoney(totalDue, "SYP")}</div></CardContent></Card>
+        <Card><CardHeader><CardTitle className="text-sm">إجمالي المدفوع</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-success">{formatMoney(totalPaid, "SYP")}</div>{totalPaidUsd > 0 && <div className="text-xs text-muted-foreground">و{formatMoney(totalPaidUsd, "USD")}</div>}</CardContent></Card>
+        <Card><CardHeader><CardTitle className="text-sm">الرصيد المتبقي</CardTitle></CardHeader><CardContent><div className={`text-2xl font-bold ${balance > 0 ? "text-destructive" : "text-success"}`}>{formatMoney(balance, "SYP")}</div></CardContent></Card>
         <Card><CardHeader><CardTitle className="text-sm">ولي الأمر</CardTitle></CardHeader><CardContent><div className="text-sm">{student.guardian_name || "—"}</div><div className="text-xs text-muted-foreground">{student.guardian_phone}</div></CardContent></Card>
       </div>
 

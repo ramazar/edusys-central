@@ -20,7 +20,12 @@ type Payment = {
   method?: string | null;
   reference?: string | null;
   notes?: string | null;
+  currency?: string | null;
 };
+
+// Currencies are never converted; undefined is treated as SYP (plans are SYP-only).
+const curOf = (c?: string | null) => (c === "USD" ? "USD" : "SYP");
+const withCur = (n: number, c: "SYP" | "USD") => `${fmt(n)} ${c === "USD" ? "$" : "ل.س"}`;
 
 function escapeHtml(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -78,7 +83,8 @@ function fmt(n: number) {
 
 export function generateInvoicePDF(student: Student, plans: Plan[], payments: Payment[]) {
   const totalDue = plans.reduce((s, p) => s + Number(p.amount), 0);
-  const totalPaid = payments.reduce((s, p) => s + Number(p.amount), 0);
+  const totalPaid = payments.filter((p) => curOf(p.currency) === "SYP").reduce((s, p) => s + Number(p.amount), 0);
+  const totalPaidUsd = payments.filter((p) => curOf(p.currency) === "USD").reduce((s, p) => s + Number(p.amount), 0);
   const balance = totalDue - totalPaid;
 
   const plansRows = plans.length
@@ -99,7 +105,7 @@ export function generateInvoicePDF(student: Student, plans: Plan[], payments: Pa
         .map(
           (p) => `<tr>
         <td>${escapeHtml(p.payment_date)}</td>
-        <td>${fmt(Number(p.amount))}</td>
+        <td>${withCur(Number(p.amount), curOf(p.currency))}</td>
         <td>${escapeHtml(p.method ?? "—")}</td>
         <td>${escapeHtml(p.notes ?? "—")}</td>
       </tr>`,
@@ -139,9 +145,10 @@ export function generateInvoicePDF(student: Student, plans: Plan[], payments: Pa
     </table>
 
     <div class="totals">
-      <div class="row"><span>إجمالي المستحق</span><span>${fmt(totalDue)}</span></div>
-      <div class="row paid"><span>إجمالي المدفوع</span><span>${fmt(totalPaid)}</span></div>
-      <div class="row big balance"><span>الرصيد المتبقي</span><span>${fmt(balance)}</span></div>
+      <div class="row"><span>إجمالي المستحق</span><span>${withCur(totalDue, "SYP")}</span></div>
+      <div class="row paid"><span>إجمالي المدفوع</span><span>${withCur(totalPaid, "SYP")}</span></div>
+      ${totalPaidUsd > 0 ? `<div class="row paid"><span>مدفوع بالدولار</span><span>${withCur(totalPaidUsd, "USD")}</span></div>` : ""}
+      <div class="row big balance"><span>الرصيد المتبقي</span><span>${withCur(balance, "SYP")}</span></div>
     </div>
 
     <footer><span>${brandName()}</span><span>${new Date().toISOString().slice(0, 10)}</span></footer>
@@ -182,7 +189,7 @@ export function generateReceiptPDF(student: Student, payment: Payment, opts?: { 
       </div>
 
       <div class="receipt-amount">
-        ${fmt(Number(payment.amount))}
+        ${withCur(Number(payment.amount), curOf(payment.currency))}
         <small>المبلغ المستلم</small>
       </div>
 

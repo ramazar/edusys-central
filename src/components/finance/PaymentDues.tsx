@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertTriangle, Clock } from "lucide-react";
+import { asCurrency, formatMoney } from "@/lib/currency";
 
 type Row = {
   studentId: string;
@@ -28,11 +29,14 @@ function useDues() {
           .from("student_payment_plans")
           .select("student_id, amount, due_date, students(full_name, grade_id, guardian_phone, is_active)")
           .order("due_date"),
-        supabase.from("student_payments").select("student_id, amount"),
+        supabase.from("student_payments").select("student_id, amount, currency"),
       ]);
 
+      // Payment plans are recorded in SYP (no currency column), so only SYP
+      // payments may be netted against them — USD payments are tracked separately.
       const paid = new Map<string, number>();
       for (const p of paymentsRes.data ?? []) {
+        if (asCurrency(p.currency) !== "SYP") continue;
         paid.set(p.student_id, (paid.get(p.student_id) ?? 0) + Number(p.amount));
       }
 
@@ -94,7 +98,7 @@ export default function PaymentDues() {
           <CardContent>
             <div className="text-2xl font-bold text-destructive">{late.length}</div>
             <p className="text-xs text-muted-foreground">
-              بمجموع {late.reduce((s, r) => s + r.amount, 0).toLocaleString("ar")}
+              بمجموع {formatMoney(late.reduce((s, r) => s + r.amount, 0), "SYP")}
             </p>
           </CardContent>
         </Card>
@@ -106,7 +110,7 @@ export default function PaymentDues() {
           <CardContent>
             <div className="text-2xl font-bold text-warning">{soon.length}</div>
             <p className="text-xs text-muted-foreground">
-              بمجموع {soon.reduce((s, r) => s + r.amount, 0).toLocaleString("ar")}
+              بمجموع {formatMoney(soon.reduce((s, r) => s + r.amount, 0), "SYP")}
             </p>
           </CardContent>
         </Card>
@@ -147,7 +151,7 @@ export default function PaymentDues() {
                   </TableCell>
                   <TableCell>الصف {r.gradeId}</TableCell>
                   <TableCell className="font-mono">{r.dueDate}</TableCell>
-                  <TableCell className="font-mono font-semibold">{r.amount.toLocaleString("ar")}</TableCell>
+                  <TableCell className="font-mono font-semibold">{formatMoney(r.amount, "SYP")}</TableCell>
                   <TableCell>
                     {r.status === "late" ? (
                       <Badge variant="destructive">متأخر {r.days} يوم</Badge>

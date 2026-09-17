@@ -4,14 +4,29 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { useAuthSession, useMyAccess } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/_authenticated/audit")({ component: AuditPage });
 
 function AuditPage() {
+  const { user } = useAuthSession();
+  const { data: access, isLoading: accessLoading } = useMyAccess(user?.id);
+  const allowed = !!access && (access.isSuperAdmin || access.roles.includes("admin"));
+
   const { data: logs = [] } = useQuery({
     queryKey: ["audit"],
+    enabled: allowed,
     queryFn: async () => (await supabase.from("audit_logs").select("*").order("created_at", { ascending: false }).limit(500)).data ?? [],
   });
+
+  if (!allowed) {
+    return (
+      <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
+        {accessLoading ? "جارٍ التحميل..." : "سجل المراجعة متاح لمدير النظام فقط"}
+      </div>
+    );
+  }
+
 
   return (
     <div className="space-y-4">
