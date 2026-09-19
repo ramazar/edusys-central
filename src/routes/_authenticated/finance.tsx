@@ -330,8 +330,8 @@ function FinancePage() {
         </TabsContent>
       </Tabs>
 
-      <EntryDialog kind="income" defaultCurrency={currency} open={incomeOpen} onOpenChange={setIncomeOpen} onSaved={() => qc.invalidateQueries({ queryKey: ["finance-income"] })} />
-      <EntryDialog kind="expense" defaultCurrency={currency} open={expenseOpen} onOpenChange={setExpenseOpen} onSaved={() => qc.invalidateQueries({ queryKey: ["finance-expenses"] })} />
+      <EntryDialog kind="income" defaultCurrency={currency} open={incomeOpen} onOpenChange={setIncomeOpen} onSaved={(c) => { setCurrency(c); qc.invalidateQueries({ queryKey: ["finance-income"] }); }} />
+      <EntryDialog kind="expense" defaultCurrency={currency} open={expenseOpen} onOpenChange={setExpenseOpen} onSaved={(c) => { setCurrency(c); qc.invalidateQueries({ queryKey: ["finance-expenses"] }); }} />
       {editing && (
         <EntryDialog
           key={editing.entry.id}
@@ -340,7 +340,10 @@ function FinancePage() {
           defaultCurrency={editing.entry.currency}
           open
           onOpenChange={(o) => !o && setEditing(null)}
-          onSaved={() => qc.invalidateQueries({ queryKey: [editing.kind === "income" ? "finance-income" : "finance-expenses"] })}
+          onSaved={(c) => {
+            setCurrency(c);
+            qc.invalidateQueries({ queryKey: [editing.kind === "income" ? "finance-income" : "finance-expenses"] });
+          }}
         />
       )}
       <WithdrawDialog
