@@ -53,6 +53,7 @@ function MarksPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [noteOpen, setNoteOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [exportRange, setExportRange] = useState<"day" | "week">("week");
 
   const { data: sections = [] } = useQuery({
     queryKey: ["marks-sections", gradeId],
@@ -136,29 +137,32 @@ function MarksPage() {
     qc.invalidateQueries({ queryKey: ["marks"] });
   }
 
+  const today = new Date().toISOString().slice(0, 10);
+  const rangeFrom = exportRange === "day" ? today : from;
+  const rangeLabel = exportRange === "day" ? `اليوم ${today}` : `هذا الأسبوع (من ${from})`;
+
   function buildWeeklyDoc() {
     const nameOf = (id: string) => students.find((st) => st.id === id)?.full_name ?? "-";
     const allComments = marks
-      .filter((m) => m.notes && m.notes.trim().length > 0)
+      .filter((m) => m.notes && m.notes.trim().length > 0 && m.date >= rangeFrom)
       .sort((a, b) => (a.date < b.date ? 1 : -1));
     const allMarks = marks
-      .filter((m) => Number(m.max_score) > 0)
+      .filter((m) => Number(m.max_score) > 0 && m.date >= rangeFrom)
       .sort((a, b) => (a.date < b.date ? 1 : -1));
-    const tag = (d: string) => (d >= from ? " (هذا الأسبوع)" : "");
     return {
       title: "علامات وملاحظات الطلاب",
-      subtitle: `الصف ${gradeId}${sectionId === "all" ? " — جميع الشعب" : ""}`,
+      subtitle: `الصف ${gradeId}${sectionId === "all" ? " — جميع الشعب" : ""} — ${rangeLabel}`,
       meta: [
+        { label: "الفترة", value: rangeLabel },
         { label: "عدد العلامات", value: String(allMarks.length) },
         { label: "عدد الملاحظات", value: String(allComments.length) },
-        { label: "بداية الأسبوع", value: from },
       ],
       tables: [
         {
           heading: "الملاحظات",
           columns: ["التاريخ", "الطالب", "التصنيف", "الملاحظة"],
           rows: allComments.map((m) => [
-            m.date + tag(m.date),
+            m.date,
             nameOf(m.student_id),
             m.subject,
             m.notes ?? "",
@@ -168,7 +172,7 @@ function MarksPage() {
           heading: "العلامات",
           columns: ["التاريخ", "الطالب", "المادة", "العلامة", "ملاحظة"],
           rows: allMarks.map((m) => [
-            m.date + tag(m.date),
+            m.date,
             nameOf(m.student_id),
             m.subject,
             `${Number(m.score)} / ${Number(m.max_score)}`,
@@ -181,17 +185,16 @@ function MarksPage() {
   }
 
   function exportWeeklyPDF() {
-    const today = new Date().toISOString().slice(0, 10);
     const nameOf = (id: string) => students.find((s) => s.id === id)?.full_name ?? "-";
 
     const allComments = marks
-      .filter((m) => m.notes && m.notes.trim().length > 0)
+      .filter((m) => m.notes && m.notes.trim().length > 0 && m.date >= rangeFrom)
       .sort((a, b) => (a.date < b.date ? 1 : -1));
     const allMarks = marks
-      .filter((m) => Number(m.max_score) > 0)
+      .filter((m) => Number(m.max_score) > 0 && m.date >= rangeFrom)
       .sort((a, b) => (a.date < b.date ? 1 : -1));
 
-    const isRecent = (d: string) => d >= from;
+    const isRecent = (_d: string) => true;
     const esc = (s: string) =>
       String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;")
         .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -240,20 +243,16 @@ function MarksPage() {
         <div>
           <div class="brand">SchoolDesk — إدارة المدرسة</div>
           <h1>تقرير علامات وملاحظات الطلاب</h1>
-          <div class="subtitle">الصف ${gradeId} — حتى ${today} — الأسبوع الأخير: من ${from}</div>
+          <div class="subtitle">الصف ${gradeId} — ${rangeLabel}</div>
         </div>
         <div class="subtitle">${new Date().toLocaleString("ar")}</div>
       </header>
-      <div class="legend">
-        <span><span class="sw" style="background:#fef3c7;border:1px solid #f59e0b"></span> سجلات الأسبوع الأخير</span>
-        <span><span class="sw" style="background:#f8fafc;border:1px solid #cbd5e1"></span> سجلات سابقة</span>
-      </div>
-      <h2>الملاحظات — كل الفترة</h2>
+      <h2>الملاحظات</h2>
       <table>
         <thead><tr><th>التاريخ</th><th>الطالب</th><th>التصنيف</th><th>الملاحظة</th></tr></thead>
         <tbody>${commentsRows || `<tr><td colspan="4" class="empty">لا توجد ملاحظات</td></tr>`}</tbody>
       </table>
-      <h2>العلامات — كل الفترة</h2>
+      <h2>العلامات</h2>
       <table>
         <thead><tr><th>التاريخ</th><th>الطالب</th><th>المادة</th><th>العلامة</th><th>النسبة</th><th>ملاحظة</th></tr></thead>
         <tbody>${marksRows || `<tr><td colspan="6" class="empty">لا توجد علامات</td></tr>`}</tbody>
@@ -340,14 +339,25 @@ function MarksPage() {
               </SelectContent>
             </Select>
           </div>
-          <ExportMenu
-            className="mr-auto"
-            label="تصدير الملخص"
+          <div className="mr-auto flex items-end gap-2">
+            <div>
+              <Label>فترة التصدير</Label>
+              <Select value={exportRange} onValueChange={(v) => setExportRange(v as "day" | "week")}>
+                <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="day">اليوم فقط</SelectItem>
+                  <SelectItem value="week">هذا الأسبوع (7 أيام)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <ExportMenu
+              label="تصدير الملخص"
             sectionId={sectionId !== "all" ? sectionId : null}
             sectionTargets={sections.map((s) => ({ id: s.id, label: sectionLabel(s.section_number, s.gender) }))}
             doc={buildWeeklyDoc}
             onPdf={exportWeeklyPDF}
-          />
+            />
+          </div>
         </CardContent>
       </Card>
 
