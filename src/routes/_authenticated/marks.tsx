@@ -185,17 +185,16 @@ function MarksPage() {
   }
 
   function exportWeeklyPDF() {
-    const today = new Date().toISOString().slice(0, 10);
     const nameOf = (id: string) => students.find((s) => s.id === id)?.full_name ?? "-";
 
     const allComments = marks
-      .filter((m) => m.notes && m.notes.trim().length > 0)
+      .filter((m) => m.notes && m.notes.trim().length > 0 && m.date >= rangeFrom)
       .sort((a, b) => (a.date < b.date ? 1 : -1));
     const allMarks = marks
-      .filter((m) => Number(m.max_score) > 0)
+      .filter((m) => Number(m.max_score) > 0 && m.date >= rangeFrom)
       .sort((a, b) => (a.date < b.date ? 1 : -1));
 
-    const isRecent = (d: string) => d >= from;
+    const isRecent = (_d: string) => true;
     const esc = (s: string) =>
       String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;")
         .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
