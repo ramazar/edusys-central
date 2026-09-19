@@ -402,7 +402,7 @@ function WithdrawDialog({ open, prefill, defaultCurrency, onOpenChange, onSaved 
   );
 }
 
-function EntryDialog({ kind, entry, defaultCurrency, open, onOpenChange, onSaved }: { kind: "income" | "expense"; entry?: Entry; defaultCurrency: Currency; open: boolean; onOpenChange: (v: boolean) => void; onSaved: () => void }) {
+function EntryDialog({ kind, entry, defaultCurrency, open, onOpenChange, onSaved }: { kind: "income" | "expense"; entry?: Entry; defaultCurrency: Currency; open: boolean; onOpenChange: (v: boolean) => void; onSaved: (savedCurrency: Currency) => void }) {
   const { user } = useAuthSession();
   const [amount, setAmount] = useState(entry ? String(entry.amount) : "");
   const [category, setCategory] = useState(entry?.category ?? "");
