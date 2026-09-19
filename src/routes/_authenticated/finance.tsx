@@ -410,22 +410,32 @@ function EntryDialog({ kind, entry, defaultCurrency, open, onOpenChange, onSaved
   const [currency, setCurrency] = useState<Currency>(entry?.currency ?? defaultCurrency);
   const [date, setDate] = useState(entry?.entry_date ?? new Date().toISOString().slice(0, 10));
 
+  const [saving, setSaving] = useState(false);
+
   const save = async () => {
-    if (!amount) return toast.error("المبلغ مطلوب");
-    const table = kind === "income" ? "income_entries" : "expenses";
-    const values = { amount: Number(amount), category, description, entry_date: date, currency };
-    if (entry) {
-      const { data, error } = await supabase.from(table).update(values).eq("id", entry.id).select().single();
+    if (saving) return;
+    if (!amount || Number.isNaN(Number(amount))) return toast.error("المبلغ مطلوب");
+    setSaving(true);
+    try {
+      const table = kind === "income" ? "income_entries" : "expenses";
+      const values = { amount: Number(amount), category, description, entry_date: date, currency };
+      if (entry) {
+        const { data, error } = await supabase.from(table).update(values).eq("id", entry.id).select().maybeSingle();
+        if (error) return toast.error(error.message);
+        if (!data) return toast.error("لم يتم التحديث — لا تملك صلاحية تعديل هذا القيد أو أنه حُذف");
+        await logAudit(user, "update", table, entry.id, entry, data);
+        toast.success("تم تحديث القيد"); onSaved(currency); onOpenChange(false);
+        return;
+      }
+      const { data, error } = await supabase.from(table).insert({ ...values, recorded_by: user?.id }).select().maybeSingle();
       if (error) return toast.error(error.message);
-      await logAudit(user, "update", table, entry.id, entry, data);
-      toast.success("تم تحديث القيد"); onSaved(); onOpenChange(false);
-      return;
+      if (!data) return toast.error("لم يتم الحفظ — تحقق من الصلاحيات");
+      await logAudit(user, "create", table, data.id, null, data);
+      toast.success("تم الحفظ"); onSaved(currency); onOpenChange(false);
+      setAmount(""); setCategory(""); setDescription("");
+    } finally {
+      setSaving(false);
     }
-    const { data, error } = await supabase.from(table).insert({ ...values, recorded_by: user?.id }).select().single();
-    if (error) return toast.error(error.message);
-    await logAudit(user, "create", table, data.id, null, data);
-    toast.success("تم الحفظ"); onSaved(); onOpenChange(false);
-    setAmount(""); setCategory(""); setDescription("");
   };
   const title = entry
     ? kind === "income" ? "تعديل إيراد" : "تعديل مصروف"
