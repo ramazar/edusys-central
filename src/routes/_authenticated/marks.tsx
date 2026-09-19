@@ -162,7 +162,7 @@ function MarksPage() {
           heading: "الملاحظات",
           columns: ["التاريخ", "الطالب", "التصنيف", "الملاحظة"],
           rows: allComments.map((m) => [
-            m.date + tag(m.date),
+            m.date,
             nameOf(m.student_id),
             m.subject,
             m.notes ?? "",
@@ -172,7 +172,7 @@ function MarksPage() {
           heading: "العلامات",
           columns: ["التاريخ", "الطالب", "المادة", "العلامة", "ملاحظة"],
           rows: allMarks.map((m) => [
-            m.date + tag(m.date),
+            m.date,
             nameOf(m.student_id),
             m.subject,
             `${Number(m.score)} / ${Number(m.max_score)}`,
