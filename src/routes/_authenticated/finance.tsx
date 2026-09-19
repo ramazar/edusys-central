@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, TrendingUp, TrendingDown, Pencil, Trash2, Wallet } from "lucide-react";
 import { toast } from "sonner";
-import { useAuthSession, useMyRoles, hasAny, logAudit } from "@/hooks/useAuth";
+import { useAuthSession, useMyRoles, useMyAccess, hasAny, logAudit } from "@/hooks/useAuth";
 import { CURRENCIES, type Currency, asCurrency, currencyLabel, currencyName, formatMoney } from "@/lib/currency";
 
 type Entry = {
@@ -23,6 +23,7 @@ type Entry = {
   category: string | null;
   description: string | null;
   currency: Currency;
+  school_id: string | null;
 };
 
 /** A row shown in the finance tables: either a manual entry or a linked payment (read-only). */
@@ -53,6 +54,8 @@ function FinancePage() {
   const { user } = useAuthSession();
   const { data: roles = [] } = useMyRoles(user?.id);
   const canManage = hasAny(roles, ["admin", "accountant"]);
+  const { data: access } = useMyAccess(user?.id);
+  const activeSchoolId = access?.activeSchoolId ?? null;
   const [currency, setCurrency] = useState<Currency>("SYP");
   const [incomeOpen, setIncomeOpen] = useState(false);
   const [expenseOpen, setExpenseOpen] = useState(false);
@@ -79,6 +82,7 @@ function FinancePage() {
           category: r.category,
           description: r.description,
           currency: asCurrency(r.currency),
+          school_id: (r as { school_id?: string | null }).school_id ?? null,
         };
         return {
           id: r.id,
@@ -128,6 +132,7 @@ function FinancePage() {
           category: r.category,
           description: r.description,
           currency: asCurrency(r.currency),
+          school_id: (r as { school_id?: string | null }).school_id ?? null,
         };
         return {
           id: r.id,
@@ -201,6 +206,9 @@ function FinancePage() {
     }
     if (!canManage) return <span className="text-muted-foreground">—</span>;
     const entry = row.entry;
+    if (entry.school_id && activeSchoolId && entry.school_id !== activeSchoolId) {
+      return <span className="text-xs text-muted-foreground">مدرسة أخرى</span>;
+    }
     return (
       <div className="flex gap-1">
         <Button size="sm" variant="outline" onClick={() => setEditing({ kind, entry })}><Pencil className="h-4 w-4" /></Button>
@@ -399,7 +407,7 @@ function WithdrawDialog({ open, prefill, defaultCurrency, onOpenChange, onSaved 
           <div><Label>التاريخ</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
           <div><Label>ملاحظات</Label><Input value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
         </div>
-        <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)}>إلغاء</Button><Button onClick={save}>حفظ</Button></DialogFooter>
+        <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)}>إلغاء</Button><Button onClick={save} disabled={saving}>{saving ? "جارٍ الحفظ…" : "حفظ"}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -464,7 +472,7 @@ function EntryDialog({ kind, entry, defaultCurrency, open, onOpenChange, onSaved
           </div>
           <div><Label>التاريخ</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
         </div>
-        <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)}>إلغاء</Button><Button onClick={save}>حفظ</Button></DialogFooter>
+        <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)}>إلغاء</Button><Button onClick={save} disabled={saving}>{saving ? "جارٍ الحفظ…" : "حفظ"}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );
