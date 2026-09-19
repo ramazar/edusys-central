@@ -339,9 +339,19 @@ function MarksPage() {
               </SelectContent>
             </Select>
           </div>
-          <ExportMenu
-            className="mr-auto"
-            label="تصدير الملخص"
+          <div className="mr-auto flex items-end gap-2">
+            <div>
+              <Label>فترة التصدير</Label>
+              <Select value={exportRange} onValueChange={(v) => setExportRange(v as "day" | "week")}>
+                <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="day">اليوم فقط</SelectItem>
+                  <SelectItem value="week">هذا الأسبوع (7 أيام)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <ExportMenu
+              label="تصدير الملخص"
             sectionId={sectionId !== "all" ? sectionId : null}
             sectionTargets={sections.map((s) => ({ id: s.id, label: sectionLabel(s.section_number, s.gender) }))}
             doc={buildWeeklyDoc}
