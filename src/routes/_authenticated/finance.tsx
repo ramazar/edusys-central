@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, TrendingUp, TrendingDown, Pencil, Trash2, Wallet } from "lucide-react";
 import { toast } from "sonner";
-import { useAuthSession, useMyRoles, hasAny, logAudit } from "@/hooks/useAuth";
+import { useAuthSession, useMyRoles, useMyAccess, hasAny, logAudit } from "@/hooks/useAuth";
 import { CURRENCIES, type Currency, asCurrency, currencyLabel, currencyName, formatMoney } from "@/lib/currency";
 
 type Entry = {
@@ -23,6 +23,7 @@ type Entry = {
   category: string | null;
   description: string | null;
   currency: Currency;
+  school_id: string | null;
 };
 
 /** A row shown in the finance tables: either a manual entry or a linked payment (read-only). */
@@ -53,6 +54,8 @@ function FinancePage() {
   const { user } = useAuthSession();
   const { data: roles = [] } = useMyRoles(user?.id);
   const canManage = hasAny(roles, ["admin", "accountant"]);
+  const { data: access } = useMyAccess(user?.id);
+  const activeSchoolId = access?.activeSchoolId ?? null;
   const [currency, setCurrency] = useState<Currency>("SYP");
   const [incomeOpen, setIncomeOpen] = useState(false);
   const [expenseOpen, setExpenseOpen] = useState(false);
@@ -79,6 +82,7 @@ function FinancePage() {
           category: r.category,
           description: r.description,
           currency: asCurrency(r.currency),
+          school_id: (r as { school_id?: string | null }).school_id ?? null,
         };
         return {
           id: r.id,
@@ -128,6 +132,7 @@ function FinancePage() {
           category: r.category,
           description: r.description,
           currency: asCurrency(r.currency),
+          school_id: (r as { school_id?: string | null }).school_id ?? null,
         };
         return {
           id: r.id,
@@ -201,6 +206,9 @@ function FinancePage() {
     }
     if (!canManage) return <span className="text-muted-foreground">—</span>;
     const entry = row.entry;
+    if (entry.school_id && activeSchoolId && entry.school_id !== activeSchoolId) {
+      return <span className="text-xs text-muted-foreground">مدرسة أخرى</span>;
+    }
     return (
       <div className="flex gap-1">
         <Button size="sm" variant="outline" onClick={() => setEditing({ kind, entry })}><Pencil className="h-4 w-4" /></Button>
@@ -330,8 +338,8 @@ function FinancePage() {
         </TabsContent>
       </Tabs>
 
-      <EntryDialog kind="income" defaultCurrency={currency} open={incomeOpen} onOpenChange={setIncomeOpen} onSaved={() => qc.invalidateQueries({ queryKey: ["finance-income"] })} />
-      <EntryDialog kind="expense" defaultCurrency={currency} open={expenseOpen} onOpenChange={setExpenseOpen} onSaved={() => qc.invalidateQueries({ queryKey: ["finance-expenses"] })} />
+      <EntryDialog kind="income" defaultCurrency={currency} open={incomeOpen} onOpenChange={setIncomeOpen} onSaved={(c) => { setCurrency(c); qc.invalidateQueries({ queryKey: ["finance-income"] }); }} />
+      <EntryDialog kind="expense" defaultCurrency={currency} open={expenseOpen} onOpenChange={setExpenseOpen} onSaved={(c) => { setCurrency(c); qc.invalidateQueries({ queryKey: ["finance-expenses"] }); }} />
       {editing && (
         <EntryDialog
           key={editing.entry.id}
@@ -340,7 +348,10 @@ function FinancePage() {
           defaultCurrency={editing.entry.currency}
           open
           onOpenChange={(o) => !o && setEditing(null)}
-          onSaved={() => qc.invalidateQueries({ queryKey: [editing.kind === "income" ? "finance-income" : "finance-expenses"] })}
+          onSaved={(c) => {
+            setCurrency(c);
+            qc.invalidateQueries({ queryKey: [editing.kind === "income" ? "finance-income" : "finance-expenses"] });
+          }}
         />
       )}
       <WithdrawDialog
@@ -402,7 +413,7 @@ function WithdrawDialog({ open, prefill, defaultCurrency, onOpenChange, onSaved 
   );
 }
 
-function EntryDialog({ kind, entry, defaultCurrency, open, onOpenChange, onSaved }: { kind: "income" | "expense"; entry?: Entry; defaultCurrency: Currency; open: boolean; onOpenChange: (v: boolean) => void; onSaved: () => void }) {
+function EntryDialog({ kind, entry, defaultCurrency, open, onOpenChange, onSaved }: { kind: "income" | "expense"; entry?: Entry; defaultCurrency: Currency; open: boolean; onOpenChange: (v: boolean) => void; onSaved: (savedCurrency: Currency) => void }) {
   const { user } = useAuthSession();
   const [amount, setAmount] = useState(entry ? String(entry.amount) : "");
   const [category, setCategory] = useState(entry?.category ?? "");
@@ -410,22 +421,32 @@ function EntryDialog({ kind, entry, defaultCurrency, open, onOpenChange, onSaved
   const [currency, setCurrency] = useState<Currency>(entry?.currency ?? defaultCurrency);
   const [date, setDate] = useState(entry?.entry_date ?? new Date().toISOString().slice(0, 10));
 
+  const [saving, setSaving] = useState(false);
+
   const save = async () => {
-    if (!amount) return toast.error("المبلغ مطلوب");
-    const table = kind === "income" ? "income_entries" : "expenses";
-    const values = { amount: Number(amount), category, description, entry_date: date, currency };
-    if (entry) {
-      const { data, error } = await supabase.from(table).update(values).eq("id", entry.id).select().single();
+    if (saving) return;
+    if (!amount || Number.isNaN(Number(amount))) return toast.error("المبلغ مطلوب");
+    setSaving(true);
+    try {
+      const table = kind === "income" ? "income_entries" : "expenses";
+      const values = { amount: Number(amount), category, description, entry_date: date, currency };
+      if (entry) {
+        const { data, error } = await supabase.from(table).update(values).eq("id", entry.id).select().maybeSingle();
+        if (error) return toast.error(error.message);
+        if (!data) return toast.error("لم يتم التحديث — لا تملك صلاحية تعديل هذا القيد أو أنه حُذف");
+        await logAudit(user, "update", table, entry.id, entry, data);
+        toast.success("تم تحديث القيد"); onSaved(currency); onOpenChange(false);
+        return;
+      }
+      const { data, error } = await supabase.from(table).insert({ ...values, recorded_by: user?.id }).select().maybeSingle();
       if (error) return toast.error(error.message);
-      await logAudit(user, "update", table, entry.id, entry, data);
-      toast.success("تم تحديث القيد"); onSaved(); onOpenChange(false);
-      return;
+      if (!data) return toast.error("لم يتم الحفظ — تحقق من الصلاحيات");
+      await logAudit(user, "create", table, data.id, null, data);
+      toast.success("تم الحفظ"); onSaved(currency); onOpenChange(false);
+      setAmount(""); setCategory(""); setDescription("");
+    } finally {
+      setSaving(false);
     }
-    const { data, error } = await supabase.from(table).insert({ ...values, recorded_by: user?.id }).select().single();
-    if (error) return toast.error(error.message);
-    await logAudit(user, "create", table, data.id, null, data);
-    toast.success("تم الحفظ"); onSaved(); onOpenChange(false);
-    setAmount(""); setCategory(""); setDescription("");
   };
   const title = entry
     ? kind === "income" ? "تعديل إيراد" : "تعديل مصروف"
@@ -451,7 +472,7 @@ function EntryDialog({ kind, entry, defaultCurrency, open, onOpenChange, onSaved
           </div>
           <div><Label>التاريخ</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
         </div>
-        <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)}>إلغاء</Button><Button onClick={save}>حفظ</Button></DialogFooter>
+        <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)}>إلغاء</Button><Button onClick={save} disabled={saving}>{saving ? "جارٍ الحفظ…" : "حفظ"}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );
