@@ -252,7 +252,7 @@ function MarksPage() {
         <thead><tr><th>التاريخ</th><th>الطالب</th><th>التصنيف</th><th>الملاحظة</th></tr></thead>
         <tbody>${commentsRows || `<tr><td colspan="4" class="empty">لا توجد ملاحظات</td></tr>`}</tbody>
       </table>
-      <h2>العلامات — كل الفترة</h2>
+      <h2>العلامات</h2>
       <table>
         <thead><tr><th>التاريخ</th><th>الطالب</th><th>المادة</th><th>العلامة</th><th>النسبة</th><th>ملاحظة</th></tr></thead>
         <tbody>${marksRows || `<tr><td colspan="6" class="empty">لا توجد علامات</td></tr>`}</tbody>
