@@ -137,22 +137,25 @@ function MarksPage() {
     qc.invalidateQueries({ queryKey: ["marks"] });
   }
 
+  const today = new Date().toISOString().slice(0, 10);
+  const rangeFrom = exportRange === "day" ? today : from;
+  const rangeLabel = exportRange === "day" ? `اليوم ${today}` : `هذا الأسبوع (من ${from})`;
+
   function buildWeeklyDoc() {
     const nameOf = (id: string) => students.find((st) => st.id === id)?.full_name ?? "-";
     const allComments = marks
-      .filter((m) => m.notes && m.notes.trim().length > 0)
+      .filter((m) => m.notes && m.notes.trim().length > 0 && m.date >= rangeFrom)
       .sort((a, b) => (a.date < b.date ? 1 : -1));
     const allMarks = marks
-      .filter((m) => Number(m.max_score) > 0)
+      .filter((m) => Number(m.max_score) > 0 && m.date >= rangeFrom)
       .sort((a, b) => (a.date < b.date ? 1 : -1));
-    const tag = (d: string) => (d >= from ? " (هذا الأسبوع)" : "");
     return {
       title: "علامات وملاحظات الطلاب",
-      subtitle: `الصف ${gradeId}${sectionId === "all" ? " — جميع الشعب" : ""}`,
+      subtitle: `الصف ${gradeId}${sectionId === "all" ? " — جميع الشعب" : ""} — ${rangeLabel}`,
       meta: [
+        { label: "الفترة", value: rangeLabel },
         { label: "عدد العلامات", value: String(allMarks.length) },
         { label: "عدد الملاحظات", value: String(allComments.length) },
-        { label: "بداية الأسبوع", value: from },
       ],
       tables: [
         {
