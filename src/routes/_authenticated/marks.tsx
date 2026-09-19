@@ -356,7 +356,8 @@ function MarksPage() {
             sectionTargets={sections.map((s) => ({ id: s.id, label: sectionLabel(s.section_number, s.gender) }))}
             doc={buildWeeklyDoc}
             onPdf={exportWeeklyPDF}
-          />
+            />
+          </div>
         </CardContent>
       </Card>
 
