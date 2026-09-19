@@ -167,6 +167,10 @@ function MarksPage() {
             m.subject,
             m.notes ?? "",
           ]),
+          rowLines: (r: (string | number)[]) => {
+            const parts = [String(r[1] ?? ""), String(r[2] ?? ""), String(r[3] ?? "")].filter((p) => p.trim().length > 0);
+            return [`${r[0]} — ${parts.join(" — ")}`];
+          },
         },
         {
           heading: "العلامات",
@@ -178,6 +182,10 @@ function MarksPage() {
             `${Number(m.score)} / ${Number(m.max_score)}`,
             m.notes ?? "",
           ]),
+          rowLines: (r: (string | number)[]) => {
+            const parts = [String(r[1] ?? ""), String(r[2] ?? ""), String(r[3] ?? ""), String(r[4] ?? "")].filter((p) => p.trim().length > 0);
+            return [`${r[0]} — ${parts.join(" — ")}`];
+          },
         },
       ],
       filename: `marks-grade-${gradeId}`,
