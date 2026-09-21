@@ -245,9 +245,31 @@ function ReportsPage() {
                 onChange={(e) => setPeriod(e.target.value as Period)}
               >
                 <option value="weekly">أسبوعي (آخر 7 أيام)</option>
+                <option value="monthly">شهري (آخر 30 يومًا)</option>
                 <option value="all">كل الفترات</option>
+                <option value="custom">فترة مخصصة</option>
               </select>
             </div>
+            {period === "custom" && (
+              <div className="flex items-center gap-2">
+                <Label>من:</Label>
+                <input
+                  type="date"
+                  className="h-9 rounded-md border bg-background px-3 text-sm"
+                  value={customFrom}
+                  max={customTo}
+                  onChange={(e) => setCustomFrom(e.target.value)}
+                />
+                <Label>إلى:</Label>
+                <input
+                  type="date"
+                  className="h-9 rounded-md border bg-background px-3 text-sm"
+                  value={customTo}
+                  min={customFrom}
+                  onChange={(e) => setCustomTo(e.target.value)}
+                />
+              </div>
+            )}
           </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={exportXlsx} disabled={ranking.length === 0}>
