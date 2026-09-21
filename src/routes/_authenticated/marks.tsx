@@ -508,7 +508,10 @@ function MarksPage() {
                     <TableCell><Badge variant={pct >= 50 ? "default" : "destructive"}>{pct.toFixed(1)}%</Badge></TableCell>
                     <TableCell className="text-xs max-w-xs truncate">{m.notes ?? "-"}</TableCell>
                     {canEdit && (
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <Button variant="ghost" size="icon" onClick={() => setEditMark(m)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
                         <Button variant="ghost" size="icon" onClick={() => removeMark(m)}>
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
@@ -521,7 +524,95 @@ function MarksPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog open={!!editMark} onOpenChange={(o) => { if (!o) setEditMark(null); }}>
+        {editMark && (
+          <EditMarkDialog
+            mark={editMark}
+            studentName={students.find((s) => s.id === editMark.student_id)?.full_name ?? "-"}
+            onClose={() => setEditMark(null)}
+            onSaved={() => qc.invalidateQueries({ queryKey: ["marks"] })}
+          />
+        )}
+      </Dialog>
     </div>
+  );
+}
+
+function EditMarkDialog({
+  mark, studentName, onClose, onSaved,
+}: { mark: Mark; studentName: string; onClose: () => void; onSaved: () => void }) {
+  const { user } = useAuthSession();
+  const isNoteOnly = Number(mark.max_score) <= 0;
+  const [subject, setSubject] = useState(mark.subject);
+  const [score, setScore] = useState(String(mark.score ?? ""));
+  const [maxScore, setMaxScore] = useState(String(mark.max_score ?? ""));
+  const [notes, setNotes] = useState(mark.notes ?? "");
+  const [date, setDate] = useState(mark.date);
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    if (!subject.trim() || !date) return toast.error("يرجى تعبئة الحقول المطلوبة");
+    if (!isNoteOnly && (score === "" || maxScore === "" || Number(maxScore) <= 0)) {
+      return toast.error("يرجى إدخال العلامة والعلامة القصوى");
+    }
+    setSaving(true);
+    const payload = {
+      subject: subject.trim(),
+      score: isNoteOnly ? Number(mark.score) : Number(score),
+      max_score: isNoteOnly ? Number(mark.max_score) : Number(maxScore),
+      notes: notes.trim() || null,
+      date,
+    };
+    const { data, error } = await supabase
+      .from("daily_marks").update(payload).eq("id", mark.id).select().maybeSingle();
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    if (!data) return toast.error("لم يتم التعديل — قد يكون السجل لمدرسة أخرى");
+    await logAudit(user, "update", "daily_marks", mark.id, mark as unknown, payload);
+    toast.success("تم التعديل");
+    onSaved();
+    onClose();
+  }
+
+  return (
+    <DialogContent>
+      <DialogHeader><DialogTitle>{isNoteOnly ? "تعديل الملاحظة" : "تعديل العلامة"}</DialogTitle></DialogHeader>
+      <div className="space-y-3">
+        <div>
+          <Label>الطالب</Label>
+          <Input value={studentName} disabled className="text-right" />
+        </div>
+        <div>
+          <Label>{isNoteOnly ? "النوع" : "المادة"}</Label>
+          <Input value={subject} onChange={(e) => setSubject(e.target.value)} className="text-right" />
+        </div>
+        {!isNoteOnly && (
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>العلامة</Label>
+              <Input type="number" value={score} onChange={(e) => setScore(e.target.value)} dir="ltr" />
+            </div>
+            <div>
+              <Label>العلامة القصوى</Label>
+              <Input type="number" value={maxScore} onChange={(e) => setMaxScore(e.target.value)} dir="ltr" />
+            </div>
+          </div>
+        )}
+        <div>
+          <Label>التاريخ</Label>
+          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} dir="ltr" />
+        </div>
+        <div>
+          <Label>ملاحظة</Label>
+          <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="text-right" />
+        </div>
+      </div>
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose}>إلغاء</Button>
+        <Button onClick={save} disabled={saving}>حفظ</Button>
+      </DialogFooter>
+    </DialogContent>
   );
 }
 
