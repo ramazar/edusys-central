@@ -239,6 +239,32 @@ function ReportsPage() {
           </div>
         )}
 
+        {sections.length > 0 && (
+          <div className="border-t px-6 py-3">
+            <div className="mb-2 text-xs font-semibold text-muted-foreground">
+              استمارة الشعبة (فهرس + صفحة لكل طالب مع الرسوم البيانية) — {periodLabel}:
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {sections.map((s) => (
+                <Button
+                  key={s.id}
+                  size="sm"
+                  variant="outline"
+                  disabled={bookletBusy !== null}
+                  onClick={() => printBooklet(s.id, s.section_number, s.gender)}
+                >
+                  {bookletBusy === s.id ? (
+                    <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <FileText className="ml-2 h-4 w-4" />
+                  )}
+                  استمارة {sectionLabel(s.section_number, s.gender)}
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <CardContent className="p-0">
           <Table>
             <TableHeader>
