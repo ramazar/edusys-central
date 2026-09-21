@@ -16,23 +16,34 @@ import { sectionLabel, genderLabel } from "@/lib/section-label";
 
 export const Route = createFileRoute("/_authenticated/reports")({ component: ReportsPage });
 
-type Period = "weekly" | "all";
+type Period = "weekly" | "monthly" | "all" | "custom";
 
-function periodStart(period: Period): string | null {
-  if (period === "all") return null;
+const today = () => new Date().toISOString().slice(0, 10);
+const daysAgo = (n: number) => {
   const d = new Date();
-  d.setDate(d.getDate() - 6); // last 7 days incl. today
+  d.setDate(d.getDate() - n);
   return d.toISOString().slice(0, 10);
+};
+
+function periodStart(period: Period, customFrom?: string): string | null {
+  if (period === "all") return null;
+  if (period === "custom") return customFrom ?? null;
+  return period === "monthly" ? daysAgo(29) : daysAgo(6); // 30 / 7 days incl. today
 }
 
 function ReportsPage() {
   const [gradeId, setGradeId] = useState<number>(1);
   const [period, setPeriod] = useState<Period>("weekly");
+  const [customFrom, setCustomFrom] = useState<string>(daysAgo(6));
+  const [customTo, setCustomTo] = useState<string>(today());
   const [bookletBusy, setBookletBusy] = useState<string | null>(null);
 
-  // Booklet range: the selected period (weekly = last 7 days, all = full history).
-  const bookletFrom = periodStart(period) ?? "2000-01-01";
-  const bookletTo = new Date().toISOString().slice(0, 10);
+  // Effective range: weekly = last 7 days, monthly = last 30 days,
+  // custom = user-picked from/to, all = full history.
+  const rangeFrom = period === "custom" ? customFrom : periodStart(period);
+  const rangeTo = period === "custom" ? customTo : today();
+  const bookletFrom = rangeFrom ?? "2000-01-01";
+  const bookletTo = rangeTo;
 
   const printBooklet = async (sectionId: string, sectionNumber: number, gender: string | null) => {
     setBookletBusy(sectionId);
