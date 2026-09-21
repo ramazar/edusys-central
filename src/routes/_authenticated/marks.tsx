@@ -159,6 +159,17 @@ function MarksPage() {
       ],
       tables: [
         {
+          heading: "الملخص الأسبوعي",
+          columns: ["#", "الطالب", "النسبة", "عدد العلامات"],
+          rows: summary.filter((s) => s.count > 0).map((s, i) => [
+            i + 1,
+            s.student.full_name,
+            `${s.pct.toFixed(2)}%`,
+            s.count,
+          ]),
+          rowLines: (r: (string | number)[]) => [`${r[0]}. ${r[1]} — ${r[2]}`],
+        },
+        {
           heading: "الملاحظات",
           columns: ["التاريخ", "الطالب", "التصنيف", "الملاحظة"],
           rows: allComments.map((m) => [
@@ -209,6 +220,16 @@ function MarksPage() {
     const row = (cells: string[], recent: boolean) =>
       `<tr class="${recent ? "recent" : ""}">${cells.map((c) => `<td>${esc(c)}</td>`).join("")}</tr>`;
 
+    const summaryRows = summary
+      .filter((s) => s.count > 0)
+      .map((s, i) =>
+        row(
+          [String(i + 1), s.student.full_name, `${s.pct.toFixed(2)}%`, String(s.count), Array.from(s.subjects).join("، ") || "-"],
+          false,
+        ),
+      )
+      .join("");
+
     const commentsRows = allComments
       .map((m) => row([m.date, nameOf(m.student_id), m.subject, m.notes ?? ""], isRecent(m.date)))
       .join("");
@@ -255,6 +276,11 @@ function MarksPage() {
         </div>
         <div class="subtitle">${new Date().toLocaleString("ar")}</div>
       </header>
+      <h2>الملخص الأسبوعي</h2>
+      <table>
+        <thead><tr><th>#</th><th>الطالب</th><th>النسبة</th><th>عدد العلامات</th><th>المواد</th></tr></thead>
+        <tbody>${summaryRows || `<tr><td colspan="5" class="empty">لا توجد علامات</td></tr>`}</tbody>
+      </table>
       <h2>الملاحظات</h2>
       <table>
         <thead><tr><th>التاريخ</th><th>الطالب</th><th>التصنيف</th><th>الملاحظة</th></tr></thead>
