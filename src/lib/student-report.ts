@@ -145,7 +145,7 @@ export async function generateStudentReport(student: Student, from: string, to: 
 }
 
 /** Inline SVG charts: percentage trend over time + average per subject. */
-function chartsHtml(marksRows: any[], overallPct: number) {
+export function chartsHtml(marksRows: any[], overallPct: number) {
   if (!marksRows.length) return `<div class="empty">لا توجد علامات لرسمها في هذه الفترة</div>`;
 
   // ---- Trend (oldest -> newest) ----
