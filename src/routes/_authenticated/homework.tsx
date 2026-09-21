@@ -412,7 +412,18 @@ function AssignmentDialog({
         { label: "جزئي", value: String(counts.partial) },
         { label: "لم يُنجز", value: String(counts.not_done) },
       ],
-      tables: [{ columns: ["#", "اسم الطالب", "رقم الطالب", "الحالة"], rows }],
+      tables: [
+        {
+          heading: "الطلاب الذين لم يُنجزوا",
+          columns: ["#", "اسم الطالب", "رقم الطالب", "الحالة"],
+          rows,
+          // النص/واتساب: أسماء الطلاب الذين لم يُنجزوا فقط، بدون أرقام ولا تسميات
+          rowLines: (r: (string | number)[]) => {
+            if (String(r[3] ?? "").trim() !== statusLabel("not_done")) return [];
+            return [`• ${String(r[1] ?? "").trim()}`];
+          },
+        },
+      ],
       filename: `homework-${assignment.date}`,
     };
   };
