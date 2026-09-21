@@ -16,23 +16,34 @@ import { sectionLabel, genderLabel } from "@/lib/section-label";
 
 export const Route = createFileRoute("/_authenticated/reports")({ component: ReportsPage });
 
-type Period = "weekly" | "all";
+type Period = "weekly" | "monthly" | "all" | "custom";
 
-function periodStart(period: Period): string | null {
-  if (period === "all") return null;
+const today = () => new Date().toISOString().slice(0, 10);
+const daysAgo = (n: number) => {
   const d = new Date();
-  d.setDate(d.getDate() - 6); // last 7 days incl. today
+  d.setDate(d.getDate() - n);
   return d.toISOString().slice(0, 10);
+};
+
+function periodStart(period: Period, customFrom?: string): string | null {
+  if (period === "all") return null;
+  if (period === "custom") return customFrom ?? null;
+  return period === "monthly" ? daysAgo(29) : daysAgo(6); // 30 / 7 days incl. today
 }
 
 function ReportsPage() {
   const [gradeId, setGradeId] = useState<number>(1);
   const [period, setPeriod] = useState<Period>("weekly");
+  const [customFrom, setCustomFrom] = useState<string>(daysAgo(6));
+  const [customTo, setCustomTo] = useState<string>(today());
   const [bookletBusy, setBookletBusy] = useState<string | null>(null);
 
-  // Booklet range: the selected period (weekly = last 7 days, all = full history).
-  const bookletFrom = periodStart(period) ?? "2000-01-01";
-  const bookletTo = new Date().toISOString().slice(0, 10);
+  // Effective range: weekly = last 7 days, monthly = last 30 days,
+  // custom = user-picked from/to, all = full history.
+  const rangeFrom = period === "custom" ? customFrom : periodStart(period);
+  const rangeTo = period === "custom" ? customTo : today();
+  const bookletFrom = rangeFrom ?? "2000-01-01";
+  const bookletTo = rangeTo;
 
   const printBooklet = async (sectionId: string, sectionNumber: number, gender: string | null) => {
     setBookletBusy(sectionId);
@@ -68,7 +79,7 @@ function ReportsPage() {
   });
 
   const { data: ranking = [] } = useQuery({
-    queryKey: ["ranking", gradeId, period],
+    queryKey: ["ranking", gradeId, rangeFrom, rangeTo],
     queryFn: async () => {
       const { data } = await supabase
         .from("students")
@@ -81,9 +92,9 @@ function ReportsPage() {
       }>;
       const ids = students.map((s) => s.id);
       if (ids.length === 0) return [];
-      const from = periodStart(period);
       let marksQuery = supabase.from("daily_marks").select("student_id, score, max_score, date").in("student_id", ids);
-      if (from) marksQuery = marksQuery.gte("date", from);
+      if (rangeFrom) marksQuery = marksQuery.gte("date", rangeFrom);
+      if (rangeTo) marksQuery = marksQuery.lte("date", rangeTo);
       const { data: marks } = await marksQuery;
       // Weighted average (total score / total max), same formula as the marks page and student report.
       const totals: Record<string, { score: number; max: number; count: number }> = {};
@@ -105,7 +116,14 @@ function ReportsPage() {
     },
   });
 
-  const periodLabel = period === "weekly" ? "الأسبوع الحالي (آخر 7 أيام)" : "كل الفترات";
+  const periodLabel =
+    period === "weekly"
+      ? "الأسبوع الحالي (آخر 7 أيام)"
+      : period === "monthly"
+        ? "آخر 30 يومًا"
+        : period === "custom"
+          ? `من ${customFrom} إلى ${customTo}`
+          : "كل الفترات";
 
   const exportXlsx = () => {
     const ws = XLSX.utils.json_to_sheet(
@@ -227,9 +245,31 @@ function ReportsPage() {
                 onChange={(e) => setPeriod(e.target.value as Period)}
               >
                 <option value="weekly">أسبوعي (آخر 7 أيام)</option>
+                <option value="monthly">شهري (آخر 30 يومًا)</option>
                 <option value="all">كل الفترات</option>
+                <option value="custom">فترة مخصصة</option>
               </select>
             </div>
+            {period === "custom" && (
+              <div className="flex items-center gap-2">
+                <Label>من:</Label>
+                <input
+                  type="date"
+                  className="h-9 rounded-md border bg-background px-3 text-sm"
+                  value={customFrom}
+                  max={customTo}
+                  onChange={(e) => setCustomFrom(e.target.value)}
+                />
+                <Label>إلى:</Label>
+                <input
+                  type="date"
+                  className="h-9 rounded-md border bg-background px-3 text-sm"
+                  value={customTo}
+                  min={customFrom}
+                  onChange={(e) => setCustomTo(e.target.value)}
+                />
+              </div>
+            )}
           </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={exportXlsx} disabled={ranking.length === 0}>
