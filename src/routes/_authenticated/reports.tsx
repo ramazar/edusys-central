@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Download } from "lucide-react";
+import { Trophy, Download, FileText, Loader2 } from "lucide-react";
+import { generateSectionBooklet } from "@/lib/section-booklet";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { ExportMenu } from "@/components/ExportMenu";
@@ -27,6 +28,31 @@ function periodStart(period: Period): string | null {
 function ReportsPage() {
   const [gradeId, setGradeId] = useState<number>(1);
   const [period, setPeriod] = useState<Period>("weekly");
+  const [bookletBusy, setBookletBusy] = useState<string | null>(null);
+
+  // Booklet range: the selected period (weekly = last 7 days, all = full history).
+  const bookletFrom = periodStart(period) ?? "2000-01-01";
+  const bookletTo = new Date().toISOString().slice(0, 10);
+
+  const printBooklet = async (sectionId: string, sectionNumber: number, gender: string | null) => {
+    setBookletBusy(sectionId);
+    try {
+      const count = await generateSectionBooklet({
+        gradeId,
+        sectionId,
+        sectionNumber,
+        gender,
+        from: bookletFrom,
+        to: bookletTo,
+      });
+      toast.success(`تم تجهيز استمارة ${count} طالب`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "تعذّر تجهيز الاستمارة");
+    } finally {
+      setBookletBusy(null);
+    }
+  };
+
 
   const { data: sections = [] } = useQuery({
     queryKey: ["sections-report", gradeId],
@@ -234,6 +260,32 @@ function ReportsPage() {
                   doc={buildSectionDoc(s.id, s.section_number, s.gender)}
                   pdfColumns={sectionCols}
                 />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {sections.length > 0 && (
+          <div className="border-t px-6 py-3">
+            <div className="mb-2 text-xs font-semibold text-muted-foreground">
+              استمارة الشعبة (فهرس + صفحة لكل طالب مع الرسوم البيانية) — {periodLabel}:
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {sections.map((s) => (
+                <Button
+                  key={s.id}
+                  size="sm"
+                  variant="outline"
+                  disabled={bookletBusy !== null}
+                  onClick={() => printBooklet(s.id, s.section_number, s.gender)}
+                >
+                  {bookletBusy === s.id ? (
+                    <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <FileText className="ml-2 h-4 w-4" />
+                  )}
+                  استمارة {sectionLabel(s.section_number, s.gender)}
+                </Button>
               ))}
             </div>
           </div>
