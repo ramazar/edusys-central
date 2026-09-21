@@ -169,7 +169,7 @@ function MarksPage() {
           ]),
           rowLines: (r: (string | number)[]) => {
             const parts = [String(r[1] ?? ""), String(r[2] ?? ""), String(r[3] ?? "")].filter((p) => p.trim().length > 0);
-            return [`${r[0]} — ${parts.join(" — ")}`];
+            return [parts.join(" — ")];
           },
         },
         {
