@@ -79,7 +79,7 @@ function ReportsPage() {
   });
 
   const { data: ranking = [] } = useQuery({
-    queryKey: ["ranking", gradeId, period],
+    queryKey: ["ranking", gradeId, rangeFrom, rangeTo],
     queryFn: async () => {
       const { data } = await supabase
         .from("students")
