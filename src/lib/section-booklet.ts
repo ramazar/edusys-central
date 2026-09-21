@@ -133,6 +133,7 @@ export async function generateSectionBooklet(args: SectionBookletArgs) {
             <span><b>رقم الطالب:</b> ${esc(String(s.student_number))}</span>
             <span><b>الصف:</b> ${gradeId}</span>
             <span><b>الشعبة:</b> ${esc(secLabel)}</span>
+            <span><b>الترتيب على الشعبة:</b> ${rankOf(i) ?? "—"}</span>
             <span><b>الفترة:</b> ${esc(periodLine)}</span>
           </div>
         </div>
