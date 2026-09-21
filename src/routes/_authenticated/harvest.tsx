@@ -202,7 +202,19 @@ function HarvestPage() {
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center flex-wrap">
+          <Select
+            value={exportRange}
+            onValueChange={(v) => setExportRange(v as "filters" | "day")}
+          >
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="filters">تصدير حسب الفلاتر</SelectItem>
+              <SelectItem value="day">تصدير اليوم فقط</SelectItem>
+            </SelectContent>
+          </Select>
           <ExportMenu
             sectionId={sectionId}
             doc={buildDoc}
