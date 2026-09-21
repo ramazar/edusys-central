@@ -28,6 +28,31 @@ function periodStart(period: Period): string | null {
 function ReportsPage() {
   const [gradeId, setGradeId] = useState<number>(1);
   const [period, setPeriod] = useState<Period>("weekly");
+  const [bookletBusy, setBookletBusy] = useState<string | null>(null);
+
+  // Booklet range: the selected period (weekly = last 7 days, all = full history).
+  const bookletFrom = periodStart(period) ?? "2000-01-01";
+  const bookletTo = new Date().toISOString().slice(0, 10);
+
+  const printBooklet = async (sectionId: string, sectionNumber: number, gender: string | null) => {
+    setBookletBusy(sectionId);
+    try {
+      const count = await generateSectionBooklet({
+        gradeId,
+        sectionId,
+        sectionNumber,
+        gender,
+        from: bookletFrom,
+        to: bookletTo,
+      });
+      toast.success(`تم تجهيز استمارة ${count} طالب`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "تعذّر تجهيز الاستمارة");
+    } finally {
+      setBookletBusy(null);
+    }
+  };
+
 
   const { data: sections = [] } = useQuery({
     queryKey: ["sections-report", gradeId],
