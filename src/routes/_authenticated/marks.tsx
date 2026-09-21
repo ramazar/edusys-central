@@ -441,11 +441,12 @@ function MarksPage() {
                 <TableHead>الطالب</TableHead>
                 <TableHead>المادة</TableHead>
                 <TableHead>الملاحظة</TableHead>
+                {canEdit && <TableHead></TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {notesRows.length === 0 && (
-                <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">لا توجد ملاحظات</TableCell></TableRow>
+                <TableRow><TableCell colSpan={canEdit ? 5 : 4} className="text-center text-muted-foreground py-6">لا توجد ملاحظات</TableCell></TableRow>
               )}
               {notesRows.map((n) => (
                 <TableRow key={n.id}>
@@ -453,6 +454,22 @@ function MarksPage() {
                   <TableCell>{n.studentName}</TableCell>
                   <TableCell>{n.subject}</TableCell>
                   <TableCell className="text-sm">{n.notes}</TableCell>
+                  {canEdit && (
+                    <TableCell className="whitespace-nowrap">
+                      <Button variant="ghost" size="icon" onClick={() => setEditMark({
+                        id: n.id, student_id: n.student_id, date: n.date,
+                        subject: n.subject, score: n.score, max_score: n.max_score, notes: n.notes,
+                      })}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => removeMark({
+                        id: n.id, student_id: n.student_id, date: n.date,
+                        subject: n.subject, score: n.score, max_score: n.max_score, notes: n.notes,
+                      })}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
