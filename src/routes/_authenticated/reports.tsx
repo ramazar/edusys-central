@@ -92,9 +92,9 @@ function ReportsPage() {
       }>;
       const ids = students.map((s) => s.id);
       if (ids.length === 0) return [];
-      const from = periodStart(period);
       let marksQuery = supabase.from("daily_marks").select("student_id, score, max_score, date").in("student_id", ids);
-      if (from) marksQuery = marksQuery.gte("date", from);
+      if (rangeFrom) marksQuery = marksQuery.gte("date", rangeFrom);
+      if (rangeTo) marksQuery = marksQuery.lte("date", rangeTo);
       const { data: marks } = await marksQuery;
       // Weighted average (total score / total max), same formula as the marks page and student report.
       const totals: Record<string, { score: number; max: number; count: number }> = {};
