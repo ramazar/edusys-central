@@ -54,6 +54,7 @@ function MarksPage() {
   const [noteOpen, setNoteOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [exportRange, setExportRange] = useState<"day" | "week">("week");
+  const [editMark, setEditMark] = useState<Mark | null>(null);
 
   const { data: sections = [] } = useQuery({
     queryKey: ["marks-sections", gradeId],
