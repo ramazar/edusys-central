@@ -116,7 +116,14 @@ function ReportsPage() {
     },
   });
 
-  const periodLabel = period === "weekly" ? "الأسبوع الحالي (آخر 7 أيام)" : "كل الفترات";
+  const periodLabel =
+    period === "weekly"
+      ? "الأسبوع الحالي (آخر 7 أيام)"
+      : period === "monthly"
+        ? "آخر 30 يومًا"
+        : period === "custom"
+          ? `من ${customFrom} إلى ${customTo}`
+          : "كل الفترات";
 
   const exportXlsx = () => {
     const ws = XLSX.utils.json_to_sheet(
