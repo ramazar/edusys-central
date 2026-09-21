@@ -89,6 +89,19 @@ export async function generateSectionBooklet(args: SectionBookletArgs) {
   const pages: string[] = [];
   const indexRows: string[] = [];
 
+  // Rank within the section by overall percentage (students without marks rank last).
+  const pctOf = (id: string) => {
+    const scored = (marksBy.get(id) ?? []).filter((m) => Number(m.max_score ?? 0) > 0);
+    const ts = scored.reduce((sum, m) => sum + Number(m.score ?? 0), 0);
+    const tm = scored.reduce((sum, m) => sum + Number(m.max_score ?? 0), 0);
+    return { pct: tm > 0 ? (ts / tm) * 100 : 0, hasMarks: tm > 0 };
+  };
+  const stats = students.map((s) => pctOf(s.id));
+  const rankOf = (i: number) => {
+    if (!stats[i].hasMarks) return null;
+    return 1 + stats.filter((o) => o.hasMarks && o.pct > stats[i].pct).length;
+  };
+
   students.forEach((s, i) => {
     const all = marksBy.get(s.id) ?? [];
     // Behavioural notes are stored with max_score = 0 and must never affect averages.
