@@ -286,11 +286,18 @@ export async function buildStudentReportDoc(
           `${Math.round((Number(m.score) / Number(m.max_score)) * 100)}%`,
           m.notes ?? "",
         ]),
+        // النص/واتساب: قيم فقط بدون تسميات الأعمدة
+        rowLines: (r: (string | number)[]) => [
+          [r[0], r[1], r[2], r[3], r[4]].map((v) => String(v ?? "").trim()).filter(Boolean).join(" — "),
+        ],
       },
       {
         heading: "الملاحظات والتعليقات",
         columns: ["التاريخ", "النوع", "الملاحظة"],
         rows: noteRows.map((m: any) => [m.date, m.subject ?? "ملاحظة", m.notes ?? ""]),
+        rowLines: (r: (string | number)[]) => [
+          [r[0], r[1], r[2]].map((v) => String(v ?? "").trim()).filter(Boolean).join(" — "),
+        ],
       },
     ],
     filename: `student-${student.full_name}-${from}-${to}`,
