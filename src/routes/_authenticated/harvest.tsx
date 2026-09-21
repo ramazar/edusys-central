@@ -61,6 +61,7 @@ function HarvestPage() {
     return d.toISOString().slice(0, 10);
   });
   const [to, setTo] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [exportRange, setExportRange] = useState<"filters" | "day">("filters");
 
   const { data: grades = [] } = useQuery({
     queryKey: ["harvest-grades"],
@@ -130,19 +131,29 @@ function HarvestPage() {
   };
 
   const buildDoc = () => {
-    if (rows.length === 0) return null;
+    const today = new Date().toISOString().slice(0, 10);
+    const exportRows =
+      exportRange === "day" ? rows.filter((r) => r.date === today) : rows;
+    if (exportRows.length === 0) return null;
+    const meta =
+      exportRange === "day"
+        ? [
+            { label: "التاريخ", value: today },
+            { label: "عدد السجلات", value: String(exportRows.length) },
+          ]
+        : [
+            { label: "من", value: from },
+            { label: "إلى", value: to },
+            { label: "عدد السجلات", value: String(exportRows.length) },
+          ];
     return {
       title: "الحصاد العلمي",
       subtitle: `${gradeName} — الشعبة ${sectionNum}`,
-      meta: [
-        { label: "من", value: from },
-        { label: "إلى", value: to },
-        { label: "عدد السجلات", value: String(rows.length) },
-      ],
+      meta,
       tables: [
         {
           columns: ["التاريخ", "المادة", "الصفحة", "ما تم تعلمه", "الواجب"],
-          rows: rows.map((r) => [
+          rows: exportRows.map((r) => [
             r.date,
             r.subject,
             (r as any).page ?? "-",
@@ -171,7 +182,8 @@ function HarvestPage() {
           },
         },
       ],
-      filename: `harvest-${from}-${to}`,
+      filename:
+        exportRange === "day" ? `harvest-${today}` : `harvest-${from}-${to}`,
     };
   };
 
@@ -190,7 +202,19 @@ function HarvestPage() {
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center flex-wrap">
+          <Select
+            value={exportRange}
+            onValueChange={(v) => setExportRange(v as "filters" | "day")}
+          >
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="filters">تصدير حسب الفلاتر</SelectItem>
+              <SelectItem value="day">تصدير اليوم فقط</SelectItem>
+            </SelectContent>
+          </Select>
           <ExportMenu
             sectionId={sectionId}
             doc={buildDoc}
