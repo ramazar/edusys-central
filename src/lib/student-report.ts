@@ -270,7 +270,6 @@ export async function buildStudentReportDoc(
     title: `تقرير الطالب: ${student.full_name}`,
     subtitle: `من ${from} إلى ${to}`,
     meta: [
-      { label: "رقم الطالب", value: String(student.student_number) },
       ...(student.grade_id ? [{ label: "الصف", value: String(student.grade_id) }] : []),
       { label: "أيام الحضور", value: String(present) },
       { label: "أيام التأخر", value: String(late) },
