@@ -316,7 +316,8 @@ function MarksPage() {
         </div>
         <div class="subtitle">${new Date().toLocaleString("ar")}</div>
       </header>
-      <h2>الملخص الأسبوعي</h2>
+      <div class="subtitle">النوع: ${typeLabel}</div>
+      <h2>الملخص</h2>
       <table>
         <thead><tr><th>#</th><th>الطالب</th><th>النسبة</th><th>عدد العلامات</th><th>المواد</th></tr></thead>
         <tbody>${summaryRows || `<tr><td colspan="5" class="empty">لا توجد علامات</td></tr>`}</tbody>
@@ -326,11 +327,7 @@ function MarksPage() {
         <thead><tr><th>التاريخ</th><th>الطالب</th><th>التصنيف</th><th>الملاحظة</th></tr></thead>
         <tbody>${commentsRows || `<tr><td colspan="4" class="empty">لا توجد ملاحظات</td></tr>`}</tbody>
       </table>
-      <h2>العلامات</h2>
-      <table>
-        <thead><tr><th>التاريخ</th><th>الطالب</th><th>المادة</th><th>العلامة</th><th>النسبة</th><th>ملاحظة</th></tr></thead>
-        <tbody>${marksRows || `<tr><td colspan="6" class="empty">لا توجد علامات</td></tr>`}</tbody>
-      </table>
+      ${marksSections}
       <script>window.addEventListener("load",()=>setTimeout(()=>{window.focus();window.print();},400));</script>
       </body></html>`;
 
@@ -424,6 +421,17 @@ function MarksPage() {
                 </SelectContent>
               </Select>
             </div>
+            <div>
+              <Label>نوع العلامات</Label>
+              <Select value={exportType} onValueChange={(v) => setExportType(v as "all" | MarkType)}>
+                <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">الكل (مقسّم)</SelectItem>
+                  <SelectItem value="teacher_recitation">تسميع مدرس</SelectItem>
+                  <SelectItem value="academic_supervision">إشراف علمي</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <ExportMenu
               label="تصدير الملخص"
             sectionId={sectionId !== "all" ? sectionId : null}
@@ -495,16 +503,10 @@ function MarksPage() {
                   <TableCell className="text-sm">{n.notes}</TableCell>
                   {canEdit && (
                     <TableCell className="whitespace-nowrap">
-                      <Button variant="ghost" size="icon" onClick={() => setEditMark({
-                        id: n.id, student_id: n.student_id, date: n.date,
-                        subject: n.subject, score: n.score, max_score: n.max_score, notes: n.notes,
-                      })}>
+                      <Button variant="ghost" size="icon" onClick={() => setEditMark(n)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => removeMark({
-                        id: n.id, student_id: n.student_id, date: n.date,
-                        subject: n.subject, score: n.score, max_score: n.max_score, notes: n.notes,
-                      })}>
+                      <Button variant="ghost" size="icon" onClick={() => removeMark(n)}>
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </TableCell>
@@ -525,6 +527,7 @@ function MarksPage() {
                 <TableHead>التاريخ</TableHead>
                 <TableHead>الطالب</TableHead>
                 <TableHead>المادة</TableHead>
+                <TableHead>النوع</TableHead>
                 <TableHead>العلامة</TableHead>
                 <TableHead>النسبة</TableHead>
                 <TableHead>ملاحظة</TableHead>
@@ -533,7 +536,7 @@ function MarksPage() {
             </TableHeader>
             <TableBody>
               {marks.filter((m) => Number(m.max_score) > 0).length === 0 && (
-                <TableRow><TableCell colSpan={canEdit ? 7 : 6} className="text-center text-muted-foreground py-6">لا توجد علامات</TableCell></TableRow>
+                <TableRow><TableCell colSpan={canEdit ? 8 : 7} className="text-center text-muted-foreground py-6">لا توجد علامات</TableCell></TableRow>
               )}
               {marks.filter((m) => Number(m.max_score) > 0).map((m) => {
                 const st = students.find((s) => s.id === m.student_id);
@@ -543,6 +546,7 @@ function MarksPage() {
                     <TableCell>{m.date}</TableCell>
                     <TableCell>{st?.full_name ?? "-"}</TableCell>
                     <TableCell>{m.subject}</TableCell>
+                    <TableCell className="text-xs">{markTypeLabel(m.mark_type)}</TableCell>
                     <TableCell>{Number(m.score).toLocaleString("ar")} / {Number(m.max_score).toLocaleString("ar")}</TableCell>
                     <TableCell><Badge variant={pct >= 50 ? "default" : "destructive"}>{pct.toFixed(1)}%</Badge></TableCell>
                     <TableCell className="text-xs max-w-xs truncate">{m.notes ?? "-"}</TableCell>
