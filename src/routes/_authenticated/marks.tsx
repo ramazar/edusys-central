@@ -592,6 +592,7 @@ function EditMarkDialog({
   const [maxScore, setMaxScore] = useState(String(mark.max_score ?? ""));
   const [notes, setNotes] = useState(mark.notes ?? "");
   const [date, setDate] = useState(mark.date);
+  const [markType, setMarkType] = useState<MarkType | "none">(mark.mark_type ?? "none");
   const [saving, setSaving] = useState(false);
 
   async function save() {
@@ -606,6 +607,7 @@ function EditMarkDialog({
       max_score: isNoteOnly ? Number(mark.max_score) : Number(maxScore),
       notes: notes.trim() || null,
       date,
+      mark_type: isNoteOnly ? mark.mark_type : (markType === "none" ? null : markType),
     };
     const { data, error } = await supabase
       .from("daily_marks").update(payload).eq("id", mark.id).select().maybeSingle();
@@ -642,6 +644,12 @@ function EditMarkDialog({
             </div>
           </div>
         )}
+        <div>
+          {!isNoteOnly && (<>
+            <Label>نوع العلامة</Label>
+            <MarkTypeSelect value={markType} onChange={setMarkType} allowNone />
+          </>)}
+        </div>
         <div>
           <Label>التاريخ</Label>
           <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} dir="ltr" />
@@ -683,6 +691,7 @@ function AddMarkDialog({
       max_score: Number(maxScore),
       notes: notes.trim() || null,
       date,
+      mark_type: markType,
       recorded_by: user?.id ?? null,
     };
     const { data, error } = await supabase.from("daily_marks").insert(payload).select().single();
@@ -722,6 +731,10 @@ function AddMarkDialog({
             <Label>العلامة القصوى</Label>
             <Input type="number" value={maxScore} onChange={(e) => setMaxScore(e.target.value)} dir="ltr" />
           </div>
+        </div>
+        <div>
+          <Label>نوع العلامة</Label>
+          <MarkTypeSelect value={markType} onChange={(v) => setMarkType(v as MarkType)} />
         </div>
         <div>
           <Label>التاريخ</Label>
