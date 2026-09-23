@@ -1,0 +1,2 @@
+DO $$ BEGIN CREATE TYPE public.mark_type AS ENUM ('teacher_recitation','academic_supervision'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+ALTER TABLE public.daily_marks ADD COLUMN IF NOT EXISTS mark_type public.mark_type;
