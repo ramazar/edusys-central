@@ -216,6 +216,7 @@ export type Database = {
           created_at: string
           date: string
           id: string
+          mark_type: Database["public"]["Enums"]["mark_type"] | null
           max_score: number
           notes: string | null
           recorded_by: string | null
@@ -228,6 +229,7 @@ export type Database = {
           created_at?: string
           date: string
           id?: string
+          mark_type?: Database["public"]["Enums"]["mark_type"] | null
           max_score?: number
           notes?: string | null
           recorded_by?: string | null
@@ -240,6 +242,7 @@ export type Database = {
           created_at?: string
           date?: string
           id?: string
+          mark_type?: Database["public"]["Enums"]["mark_type"] | null
           max_score?: number
           notes?: string | null
           recorded_by?: string | null
@@ -1491,6 +1494,7 @@ export type Database = {
       attendance_status: "present" | "absent" | "late"
       currency_code: "SYP" | "USD"
       homework_status: "done" | "not_done" | "partial"
+      mark_type: "teacher_recitation" | "academic_supervision"
       salary_type: "fixed" | "hourly"
       section_gender: "boys" | "girls"
     }
@@ -1624,6 +1628,7 @@ export const Constants = {
       attendance_status: ["present", "absent", "late"],
       currency_code: ["SYP", "USD"],
       homework_status: ["done", "not_done", "partial"],
+      mark_type: ["teacher_recitation", "academic_supervision"],
       salary_type: ["fixed", "hourly"],
       section_gender: ["boys", "girls"],
     },
