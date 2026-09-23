@@ -31,10 +31,33 @@ type Student = {
   sections: { section_number: number; gender: string | null } | null;
 };
 
+type MarkType = "teacher_recitation" | "academic_supervision";
 type Mark = {
   id: string; student_id: string; date: string;
   subject: string; score: number; max_score: number; notes: string | null;
+  mark_type: MarkType | null;
 };
+
+export const markTypeLabels: Record<MarkType, string> = {
+  teacher_recitation: "تسميع مدرس",
+  academic_supervision: "إشراف علمي",
+};
+const markTypeLabel = (t: MarkType | null) => (t ? markTypeLabels[t] : "غير مصنّف");
+
+function MarkTypeSelect({ value, onChange, allowNone }: {
+  value: MarkType | "none"; onChange: (v: MarkType | "none") => void; allowNone?: boolean;
+}) {
+  return (
+    <Select value={value} onValueChange={(v) => onChange(v as MarkType | "none")}>
+      <SelectTrigger><SelectValue placeholder="اختر النوع" /></SelectTrigger>
+      <SelectContent>
+        <SelectItem value="teacher_recitation">تسميع مدرس</SelectItem>
+        <SelectItem value="academic_supervision">إشراف علمي</SelectItem>
+        {allowNone && <SelectItem value="none">غير مصنّف</SelectItem>}
+      </SelectContent>
+    </Select>
+  );
+}
 
 function weekStart(): string {
   const d = new Date();
@@ -54,6 +77,7 @@ function MarksPage() {
   const [noteOpen, setNoteOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [exportRange, setExportRange] = useState<"day" | "week">("week");
+  const [exportType, setExportType] = useState<"all" | MarkType>("all");
   const [editMark, setEditMark] = useState<Mark | null>(null);
 
   const { data: sections = [] } = useQuery({
@@ -92,7 +116,7 @@ function MarksPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("daily_marks")
-        .select("id, student_id, date, subject, score, max_score, notes")
+        .select("id, student_id, date, subject, score, max_score, notes, mark_type")
         .in("student_id", studentIds)
         .order("date", { ascending: false });
       return (data ?? []) as Mark[];
@@ -141,64 +165,81 @@ function MarksPage() {
   const today = new Date().toISOString().slice(0, 10);
   const rangeFrom = exportRange === "day" ? today : from;
   const rangeLabel = exportRange === "day" ? `اليوم ${today}` : `هذا الأسبوع (من ${from})`;
+  const typeLabel = exportType === "all" ? "كل الأنواع" : markTypeLabels[exportType];
+  const typeOk = (m: Mark) => exportType === "all" || m.mark_type === exportType;
+
+  function exportData() {
+    const inRange = marks.filter((m) => m.date >= rangeFrom && typeOk(m));
+    const allComments = inRange
+      .filter((m) => m.notes && m.notes.trim().length > 0)
+      .sort((a, b) => (a.date < b.date ? 1 : -1));
+    const allMarks = inRange
+      .filter((m) => Number(m.max_score) > 0)
+      .sort((a, b) => (a.date < b.date ? 1 : -1));
+    const map = new Map<string, { name: string; total: number; max: number; count: number; subjects: Set<string> }>();
+    for (const m of allMarks) {
+      const st = students.find((s) => s.id === m.student_id);
+      if (!st) continue;
+      const r = map.get(st.id) ?? { name: st.full_name, total: 0, max: 0, count: 0, subjects: new Set<string>() };
+      r.total += Number(m.score); r.max += Number(m.max_score); r.count += 1; r.subjects.add(m.subject);
+      map.set(st.id, r);
+    }
+    const expSummary = Array.from(map.values())
+      .map((r) => ({ ...r, pct: r.max > 0 ? (r.total / r.max) * 100 : 0 }))
+      .sort((a, b) => b.pct - a.pct);
+    // Group marks by type (when exporting all types, each type gets its own section).
+    const groups: { heading: string; items: Mark[] }[] =
+      exportType !== "all"
+        ? [{ heading: `العلامات — ${markTypeLabels[exportType]}`, items: allMarks }]
+        : ([
+            ["teacher_recitation", "العلامات — تسميع مدرس"],
+            ["academic_supervision", "العلامات — إشراف علمي"],
+            [null, "العلامات — غير مصنّفة"],
+          ] as [MarkType | null, string][])
+            .map(([t, h]) => ({ heading: h, items: allMarks.filter((m) => (m.mark_type ?? null) === t) }))
+            .filter((g, i) => i < 2 || g.items.length > 0);
+    return { allComments, allMarks, expSummary, groups };
+  }
 
   function buildWeeklyDoc() {
     const nameOf = (id: string) => students.find((st) => st.id === id)?.full_name ?? "-";
-    const allComments = marks
-      .filter((m) => m.notes && m.notes.trim().length > 0 && m.date >= rangeFrom)
-      .sort((a, b) => (a.date < b.date ? 1 : -1));
-    const allMarks = marks
-      .filter((m) => Number(m.max_score) > 0 && m.date >= rangeFrom)
-      .sort((a, b) => (a.date < b.date ? 1 : -1));
+    const { allComments, allMarks, expSummary, groups } = exportData();
     return {
       title: "علامات وملاحظات الطلاب",
-      subtitle: `الصف ${gradeId}${sectionId === "all" ? " — جميع الشعب" : ""} — ${rangeLabel}`,
+      subtitle: `الصف ${gradeId}${sectionId === "all" ? " — جميع الشعب" : ""} — ${rangeLabel} — ${typeLabel}`,
       meta: [
         { label: "الفترة", value: rangeLabel },
+        { label: "النوع", value: typeLabel },
         { label: "عدد العلامات", value: String(allMarks.length) },
         { label: "عدد الملاحظات", value: String(allComments.length) },
       ],
       tables: [
         {
-          heading: "الملخص الأسبوعي",
+          heading: "الملخص",
           columns: ["#", "الطالب", "النسبة", "عدد العلامات"],
-          rows: summary.filter((s) => s.count > 0).map((s, i) => [
-            i + 1,
-            s.student.full_name,
-            `${s.pct.toFixed(2)}%`,
-            s.count,
-          ]),
+          rows: expSummary.map((s, i) => [i + 1, s.name, `${s.pct.toFixed(2)}%`, s.count]),
           rowLines: (r: (string | number)[]) => [`${r[0]}. ${r[1]} — ${r[2]}`],
         },
         {
           heading: "الملاحظات",
           columns: ["التاريخ", "الطالب", "التصنيف", "الملاحظة"],
-          rows: allComments.map((m) => [
-            m.date,
-            nameOf(m.student_id),
-            m.subject,
-            m.notes ?? "",
-          ]),
+          rows: allComments.map((m) => [m.date, nameOf(m.student_id), m.subject, m.notes ?? ""]),
           rowLines: (r: (string | number)[]) => {
             const parts = [String(r[1] ?? ""), String(r[2] ?? ""), String(r[3] ?? "")].filter((p) => p.trim().length > 0);
             return [parts.join(" — ")];
           },
         },
-        {
-          heading: "العلامات",
+        ...groups.map((g) => ({
+          heading: g.heading,
           columns: ["التاريخ", "الطالب", "المادة", "العلامة", "ملاحظة"],
-          rows: allMarks.map((m) => [
-            m.date,
-            nameOf(m.student_id),
-            m.subject,
-            `${Number(m.score)} / ${Number(m.max_score)}`,
-            m.notes ?? "",
+          rows: g.items.map((m) => [
+            m.date, nameOf(m.student_id), m.subject, `${Number(m.score)} / ${Number(m.max_score)}`, m.notes ?? "",
           ]),
           rowLines: (r: (string | number)[]) => {
             const parts = [String(r[1] ?? ""), String(r[2] ?? ""), String(r[3] ?? ""), String(r[4] ?? "")].filter((p) => p.trim().length > 0);
             return [parts.join(" — ")];
           },
-        },
+        })),
       ],
       filename: `marks-grade-${gradeId}`,
     };
@@ -206,13 +247,7 @@ function MarksPage() {
 
   function exportWeeklyPDF() {
     const nameOf = (id: string) => students.find((s) => s.id === id)?.full_name ?? "-";
-
-    const allComments = marks
-      .filter((m) => m.notes && m.notes.trim().length > 0 && m.date >= rangeFrom)
-      .sort((a, b) => (a.date < b.date ? 1 : -1));
-    const allMarks = marks
-      .filter((m) => Number(m.max_score) > 0 && m.date >= rangeFrom)
-      .sort((a, b) => (a.date < b.date ? 1 : -1));
+    const { allComments, expSummary, groups } = exportData();
 
     const isRecent = (_d: string) => true;
     const esc = (s: string) =>
@@ -221,11 +256,10 @@ function MarksPage() {
     const row = (cells: string[], recent: boolean) =>
       `<tr class="${recent ? "recent" : ""}">${cells.map((c) => `<td>${esc(c)}</td>`).join("")}</tr>`;
 
-    const summaryRows = summary
-      .filter((s) => s.count > 0)
+    const summaryRows = expSummary
       .map((s, i) =>
         row(
-          [String(i + 1), s.student.full_name, `${s.pct.toFixed(2)}%`, String(s.count), Array.from(s.subjects).join("، ") || "-"],
+          [String(i + 1), s.name, `${s.pct.toFixed(2)}%`, String(s.count), Array.from(s.subjects).join("، ") || "-"],
           false,
         ),
       )
@@ -235,15 +269,20 @@ function MarksPage() {
       .map((m) => row([m.date, nameOf(m.student_id), m.subject, m.notes ?? ""], isRecent(m.date)))
       .join("");
 
-    const marksRows = allMarks
-      .map((m) => {
-        const pct = Number(m.max_score) > 0
-          ? ((Number(m.score) / Number(m.max_score)) * 100).toFixed(1) + "%"
-          : "-";
-        return row(
-          [m.date, nameOf(m.student_id), m.subject, `${Number(m.score)} / ${Number(m.max_score)}`, pct, m.notes ?? "-"],
-          isRecent(m.date),
-        );
+    const marksSections = groups
+      .map((g) => {
+        const body = g.items
+          .map((m) => {
+            const pct = ((Number(m.score) / Number(m.max_score)) * 100).toFixed(1) + "%";
+            return row(
+              [m.date, nameOf(m.student_id), m.subject, `${Number(m.score)} / ${Number(m.max_score)}`, pct, m.notes ?? "-"],
+              isRecent(m.date),
+            );
+          })
+          .join("");
+        return `<h2>${esc(g.heading)}</h2><table>
+        <thead><tr><th>التاريخ</th><th>الطالب</th><th>المادة</th><th>العلامة</th><th>النسبة</th><th>ملاحظة</th></tr></thead>
+        <tbody>${body || `<tr><td colspan="6" class="empty">لا توجد علامات</td></tr>`}</tbody></table>`;
       })
       .join("");
 
