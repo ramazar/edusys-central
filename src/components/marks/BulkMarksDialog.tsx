@@ -23,6 +23,7 @@ export function BulkMarksDialog({
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [fillValue, setFillValue] = useState("");
   const [saving, setSaving] = useState(false);
+  const [markType, setMarkType] = useState<"teacher_recitation" | "academic_supervision">("teacher_recitation");
 
   const filledCount = students.filter((s) => (scores[s.id] ?? "").trim() !== "").length;
 
@@ -44,6 +45,7 @@ export function BulkMarksDialog({
         max_score: Number(maxScore),
         notes: (notes[s.id] ?? "").trim() || null,
         date,
+        mark_type: markType,
         recorded_by: user?.id ?? null,
       }));
     if (rows.length === 0) return toast.error("لم تُدخل أي علامة");
@@ -66,7 +68,18 @@ export function BulkMarksDialog({
         <DialogDescription>أدخل المادة والعلامة القصوى ثم علامة كل طالب — الطلاب بدون علامة يتم تجاهلهم.</DialogDescription>
       </DialogHeader>
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+        <div>
+          <Label>نوع العلامة</Label>
+          <select
+            value={markType}
+            onChange={(e) => setMarkType(e.target.value as typeof markType)}
+            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+          >
+            <option value="teacher_recitation">تسميع مدرس</option>
+            <option value="academic_supervision">إشراف علمي</option>
+          </select>
+        </div>
         <div>
           <Label>المادة</Label>
           <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="مثلاً: الرياضيات" className="text-right" />
