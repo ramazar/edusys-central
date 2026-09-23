@@ -678,6 +678,7 @@ function AddMarkDialog({
   const [notes, setNotes] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [saving, setSaving] = useState(false);
+  const [markType, setMarkType] = useState<MarkType>("teacher_recitation");
 
   async function save() {
     if (!studentId || !subject.trim() || !score || !maxScore) {
