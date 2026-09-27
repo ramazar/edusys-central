@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Sprout, Trash2 } from "lucide-react";
+import { Pencil, Plus, Sprout, Trash2 } from "lucide-react";
 import { useAuthSession, useMyRoles, hasAny, logAudit } from "@/hooks/useAuth";
 import { ExportMenu } from "@/components/ExportMenu";
 import { sectionLabel } from "@/lib/section-label";
@@ -62,6 +62,7 @@ function HarvestPage() {
   });
   const [to, setTo] = useState<string>(new Date().toISOString().slice(0, 10));
   const [exportRange, setExportRange] = useState<"filters" | "day">("filters");
+  const [exportDate, setExportDate] = useState<string>(new Date().toISOString().slice(0, 10));
 
   const { data: grades = [] } = useQuery({
     queryKey: ["harvest-grades"],
@@ -130,15 +131,27 @@ function HarvestPage() {
     qc.invalidateQueries({ queryKey: ["harvest-rows"] });
   };
 
-  const buildDoc = () => {
-    const today = new Date().toISOString().slice(0, 10);
-    const exportRows =
-      exportRange === "day" ? rows.filter((r) => r.date === today) : rows;
+  const buildDoc = async () => {
+    let exportRows = rows;
+    if (exportRange === "day") {
+      // The chosen day may lie outside the on-screen filter range, so fetch it directly.
+      const { data, error } = await supabase
+        .from("academic_harvest")
+        .select("*")
+        .eq("section_id", sectionId)
+        .eq("date", exportDate)
+        .order("created_at", { ascending: false });
+      if (error) {
+        toast.error(error.message);
+        return null;
+      }
+      exportRows = (data ?? []) as Harvest[];
+    }
     if (exportRows.length === 0) return null;
     const meta =
       exportRange === "day"
         ? [
-            { label: "التاريخ", value: today },
+            { label: "التاريخ", value: exportDate },
             { label: "عدد السجلات", value: String(exportRows.length) },
           ]
         : [
@@ -183,7 +196,7 @@ function HarvestPage() {
         },
       ],
       filename:
-        exportRange === "day" ? `harvest-${today}` : `harvest-${from}-${to}`,
+        exportRange === "day" ? `harvest-${exportDate}` : `harvest-${from}-${to}`,
     };
   };
 
@@ -212,9 +225,19 @@ function HarvestPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="filters">تصدير حسب الفلاتر</SelectItem>
-              <SelectItem value="day">تصدير اليوم فقط</SelectItem>
+              <SelectItem value="day">تصدير يوم محدد</SelectItem>
             </SelectContent>
           </Select>
+          {exportRange === "day" && (
+            <Input
+              type="date"
+              value={exportDate}
+              onChange={(e) => setExportDate(e.target.value)}
+              dir="ltr"
+              className="w-40"
+              aria-label="تاريخ التصدير"
+            />
+          )}
           <ExportMenu
             sectionId={sectionId}
             doc={buildDoc}
@@ -228,7 +251,7 @@ function HarvestPage() {
           />
 
           {canEdit && sectionId && (
-            <AddHarvestDialog
+            <HarvestDialog
               gradeId={gradeId}
               sectionId={sectionId}
               onSaved={() => refetch()}
@@ -327,15 +350,26 @@ function HarvestPage() {
                         {r.date}
                       </span>
                     </div>
-                    {canDelete && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => removeRow(r)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    )}
+                    <div className="flex items-center gap-1">
+                      {canEdit && (
+                        <HarvestDialog
+                          gradeId={r.grade_id}
+                          sectionId={r.section_id}
+                          row={r}
+                          onSaved={() => refetch()}
+                        />
+                      )}
+                      {canDelete && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => removeRow(r)}
+                          aria-label="حذف"
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   <p className="whitespace-pre-wrap text-sm leading-relaxed">
                     {r.content}
@@ -360,16 +394,20 @@ function HarvestPage() {
   );
 }
 
-function AddHarvestDialog({
+function HarvestDialog({
   gradeId,
   sectionId,
+  row,
   onSaved,
 }: {
   gradeId: number;
   sectionId: string;
+  /** When given, the dialog edits this record instead of adding a new one. */
+  row?: Harvest;
   onSaved: () => void;
 }) {
   const { user } = useAuthSession();
+  const isEdit = !!row;
   const [open, setOpen] = useState(false);
   const [subject, setSubject] = useState("");
   const [content, setContent] = useState("");
@@ -378,52 +416,86 @@ function AddHarvestDialog({
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [saving, setSaving] = useState(false);
 
+  const handleOpenChange = (next: boolean) => {
+    // Load the record's current values each time the edit dialog opens.
+    if (next && row) {
+      setSubject(row.subject);
+      setContent(row.content);
+      setPage(row.page ?? "");
+      setHomework(row.homework ?? "");
+      setDate(row.date);
+    }
+    setOpen(next);
+  };
+
   const submit = async () => {
     if (!subject.trim() || !content.trim()) {
       toast.error("املأ المادة والمحتوى");
       return;
     }
     setSaving(true);
-    const { data, error } = await supabase
-      .from("academic_harvest")
-      .insert({
-        grade_id: gradeId,
-        section_id: sectionId,
-        subject: subject.trim(),
-        content: content.trim(),
-        page: page.trim() || null,
-        homework: homework.trim() || null,
-        date,
-        created_by: user?.id ?? null,
-      })
-      .select()
-      .single();
+    const fields = {
+      subject: subject.trim(),
+      content: content.trim(),
+      page: page.trim() || null,
+      homework: homework.trim() || null,
+      date,
+    };
+    const { data, error } = row
+      ? await supabase
+          .from("academic_harvest")
+          .update(fields)
+          .eq("id", row.id)
+          .select()
+          .single()
+      : await supabase
+          .from("academic_harvest")
+          .insert({
+            ...fields,
+            grade_id: gradeId,
+            section_id: sectionId,
+            created_by: user?.id ?? null,
+          })
+          .select()
+          .single();
     setSaving(false);
     if (error) {
       toast.error(error.message);
       return;
     }
-    await logAudit(user, "create", "academic_harvest", data?.id, null, data);
+    if (row) {
+      await logAudit(user, "update", "academic_harvest", row.id, row, data);
+    } else {
+      await logAudit(user, "create", "academic_harvest", data?.id, null, data);
+    }
     toast.success("تم الحفظ");
-    setSubject("");
-    setContent("");
-    setPage("");
-    setHomework("");
+    if (!row) {
+      setSubject("");
+      setContent("");
+      setPage("");
+      setHomework("");
+    }
     setOpen(false);
     onSaved();
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="ms-2 h-4 w-4" />
-          إضافة سجل
-        </Button>
+        {isEdit ? (
+          <Button size="sm" variant="ghost" aria-label="تعديل">
+            <Pencil className="h-4 w-4" />
+          </Button>
+        ) : (
+          <Button>
+            <Plus className="ms-2 h-4 w-4" />
+            إضافة سجل
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>إضافة حصاد علمي</DialogTitle>
+          <DialogTitle>{isEdit ? "تعديل الحصاد العلمي" : "إضافة حصاد علمي"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1.5">
