@@ -50,7 +50,7 @@ function HarvestPage() {
   const { user } = useAuthSession();
   const { data: roles = [] } = useMyRoles(user?.id);
   const canEdit = hasAny(roles, ["admin", "teacher", "reception"]);
-  const canDelete = hasAny(roles, ["admin"]);
+  const canDelete = hasAny(roles, ["admin", "teacher"]);
   const qc = useQueryClient();
 
   const [gradeId, setGradeId] = useState<number>(1);
@@ -121,9 +121,18 @@ function HarvestPage() {
 
   const removeRow = async (row: Harvest) => {
     if (!confirm("حذف هذا السجل؟")) return;
-    const { error } = await supabase.from("academic_harvest").delete().eq("id", row.id);
+    const { data: deleted, error } = await supabase
+      .from("academic_harvest")
+      .delete()
+      .eq("id", row.id)
+      .select("id");
     if (error) {
       toast.error(error.message);
+      return;
+    }
+    // Row-level security blocks a delete silently (zero rows, no error).
+    if (!deleted?.length) {
+      toast.error("لا تملك صلاحية حذف هذا السجل");
       return;
     }
     await logAudit(user, "delete", "academic_harvest", row.id, row, null);
