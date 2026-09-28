@@ -76,7 +76,9 @@ function MarksPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [noteOpen, setNoteOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
-  const [exportRange, setExportRange] = useState<"day" | "week">("week");
+  const [exportRange, setExportRange] = useState<"day" | "week" | "custom">("week");
+  const [customFrom, setCustomFrom] = useState<string>(weekStart);
+  const [customTo, setCustomTo] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [exportType, setExportType] = useState<"all" | MarkType>("all");
   const [editMark, setEditMark] = useState<Mark | null>(null);
 
@@ -123,6 +125,24 @@ function MarksPage() {
     },
   });
 
+  // A custom export range may reach far back, so load it directly instead of
+  // relying on the page's list (which is capped at the newest rows).
+  const { data: customMarks = [] } = useQuery({
+    queryKey: ["marks", "custom", studentIds.join(","), customFrom, customTo],
+    enabled: exportRange === "custom" && studentIds.length > 0 && !!customFrom && !!customTo,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("daily_marks")
+        .select("id, student_id, date, subject, score, max_score, notes, mark_type")
+        .in("student_id", studentIds)
+        .gte("date", customFrom)
+        .lte("date", customTo)
+        .order("date", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as Mark[];
+    },
+  });
+
   const from = weekStart();
   const weeklyMarks = marks.filter((m) => m.date >= from);
 
@@ -163,18 +183,26 @@ function MarksPage() {
   }
 
   const today = new Date().toISOString().slice(0, 10);
-  const rangeFrom = exportRange === "day" ? today : from;
-  const rangeLabel = exportRange === "day" ? `اليوم ${today}` : `هذا الأسبوع (من ${from})`;
+  const rangeFrom = exportRange === "day" ? today : exportRange === "custom" ? customFrom : from;
+  const rangeTo = exportRange === "custom" ? customTo : today;
+  const rangeLabel =
+    exportRange === "day"
+      ? `اليوم ${today}`
+      : exportRange === "custom"
+        ? `من ${customFrom} إلى ${customTo}`
+        : `هذا الأسبوع (من ${from})`;
   const typeLabel = exportType === "all" ? "كل الأنواع" : markTypeLabels[exportType];
   const typeOk = (m: Mark) => exportType === "all" || m.mark_type === exportType;
 
   function exportData() {
-    const inRange = marks.filter((m) => m.date >= rangeFrom && typeOk(m));
+    const source = exportRange === "custom" ? customMarks : marks;
+    const inRange = source.filter((m) => m.date >= rangeFrom && m.date <= rangeTo);
+    // The type filter applies to marks only — notes never carry a mark type.
     const allComments = inRange
-      .filter((m) => m.notes && m.notes.trim().length > 0)
+      .filter((m) => m.notes && m.notes.trim().length > 0 && (Number(m.max_score) <= 0 || typeOk(m)))
       .sort((a, b) => (a.date < b.date ? 1 : -1));
     const allMarks = inRange
-      .filter((m) => Number(m.max_score) > 0)
+      .filter((m) => Number(m.max_score) > 0 && typeOk(m))
       .sort((a, b) => (a.date < b.date ? 1 : -1));
     const map = new Map<string, { name: string; total: number; max: number; count: number; subjects: Set<string> }>();
     for (const m of allMarks) {
@@ -241,7 +269,7 @@ function MarksPage() {
           },
         })),
       ],
-      filename: `marks-grade-${gradeId}`,
+      filename: `marks-grade-${gradeId}-${rangeFrom}-${rangeTo}`,
     };
   }
 
@@ -413,14 +441,27 @@ function MarksPage() {
           <div className="mr-auto flex items-end gap-2">
             <div>
               <Label>فترة التصدير</Label>
-              <Select value={exportRange} onValueChange={(v) => setExportRange(v as "day" | "week")}>
+              <Select value={exportRange} onValueChange={(v) => setExportRange(v as "day" | "week" | "custom")}>
                 <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="day">اليوم فقط</SelectItem>
                   <SelectItem value="week">هذا الأسبوع (7 أيام)</SelectItem>
+                  <SelectItem value="custom">فترة محددة</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+            {exportRange === "custom" && (
+              <>
+                <div>
+                  <Label>من تاريخ</Label>
+                  <Input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} dir="ltr" className="w-40" />
+                </div>
+                <div>
+                  <Label>إلى تاريخ</Label>
+                  <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} dir="ltr" className="w-40" />
+                </div>
+              </>
+            )}
             <div>
               <Label>نوع العلامات</Label>
               <Select value={exportType} onValueChange={(v) => setExportType(v as "all" | MarkType)}>
