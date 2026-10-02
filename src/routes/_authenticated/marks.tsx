@@ -80,6 +80,7 @@ function MarksPage() {
   const [customFrom, setCustomFrom] = useState<string>(weekStart);
   const [customTo, setCustomTo] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [exportType, setExportType] = useState<"all" | MarkType>("all");
+  const [exportSubject, setExportSubject] = useState<string>("all");
   const [editMark, setEditMark] = useState<Mark | null>(null);
 
   const { data: sections = [] } = useQuery({
@@ -193,16 +194,33 @@ function MarksPage() {
         : `هذا الأسبوع (من ${from})`;
   const typeLabel = exportType === "all" ? "كل الأنواع" : markTypeLabels[exportType];
   const typeOk = (m: Mark) => exportType === "all" || m.mark_type === exportType;
+  const subjectLabel = exportSubject === "all" ? "كل المواد" : exportSubject;
+  const subjectOk = (m: Mark) => exportSubject === "all" || m.subject.trim() === exportSubject;
+  // Subjects are free text, so offer whichever ones have marks recorded.
+  const subjectOptions = Array.from(
+    new Set(
+      [...marks, ...customMarks]
+        .filter((m) => Number(m.max_score) > 0)
+        .map((m) => m.subject.trim())
+        .filter(Boolean),
+    ),
+  ).sort((a, b) => a.localeCompare(b, "ar"));
 
   function exportData() {
     const source = exportRange === "custom" ? customMarks : marks;
     const inRange = source.filter((m) => m.date >= rangeFrom && m.date <= rangeTo);
     // The type filter applies to marks only — notes never carry a mark type.
+    // Standalone notes aren't tied to a subject, so a single-subject export leaves them out.
     const allComments = inRange
-      .filter((m) => m.notes && m.notes.trim().length > 0 && (Number(m.max_score) <= 0 || typeOk(m)))
+      .filter(
+        (m) =>
+          m.notes &&
+          m.notes.trim().length > 0 &&
+          (Number(m.max_score) <= 0 ? exportSubject === "all" : typeOk(m) && subjectOk(m)),
+      )
       .sort((a, b) => (a.date < b.date ? 1 : -1));
     const allMarks = inRange
-      .filter((m) => Number(m.max_score) > 0 && typeOk(m))
+      .filter((m) => Number(m.max_score) > 0 && typeOk(m) && subjectOk(m))
       .sort((a, b) => (a.date < b.date ? 1 : -1));
     const map = new Map<string, { name: string; total: number; max: number; count: number; subjects: Set<string> }>();
     for (const m of allMarks) {
@@ -234,10 +252,11 @@ function MarksPage() {
     const { allComments, allMarks, expSummary, groups } = exportData();
     return {
       title: "علامات وملاحظات الطلاب",
-      subtitle: `الصف ${gradeId}${sectionId === "all" ? " — جميع الشعب" : ""} — ${rangeLabel} — ${typeLabel}`,
+      subtitle: `الصف ${gradeId}${sectionId === "all" ? " — جميع الشعب" : ""} — ${rangeLabel} — ${typeLabel} — ${subjectLabel}`,
       meta: [
         { label: "الفترة", value: rangeLabel },
         { label: "النوع", value: typeLabel },
+        { label: "المادة", value: subjectLabel },
         { label: "عدد العلامات", value: String(allMarks.length) },
         { label: "عدد الملاحظات", value: String(allComments.length) },
       ],
@@ -344,7 +363,7 @@ function MarksPage() {
         </div>
         <div class="subtitle">${new Date().toLocaleString("ar")}</div>
       </header>
-      <div class="subtitle">النوع: ${typeLabel}</div>
+      <div class="subtitle">النوع: ${typeLabel} — المادة: ${esc(subjectLabel)}</div>
       <h2>الملخص</h2>
       <table>
         <thead><tr><th>#</th><th>الطالب</th><th>النسبة</th><th>عدد العلامات</th><th>المواد</th></tr></thead>
@@ -470,6 +489,22 @@ function MarksPage() {
                   <SelectItem value="all">الكل (مقسّم)</SelectItem>
                   <SelectItem value="teacher_recitation">تسميع مدرس</SelectItem>
                   <SelectItem value="academic_supervision">إشراف علمي</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>المادة</Label>
+              <Select value={exportSubject} onValueChange={setExportSubject}>
+                <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">كل المواد</SelectItem>
+                  {/* Keep the current pick listed even if this grade has no marks in it. */}
+                  {(exportSubject !== "all" && !subjectOptions.includes(exportSubject)
+                    ? [exportSubject, ...subjectOptions]
+                    : subjectOptions
+                  ).map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
