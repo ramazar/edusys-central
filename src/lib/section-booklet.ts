@@ -290,6 +290,13 @@ export async function generateSectionBooklet(args: SectionBookletArgs) {
     tbody td { padding: 5px 7px; border-bottom: 1px solid #e2e8f0; text-align: right; vertical-align: top; }
     tbody td.c { text-align: center; }
     tbody tr:nth-child(even) td { background: #f8fafc; }
+    tbody tr.recent td { background: #fffbeb; }
+    tbody tr.recent td:first-child { box-shadow: inset -3px 0 0 #f59e0b; }
+    tbody td.rd { color: #92400e; font-weight: 700; }
+    .list li.recent { color: #92400e; font-weight: 700; }
+    .list li.recent::marker { color: #f59e0b; }
+    .legend { display: inline-flex; align-items: center; gap: 5px; color: #92400e; font-weight: 700; }
+    .legend i { width: 12px; height: 12px; border-radius: 3px; background: #fffbeb; border: 1px solid #f59e0b; display: inline-block; }
     .ltr { direction: ltr; unicode-bidi: embed; display: inline-block; }
     td.ltr { text-align: right; }
     .empty { color: #94a3b8; text-align: center; padding: 8px; font-size: 11px; border: 1px dashed #e2e8f0; border-radius: 8px; }
@@ -324,6 +331,13 @@ export async function generateSectionBooklet(args: SectionBookletArgs) {
   w.document.write(html);
   w.document.close();
   return students.length;
+}
+
+/** Move an ISO date by a number of days, keeping it as a plain YYYY-MM-DD string. */
+function shiftDate(iso: string, days: number) {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
 }
 
 function groupBy<T>(rows: T[], key: (row: T) => string) {
