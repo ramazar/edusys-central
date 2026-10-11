@@ -160,7 +160,7 @@ export async function generateSectionBooklet(args: SectionBookletArgs) {
       </div>
 
       <h2>مستوى الطالب</h2>
-      ${chartsHtml(scored, pct)}
+      ${chartsHtml(scored, pct, recentFrom ?? undefined)}
 
       <h2>العلامات</h2>
       ${
@@ -168,7 +168,10 @@ export async function generateSectionBooklet(args: SectionBookletArgs) {
           ? `<table><thead><tr><th style="width:18%">التاريخ</th><th>المادة</th><th style="width:16%">الدرجة</th><th style="width:12%">النسبة</th><th style="width:26%">ملاحظة</th></tr></thead><tbody>${scored
               .map((m) => {
                 const p = Math.round((Number(m.score) / Number(m.max_score)) * 100);
-                return `<tr><td class="ltr">${esc(m.date)}</td><td>${esc(m.subject ?? "—")}</td><td class="ltr">${Number(
+                const r = isRecent(m.date);
+                return `<tr class="${r ? "recent" : ""}"><td class="ltr${r ? " rd" : ""}">${esc(
+                  m.date,
+                )}</td><td>${esc(m.subject ?? "—")}</td><td class="ltr">${Number(
                   m.score,
                 )} / ${Number(m.max_score)}</td><td class="c ${p >= 50 ? "" : "bad"}">${p}%</td><td>${esc(
                   m.notes ?? "",
@@ -182,12 +185,12 @@ export async function generateSectionBooklet(args: SectionBookletArgs) {
       ${
         notes.length
           ? `<table><thead><tr><th style="width:18%">التاريخ</th><th style="width:20%">النوع</th><th>الملاحظة</th></tr></thead><tbody>${notes
-              .map(
-                (m) =>
-                  `<tr><td class="ltr">${esc(m.date)}</td><td>${esc(m.subject ?? "ملاحظة")}</td><td>${esc(
-                    m.notes ?? "",
-                  )}</td></tr>`,
-              )
+              .map((m) => {
+                const r = isRecent(m.date);
+                return `<tr class="${r ? "recent" : ""}"><td class="ltr${r ? " rd" : ""}">${esc(
+                  m.date,
+                )}</td><td>${esc(m.subject ?? "ملاحظة")}</td><td>${esc(m.notes ?? "")}</td></tr>`;
+              })
               .join("")}</tbody></table>`
           : `<div class="empty">لا توجد ملاحظات في هذه الفترة</div>`
       }
@@ -200,7 +203,7 @@ export async function generateSectionBooklet(args: SectionBookletArgs) {
               ? `<ul class="list">${lateDays
                   .map(
                     (a) =>
-                      `<li><span class="ltr">${esc(a.date)}</span>${
+                      `<li class="${isRecent(a.date) ? "recent" : ""}"><span class="ltr">${esc(a.date)}</span>${
                         a.late_minutes ? ` — تأخر ${a.late_minutes} دقيقة` : ""
                       }</li>`,
                   )
@@ -212,7 +215,12 @@ export async function generateSectionBooklet(args: SectionBookletArgs) {
           <h2>الغياب</h2>
           ${
             absentDays.length
-              ? `<ul class="list">${absentDays.map((a) => `<li><span class="ltr">${esc(a.date)}</span></li>`).join("")}</ul>`
+              ? `<ul class="list">${absentDays
+                  .map(
+                    (a) =>
+                      `<li class="${isRecent(a.date) ? "recent" : ""}"><span class="ltr">${esc(a.date)}</span></li>`,
+                  )
+                  .join("")}</ul>`
               : `<div class="empty">لا يوجد غياب</div>`
           }
         </div>
@@ -242,6 +250,7 @@ export async function generateSectionBooklet(args: SectionBookletArgs) {
         <div class="meta">
           <span><b>الفترة:</b> ${esc(periodLine)}</span>
           <span><b>عدد الطلاب:</b> ${students.length}</span>
+          ${legendHtml}
         </div>
       </div>
       <div class="date ltr">${new Date().toISOString().slice(0, 10)}</div>
