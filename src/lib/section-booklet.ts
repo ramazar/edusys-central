@@ -85,6 +85,14 @@ export async function generateSectionBooklet(args: SectionBookletArgs) {
   const secLabel = sectionLabel(sectionNumber, gender);
   const periodLine = `من ${from} إلى ${to}`;
 
+  // The last week inside the selected period is printed in its own colour so it
+  // stands out. When the whole period already fits inside one week there is
+  // nothing to separate, so no colour is applied.
+  const weekStart = shiftDate(to, -6);
+  const recentFrom = from < weekStart ? weekStart : null;
+  const isRecent = (date: string) => recentFrom !== null && String(date) >= recentFrom;
+  const legendHtml = recentFrom ? `<span class="legend"><i></i>آخر أسبوع</span>` : "";
+
   // ---- Build per-student pages (index page is page 1, students start at 2) ----
   const pages: string[] = [];
   const indexEntries: { rank: number | null; row: string }[] = [];
@@ -136,6 +144,7 @@ export async function generateSectionBooklet(args: SectionBookletArgs) {
             <span><b>الشعبة:</b> ${esc(secLabel)}</span>
             <span><b>الترتيب على الشعبة:</b> ${rankOf(i) ?? "—"}</span>
             <span><b>الفترة:</b> ${esc(periodLine)}</span>
+            ${legendHtml}
           </div>
         </div>
         <div class="serial">${i + 1}</div>
@@ -151,7 +160,7 @@ export async function generateSectionBooklet(args: SectionBookletArgs) {
       </div>
 
       <h2>مستوى الطالب</h2>
-      ${chartsHtml(scored, pct)}
+      ${chartsHtml(scored, pct, recentFrom ?? undefined)}
 
       <h2>العلامات</h2>
       ${
@@ -159,7 +168,10 @@ export async function generateSectionBooklet(args: SectionBookletArgs) {
           ? `<table><thead><tr><th style="width:18%">التاريخ</th><th>المادة</th><th style="width:16%">الدرجة</th><th style="width:12%">النسبة</th><th style="width:26%">ملاحظة</th></tr></thead><tbody>${scored
               .map((m) => {
                 const p = Math.round((Number(m.score) / Number(m.max_score)) * 100);
-                return `<tr><td class="ltr">${esc(m.date)}</td><td>${esc(m.subject ?? "—")}</td><td class="ltr">${Number(
+                const r = isRecent(m.date);
+                return `<tr class="${r ? "recent" : ""}"><td class="ltr${r ? " rd" : ""}">${esc(
+                  m.date,
+                )}</td><td>${esc(m.subject ?? "—")}</td><td class="ltr">${Number(
                   m.score,
                 )} / ${Number(m.max_score)}</td><td class="c ${p >= 50 ? "" : "bad"}">${p}%</td><td>${esc(
                   m.notes ?? "",
@@ -173,12 +185,12 @@ export async function generateSectionBooklet(args: SectionBookletArgs) {
       ${
         notes.length
           ? `<table><thead><tr><th style="width:18%">التاريخ</th><th style="width:20%">النوع</th><th>الملاحظة</th></tr></thead><tbody>${notes
-              .map(
-                (m) =>
-                  `<tr><td class="ltr">${esc(m.date)}</td><td>${esc(m.subject ?? "ملاحظة")}</td><td>${esc(
-                    m.notes ?? "",
-                  )}</td></tr>`,
-              )
+              .map((m) => {
+                const r = isRecent(m.date);
+                return `<tr class="${r ? "recent" : ""}"><td class="ltr${r ? " rd" : ""}">${esc(
+                  m.date,
+                )}</td><td>${esc(m.subject ?? "ملاحظة")}</td><td>${esc(m.notes ?? "")}</td></tr>`;
+              })
               .join("")}</tbody></table>`
           : `<div class="empty">لا توجد ملاحظات في هذه الفترة</div>`
       }
@@ -191,7 +203,7 @@ export async function generateSectionBooklet(args: SectionBookletArgs) {
               ? `<ul class="list">${lateDays
                   .map(
                     (a) =>
-                      `<li><span class="ltr">${esc(a.date)}</span>${
+                      `<li class="${isRecent(a.date) ? "recent" : ""}"><span class="ltr">${esc(a.date)}</span>${
                         a.late_minutes ? ` — تأخر ${a.late_minutes} دقيقة` : ""
                       }</li>`,
                   )
@@ -203,7 +215,12 @@ export async function generateSectionBooklet(args: SectionBookletArgs) {
           <h2>الغياب</h2>
           ${
             absentDays.length
-              ? `<ul class="list">${absentDays.map((a) => `<li><span class="ltr">${esc(a.date)}</span></li>`).join("")}</ul>`
+              ? `<ul class="list">${absentDays
+                  .map(
+                    (a) =>
+                      `<li class="${isRecent(a.date) ? "recent" : ""}"><span class="ltr">${esc(a.date)}</span></li>`,
+                  )
+                  .join("")}</ul>`
               : `<div class="empty">لا يوجد غياب</div>`
           }
         </div>
@@ -233,6 +250,7 @@ export async function generateSectionBooklet(args: SectionBookletArgs) {
         <div class="meta">
           <span><b>الفترة:</b> ${esc(periodLine)}</span>
           <span><b>عدد الطلاب:</b> ${students.length}</span>
+          ${legendHtml}
         </div>
       </div>
       <div class="date ltr">${new Date().toISOString().slice(0, 10)}</div>
@@ -272,6 +290,13 @@ export async function generateSectionBooklet(args: SectionBookletArgs) {
     tbody td { padding: 5px 7px; border-bottom: 1px solid #e2e8f0; text-align: right; vertical-align: top; }
     tbody td.c { text-align: center; }
     tbody tr:nth-child(even) td { background: #f8fafc; }
+    tbody tr.recent td { background: #fffbeb; }
+    tbody tr.recent td:first-child { box-shadow: inset -3px 0 0 #f59e0b; }
+    tbody td.rd { color: #92400e; font-weight: 700; }
+    .list li.recent { color: #92400e; font-weight: 700; }
+    .list li.recent::marker { color: #f59e0b; }
+    .legend { display: inline-flex; align-items: center; gap: 5px; color: #92400e; font-weight: 700; }
+    .legend i { width: 12px; height: 12px; border-radius: 3px; background: #fffbeb; border: 1px solid #f59e0b; display: inline-block; }
     .ltr { direction: ltr; unicode-bidi: embed; display: inline-block; }
     td.ltr { text-align: right; }
     .empty { color: #94a3b8; text-align: center; padding: 8px; font-size: 11px; border: 1px dashed #e2e8f0; border-radius: 8px; }
@@ -306,6 +331,13 @@ export async function generateSectionBooklet(args: SectionBookletArgs) {
   w.document.write(html);
   w.document.close();
   return students.length;
+}
+
+/** Move an ISO date by a number of days, keeping it as a plain YYYY-MM-DD string. */
+function shiftDate(iso: string, days: number) {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
 }
 
 function groupBy<T>(rows: T[], key: (row: T) => string) {
