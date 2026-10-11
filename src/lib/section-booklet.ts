@@ -87,7 +87,7 @@ export async function generateSectionBooklet(args: SectionBookletArgs) {
 
   // ---- Build per-student pages (index page is page 1, students start at 2) ----
   const pages: string[] = [];
-  const indexRows: string[] = [];
+  const indexEntries: { rank: number | null; row: string }[] = [];
 
   // Rank within the section by overall percentage (students without marks rank last).
   const pctOf = (id: string) => {
@@ -118,11 +118,12 @@ export async function generateSectionBooklet(args: SectionBookletArgs) {
     const absentDays = att.filter((a) => a.status === "absent");
 
     const pageNumber = i + 2;
-    indexRows.push(
-      `<tr><td class="c">${pageNumber}</td><td>${esc(s.full_name)}</td><td class="c">${
+    indexEntries.push({
+      rank: rankOf(i),
+      row: `<tr><td class="c">${pageNumber}</td><td>${esc(s.full_name)}</td><td class="c">${
         totalMax > 0 ? `${Math.round(pct)}%` : "—"
       }</td><td class="c">${i + 1}</td></tr>`,
-    );
+    });
 
     pages.push(`<section class="page">
       <header>
@@ -211,6 +212,18 @@ export async function generateSectionBooklet(args: SectionBookletArgs) {
       <footer><span>${esc(brandName())}</span><span>${esc(s.full_name)} — صفحة ${pageNumber}</span></footer>
     </section>`);
   });
+
+  // Index lists students by their rank within the section (best first);
+  // students without marks come last, each group keeping alphabetical order.
+  const indexRows = indexEntries
+    .slice()
+    .sort((a, b) => {
+      if (a.rank === null && b.rank === null) return 0;
+      if (a.rank === null) return 1;
+      if (b.rank === null) return -1;
+      return a.rank - b.rank;
+    })
+    .map((e) => e.row);
 
   const indexPage = `<section class="page">
     <header>
