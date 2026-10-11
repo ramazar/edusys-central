@@ -85,6 +85,14 @@ export async function generateSectionBooklet(args: SectionBookletArgs) {
   const secLabel = sectionLabel(sectionNumber, gender);
   const periodLine = `من ${from} إلى ${to}`;
 
+  // The last week inside the selected period is printed in its own colour so it
+  // stands out. When the whole period already fits inside one week there is
+  // nothing to separate, so no colour is applied.
+  const weekStart = shiftDate(to, -6);
+  const recentFrom = from < weekStart ? weekStart : null;
+  const isRecent = (date: string) => recentFrom !== null && String(date) >= recentFrom;
+  const legendHtml = recentFrom ? `<span class="legend"><i></i>آخر أسبوع</span>` : "";
+
   // ---- Build per-student pages (index page is page 1, students start at 2) ----
   const pages: string[] = [];
   const indexEntries: { rank: number | null; row: string }[] = [];
@@ -136,6 +144,7 @@ export async function generateSectionBooklet(args: SectionBookletArgs) {
             <span><b>الشعبة:</b> ${esc(secLabel)}</span>
             <span><b>الترتيب على الشعبة:</b> ${rankOf(i) ?? "—"}</span>
             <span><b>الفترة:</b> ${esc(periodLine)}</span>
+            ${legendHtml}
           </div>
         </div>
         <div class="serial">${i + 1}</div>
