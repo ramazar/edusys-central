@@ -145,7 +145,7 @@ export async function generateStudentReport(student: Student, from: string, to: 
 }
 
 /** Inline SVG charts: percentage trend over time + average per subject. */
-export function chartsHtml(marksRows: any[], overallPct: number) {
+export function chartsHtml(marksRows: any[], overallPct: number, recentFrom?: string) {
   if (!marksRows.length) return `<div class="empty">لا توجد علامات لرسمها في هذه الفترة</div>`;
 
   // ---- Trend (oldest -> newest) ----
@@ -176,11 +176,11 @@ export function chartsHtml(marksRows: any[], overallPct: number) {
   const line = pts.map((p, i) => `${i === 0 ? "M" : "L"}${x(i)},${y(p.pct)}`).join(" ");
   const area = `${line} L${x(pts.length - 1)},${padY + innerH} L${x(0)},${padY + innerH} Z`;
   const dots = pts
-    .map(
-      (p, i) =>
-        `<circle cx="${x(i)}" cy="${y(p.pct)}" r="3.2" fill="#1D4ED8"/>
-         <text x="${x(i)}" y="${y(p.pct) - 8}" font-size="8.5" fill="#0f172a" text-anchor="middle">${Math.round(p.pct)}%</text>`,
-    )
+    .map((p, i) => {
+      const recent = recentFrom !== undefined && p.date >= recentFrom;
+      return `<circle cx="${x(i)}" cy="${y(p.pct)}" r="${recent ? 4.3 : 3.2}" fill="${recent ? "#f59e0b" : "#1D4ED8"}"/>
+         <text x="${x(i)}" y="${y(p.pct) - 8}" font-size="8.5" fill="${recent ? "#92400e" : "#0f172a"}" text-anchor="middle">${Math.round(p.pct)}%</text>`;
+    })
     .join("");
   const xLabels = pts
     .map((p, i) =>
