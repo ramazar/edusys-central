@@ -18,6 +18,6 @@ export const Route = createFileRoute("/")({
     const { data } = await supabase.auth.getSession();
     throw redirect({ to: data.session ? "/dashboard" : "/login" });
   },
-  pendingComponent: Splash,
-  component: Splash,
+  pendingComponent: () => <Splash />,
+  component: () => <Splash />,
 });
