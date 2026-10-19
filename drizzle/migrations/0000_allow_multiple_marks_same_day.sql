@@ -1,0 +1,2 @@
+ALTER TABLE public.daily_marks DROP CONSTRAINT IF EXISTS daily_marks_student_id_date_subject_key;
+DROP INDEX IF EXISTS public.daily_marks_student_id_date_subject_key;
