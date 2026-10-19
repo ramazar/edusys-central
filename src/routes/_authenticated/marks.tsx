@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { MARK_TYPES, markTypeLabels, markTypeLabel, type MarkType } from "@/lib/mark-types";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useMemo, useState } from "react";
@@ -31,18 +32,11 @@ type Student = {
   sections: { section_number: number; gender: string | null } | null;
 };
 
-type MarkType = "teacher_recitation" | "academic_supervision";
 type Mark = {
   id: string; student_id: string; date: string;
   subject: string; score: number; max_score: number; notes: string | null;
   mark_type: MarkType | null;
 };
-
-export const markTypeLabels: Record<MarkType, string> = {
-  teacher_recitation: "تسميع مدرس",
-  academic_supervision: "إشراف علمي",
-};
-const markTypeLabel = (t: MarkType | null) => (t ? markTypeLabels[t] : "غير مصنّف");
 
 function MarkTypeSelect({ value, onChange, allowNone }: {
   value: MarkType | "none"; onChange: (v: MarkType | "none") => void; allowNone?: boolean;
@@ -51,8 +45,7 @@ function MarkTypeSelect({ value, onChange, allowNone }: {
     <Select value={value} onValueChange={(v) => onChange(v as MarkType | "none")}>
       <SelectTrigger><SelectValue placeholder="اختر النوع" /></SelectTrigger>
       <SelectContent>
-        <SelectItem value="teacher_recitation">تسميع مدرس</SelectItem>
-        <SelectItem value="academic_supervision">إشراف علمي</SelectItem>
+        {MARK_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
         {allowNone && <SelectItem value="none">غير مصنّف</SelectItem>}
       </SelectContent>
     </Select>
@@ -237,13 +230,15 @@ function MarksPage() {
     const groups: { heading: string; items: Mark[] }[] =
       exportType !== "all"
         ? [{ heading: `العلامات — ${markTypeLabels[exportType]}`, items: allMarks }]
-        : ([
-            ["teacher_recitation", "العلامات — تسميع مدرس"],
-            ["academic_supervision", "العلامات — إشراف علمي"],
-            [null, "العلامات — غير مصنّفة"],
-          ] as [MarkType | null, string][])
-            .map(([t, h]) => ({ heading: h, items: allMarks.filter((m) => (m.mark_type ?? null) === t) }))
-            .filter((g, i) => i < 2 || g.items.length > 0);
+        : (() => {
+            const all = ([
+              ...MARK_TYPES.map((t) => [t.value, `العلامات — ${t.label}`]),
+              [null, "العلامات — غير مصنّفة"],
+            ] as [MarkType | null, string][])
+              .map(([t, h]) => ({ heading: h, items: allMarks.filter((m) => (m.mark_type ?? null) === t) }));
+            const nonEmpty = all.filter((g) => g.items.length > 0);
+            return nonEmpty.length > 0 ? nonEmpty : [{ heading: "العلامات", items: [] }];
+          })();
     return { allComments, allMarks, expSummary, groups };
   }
 
@@ -487,8 +482,7 @@ function MarksPage() {
                 <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">الكل (مقسّم)</SelectItem>
-                  <SelectItem value="teacher_recitation">تسميع مدرس</SelectItem>
-                  <SelectItem value="academic_supervision">إشراف علمي</SelectItem>
+                  {MARK_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

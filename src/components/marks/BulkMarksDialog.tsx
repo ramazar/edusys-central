@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
+import { MARK_TYPES, type MarkType } from "@/lib/mark-types";
 import { useAuthSession, logAudit } from "@/hooks/useAuth";
 
 export type BulkStudent = { id: string; full_name: string; student_number: string };
@@ -23,7 +24,7 @@ export function BulkMarksDialog({
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [fillValue, setFillValue] = useState("");
   const [saving, setSaving] = useState(false);
-  const [markType, setMarkType] = useState<"teacher_recitation" | "academic_supervision">("teacher_recitation");
+  const [markType, setMarkType] = useState<MarkType>("teacher_recitation");
 
   const filledCount = students.filter((s) => (scores[s.id] ?? "").trim() !== "").length;
 
@@ -76,8 +77,7 @@ export function BulkMarksDialog({
             onChange={(e) => setMarkType(e.target.value as typeof markType)}
             className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
           >
-            <option value="teacher_recitation">تسميع مدرس</option>
-            <option value="academic_supervision">إشراف علمي</option>
+            {MARK_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
         </div>
         <div>
