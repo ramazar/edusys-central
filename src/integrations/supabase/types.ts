@@ -1494,7 +1494,13 @@ export type Database = {
       attendance_status: "present" | "absent" | "late"
       currency_code: "SYP" | "USD"
       homework_status: "done" | "not_done" | "partial"
-      mark_type: "teacher_recitation" | "academic_supervision"
+      mark_type:
+        | "teacher_recitation"
+        | "academic_supervision"
+        | "probe"
+        | "study"
+        | "recitation"
+        | "exam"
       salary_type: "fixed" | "hourly"
       section_gender: "boys" | "girls"
     }
@@ -1628,7 +1634,14 @@ export const Constants = {
       attendance_status: ["present", "absent", "late"],
       currency_code: ["SYP", "USD"],
       homework_status: ["done", "not_done", "partial"],
-      mark_type: ["teacher_recitation", "academic_supervision"],
+      mark_type: [
+        "teacher_recitation",
+        "academic_supervision",
+        "probe",
+        "study",
+        "recitation",
+        "exam",
+      ],
       salary_type: ["fixed", "hourly"],
       section_gender: ["boys", "girls"],
     },
