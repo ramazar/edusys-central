@@ -14,7 +14,7 @@ export function StudentDialog({
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onSaved: () => void;
-  student?: { id: string; full_name: string; student_number: string; grade_id: number; section_id: string; guardian_name?: string | null; guardian_phone?: string | null; guardian_relation?: string | null; address?: string | null; enrollment_date?: string | null; academic_year?: string | null; gender?: string | null; birth_date?: string | null; notes?: string | null; };
+  student?: { id: string; full_name: string; student_number: string; grade_id: number; section_id: string; guardian_name?: string | null; guardian_phone?: string | null; guardian_relation?: string | null; address?: string | null; enrollment_date?: string | null; academic_year?: string | null; is_active?: boolean | null; gender?: string | null; birth_date?: string | null; notes?: string | null; };
 }) {
   const { user } = useAuthSession();
   const currentYear = new Date().getFullYear();
@@ -33,6 +33,7 @@ export function StudentDialog({
     gender: "",
     birth_date: "",
     notes: "",
+    is_active: true,
   });
   const [saving, setSaving] = useState(false);
   const [sections, setSections] = useState<{ id: string; section_number: number; grade_id: number; gender: string | null }[]>([]);
@@ -58,6 +59,7 @@ export function StudentDialog({
         gender: student.gender ?? "",
         birth_date: student.birth_date ?? "",
         notes: student.notes ?? "",
+        is_active: student.is_active ?? true,
       });
     } else {
       setForm((f) => ({ ...f, student_number: `S${Date.now().toString().slice(-6)}` }));
@@ -172,6 +174,17 @@ export function StudentDialog({
           <div className="space-y-2">
             <Label>تاريخ الميلاد</Label>
             <Input type="date" value={form.birth_date} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} />
+          </div>
+          <div className="space-y-2">
+            <Label>الحالة</Label>
+            <select
+              className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+              value={form.is_active ? "1" : "0"}
+              onChange={(e) => setForm({ ...form, is_active: e.target.value === "1" })}
+            >
+              <option value="1">نشط</option>
+              <option value="0">موقوف</option>
+            </select>
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label>العنوان</Label>
