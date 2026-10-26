@@ -15,6 +15,13 @@
       "when": 1792431959753,
       "tag": "0001_add_more_mark_types",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793030003387,
+      "tag": "0002_finance_totals",
+      "breakpoints": true
     }
   ]
 }

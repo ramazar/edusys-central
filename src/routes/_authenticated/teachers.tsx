@@ -15,6 +15,7 @@ import { useAuthSession, useMyRoles, hasAny, logAudit } from "@/hooks/useAuth";
 import { LecturesDialog, useLectureTotals } from "@/components/teachers/LecturesDialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CURRENCIES, type Currency, asCurrency, currencyName, formatMoney } from "@/lib/currency";
+import { fetchAll } from "@/lib/fetch-all";
 
 export const Route = createFileRoute("/_authenticated/teachers")({ component: TeachersPage });
 
@@ -72,10 +73,12 @@ function TeachersPage() {
   const { data: paymentsByTeacher = {} } = useQuery({
     queryKey: ["teacher_payments_all"],
     queryFn: async () => {
-      const { data } = await supabase.from("teacher_payments").select("teacher_id, amount, currency");
+      const data = await fetchAll((from, to) =>
+        supabase.from("teacher_payments").select("teacher_id, amount, currency").order("id").range(from, to),
+      );
       // Salaries and lecture rates are recorded in SYP, so keep currencies apart.
       const map: Record<string, { SYP: number; USD: number }> = {};
-      (data ?? []).forEach((p) => {
+      data.forEach((p) => {
         const row = map[p.teacher_id] ?? { SYP: 0, USD: 0 };
         row[asCurrency(p.currency)] += Number(p.amount);
         map[p.teacher_id] = row;

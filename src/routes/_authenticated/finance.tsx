@@ -180,6 +180,18 @@ function FinancePage() {
     },
   });
 
+  const { data: totals = [] } = useQuery({
+    queryKey: ["finance-totals", activeSchoolId],
+    enabled: !!activeSchoolId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("finance_totals");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const refreshTotals = () => qc.invalidateQueries({ queryKey: ["finance-totals"] });
+
   const removeWithdrawal = async (id: string, amount: number, cur: Currency) => {
     if (!confirm(`حذف سحب بمبلغ ${formatMoney(amount, cur)}؟ سيعود المبلغ إلى الصندوق.`)) return;
     const { error } = await supabase.from("vault_withdrawals").delete().eq("id", id);
@@ -187,6 +199,7 @@ function FinancePage() {
     await logAudit(user, "delete", "vault_withdrawals", id, { amount, currency: cur }, null);
     toast.success("تم حذف السحب");
     qc.invalidateQueries({ queryKey: ["vault-withdrawals"] });
+    refreshTotals();
   };
 
   const removeEntry = async (kind: "income" | "expense", entry: Entry) => {
@@ -198,6 +211,7 @@ function FinancePage() {
     await logAudit(user, "delete", table, entry.id, entry, null);
     toast.success(`تم حذف ${label}`);
     qc.invalidateQueries({ queryKey: [kind === "income" ? "finance-income" : "finance-expenses"] });
+    refreshTotals();
   };
 
   const rowActions = (kind: "income" | "expense", row: Row) => {
@@ -219,11 +233,14 @@ function FinancePage() {
 
   const income = incomeRows.filter((r) => r.currency === currency);
   const expenses = expenseRows.filter((r) => r.currency === currency);
-  const totalIncome = income.reduce((s, r) => s + r.amount, 0);
-  const totalExpense = expenses.reduce((s, r) => s + r.amount, 0);
-  const net = totalIncome - totalExpense;
   const currencyWithdrawals = withdrawals.filter((w) => asCurrency(w.currency) === currency);
-  const totalWithdrawn = currencyWithdrawals.reduce((s, w) => s + Number(w.amount), 0);
+  // Totals come from the database over every record of the active school — the
+  // tables below only list the most recent entries.
+  const t = totals.find((r) => asCurrency(r.currency) === currency);
+  const totalIncome = Number(t?.student_payments ?? 0) + Number(t?.other_income ?? 0);
+  const totalExpense = Number(t?.expenses ?? 0) + Number(t?.teacher_payments ?? 0) + Number(t?.worker_payments ?? 0);
+  const net = totalIncome - totalExpense;
+  const totalWithdrawn = Number(t?.withdrawals ?? 0);
   const vaultBalance = totalIncome - totalExpense - totalWithdrawn;
 
   const table = (kind: "income" | "expense", rows: Row[]) => (
@@ -251,7 +268,9 @@ function FinancePage() {
           </TableRow>
         ))}
       </TableBody>
-    </Table></CardContent></Card>
+    </Table>
+    <p className="border-t px-4 py-2 text-xs text-muted-foreground">يعرض الجدول أحدث القيود فقط، أما الإجماليات في الأعلى فتشمل جميع القيود.</p>
+    </CardContent></Card>
   );
 
   return (
@@ -338,8 +357,8 @@ function FinancePage() {
         </TabsContent>
       </Tabs>
 
-      <EntryDialog kind="income" defaultCurrency={currency} open={incomeOpen} onOpenChange={setIncomeOpen} onSaved={(c) => { setCurrency(c); qc.invalidateQueries({ queryKey: ["finance-income"] }); }} />
-      <EntryDialog kind="expense" defaultCurrency={currency} open={expenseOpen} onOpenChange={setExpenseOpen} onSaved={(c) => { setCurrency(c); qc.invalidateQueries({ queryKey: ["finance-expenses"] }); }} />
+      <EntryDialog kind="income" defaultCurrency={currency} open={incomeOpen} onOpenChange={setIncomeOpen} onSaved={(c) => { setCurrency(c); qc.invalidateQueries({ queryKey: ["finance-income"] }); refreshTotals(); }} />
+      <EntryDialog kind="expense" defaultCurrency={currency} open={expenseOpen} onOpenChange={setExpenseOpen} onSaved={(c) => { setCurrency(c); qc.invalidateQueries({ queryKey: ["finance-expenses"] }); refreshTotals(); }} />
       {editing && (
         <EntryDialog
           key={editing.entry.id}
@@ -351,6 +370,7 @@ function FinancePage() {
           onSaved={(c) => {
             setCurrency(c);
             qc.invalidateQueries({ queryKey: [editing.kind === "income" ? "finance-income" : "finance-expenses"] });
+            refreshTotals();
           }}
         />
       )}
@@ -360,7 +380,7 @@ function FinancePage() {
         prefill={resetAmount}
         defaultCurrency={currency}
         onOpenChange={(o) => { if (!o) { setWithdrawOpen(false); setResetAmount(null); } }}
-        onSaved={() => qc.invalidateQueries({ queryKey: ["vault-withdrawals"] })}
+        onSaved={() => { qc.invalidateQueries({ queryKey: ["vault-withdrawals"] }); refreshTotals(); }}
       />
     </div>
   );
