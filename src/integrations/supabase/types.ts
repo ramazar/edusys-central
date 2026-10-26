@@ -1467,6 +1467,18 @@ export type Database = {
     }
     Functions: {
       current_school_id: { Args: never; Returns: string }
+      finance_totals: {
+        Args: never
+        Returns: {
+          currency: Database["public"]["Enums"]["currency_code"]
+          expenses: number
+          other_income: number
+          student_payments: number
+          teacher_payments: number
+          withdrawals: number
+          worker_payments: number
+        }[]
+      }
       has_any_role: {
         Args: {
           _roles: Database["public"]["Enums"]["app_role"][]
