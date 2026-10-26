@@ -268,7 +268,9 @@ function FinancePage() {
           </TableRow>
         ))}
       </TableBody>
-    </Table></CardContent></Card>
+    </Table>
+    <p className="border-t px-4 py-2 text-xs text-muted-foreground">يعرض الجدول أحدث القيود فقط، أما الإجماليات في الأعلى فتشمل جميع القيود.</p>
+    </CardContent></Card>
   );
 
   return (
@@ -355,8 +357,8 @@ function FinancePage() {
         </TabsContent>
       </Tabs>
 
-      <EntryDialog kind="income" defaultCurrency={currency} open={incomeOpen} onOpenChange={setIncomeOpen} onSaved={(c) => { setCurrency(c); qc.invalidateQueries({ queryKey: ["finance-income"] }); }} />
-      <EntryDialog kind="expense" defaultCurrency={currency} open={expenseOpen} onOpenChange={setExpenseOpen} onSaved={(c) => { setCurrency(c); qc.invalidateQueries({ queryKey: ["finance-expenses"] }); }} />
+      <EntryDialog kind="income" defaultCurrency={currency} open={incomeOpen} onOpenChange={setIncomeOpen} onSaved={(c) => { setCurrency(c); qc.invalidateQueries({ queryKey: ["finance-income"] }); refreshTotals(); }} />
+      <EntryDialog kind="expense" defaultCurrency={currency} open={expenseOpen} onOpenChange={setExpenseOpen} onSaved={(c) => { setCurrency(c); qc.invalidateQueries({ queryKey: ["finance-expenses"] }); refreshTotals(); }} />
       {editing && (
         <EntryDialog
           key={editing.entry.id}
@@ -368,6 +370,7 @@ function FinancePage() {
           onSaved={(c) => {
             setCurrency(c);
             qc.invalidateQueries({ queryKey: [editing.kind === "income" ? "finance-income" : "finance-expenses"] });
+            refreshTotals();
           }}
         />
       )}
@@ -377,7 +380,7 @@ function FinancePage() {
         prefill={resetAmount}
         defaultCurrency={currency}
         onOpenChange={(o) => { if (!o) { setWithdrawOpen(false); setResetAmount(null); } }}
-        onSaved={() => qc.invalidateQueries({ queryKey: ["vault-withdrawals"] })}
+        onSaved={() => { qc.invalidateQueries({ queryKey: ["vault-withdrawals"] }); refreshTotals(); }}
       />
     </div>
   );
