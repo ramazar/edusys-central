@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertTriangle, Clock } from "lucide-react";
 import { asCurrency, formatMoney } from "@/lib/currency";
+import { fetchAll } from "@/lib/fetch-all";
 
 type Row = {
   studentId: string;
@@ -24,18 +25,25 @@ function useDues() {
   return useQuery({
     queryKey: ["payment-dues"],
     queryFn: async (): Promise<Row[]> => {
-      const [plansRes, paymentsRes] = await Promise.all([
-        supabase
-          .from("student_payment_plans")
-          .select("student_id, amount, due_date, students(full_name, grade_id, guardian_phone, is_active)")
-          .order("due_date"),
-        supabase.from("student_payments").select("student_id, amount, currency"),
+      // Read every row (not just the first 1000) so paid amounts are complete.
+      const [plans, payments] = await Promise.all([
+        fetchAll((from, to) =>
+          supabase
+            .from("student_payment_plans")
+            .select("student_id, amount, due_date, students(full_name, grade_id, guardian_phone, is_active)")
+            .order("due_date")
+            .order("id")
+            .range(from, to),
+        ),
+        fetchAll((from, to) =>
+          supabase.from("student_payments").select("student_id, amount, currency").order("id").range(from, to),
+        ),
       ]);
 
       // Payment plans are recorded in SYP (no currency column), so only SYP
       // payments may be netted against them — USD payments are tracked separately.
       const paid = new Map<string, number>();
-      for (const p of paymentsRes.data ?? []) {
+      for (const p of payments) {
         if (asCurrency(p.currency) !== "SYP") continue;
         paid.set(p.student_id, (paid.get(p.student_id) ?? 0) + Number(p.amount));
       }
@@ -44,7 +52,7 @@ function useDues() {
         string,
         { student: { full_name: string; grade_id: number; guardian_phone: string | null; is_active: boolean } | null; plans: { amount: number; due_date: string }[] }
       >();
-      for (const p of plansRes.data ?? []) {
+      for (const p of plans) {
         const student = p.students as
           | { full_name: string; grade_id: number; guardian_phone: string | null; is_active: boolean }
           | null;
