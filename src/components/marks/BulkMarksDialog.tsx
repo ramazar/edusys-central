@@ -9,6 +9,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { MARK_TYPES, type MarkType } from "@/lib/mark-types";
+import { markScoreError } from "@/lib/mark-validation";
 import { useAuthSession, logAudit } from "@/hooks/useAuth";
 
 export type BulkStudent = { id: string; full_name: string; student_number: string };

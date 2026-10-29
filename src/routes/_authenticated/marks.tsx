@@ -22,6 +22,7 @@ import { BulkMarksDialog } from "@/components/marks/BulkMarksDialog";
 import { toast } from "sonner";
 import { useAuthSession, useMyRoles, hasAny, logAudit } from "@/hooks/useAuth";
 import { sectionLabel } from "@/lib/section-label";
+import { markScoreError } from "@/lib/mark-validation";
 
 
 export const Route = createFileRoute("/_authenticated/marks")({ component: MarksPage });
