@@ -670,6 +670,10 @@ function EditMarkDialog({
     if (!isNoteOnly && (score === "" || maxScore === "" || Number(maxScore) <= 0)) {
       return toast.error("يرجى إدخال العلامة والعلامة القصوى");
     }
+    if (!isNoteOnly) {
+      const err = markScoreError(Number(score), Number(maxScore));
+      if (err) return toast.error(err);
+    }
     setSaving(true);
     const payload = {
       subject: subject.trim(),
@@ -754,6 +758,8 @@ function AddMarkDialog({
     if (!studentId || !subject.trim() || !score || !maxScore) {
       return toast.error("يرجى تعبئة الحقول المطلوبة");
     }
+    const scoreErr = markScoreError(Number(score), Number(maxScore));
+    if (scoreErr) return toast.error(scoreErr);
     setSaving(true);
     const payload = {
       student_id: studentId,

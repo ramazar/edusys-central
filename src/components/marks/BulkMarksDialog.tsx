@@ -50,6 +50,15 @@ export function BulkMarksDialog({
         recorded_by: user?.id ?? null,
       }));
     if (rows.length === 0) return toast.error("لم تُدخل أي علامة");
+    const maxErr = markScoreError(0, Number(maxScore));
+    if (maxErr) return toast.error(maxErr);
+    const bad = rows.filter((r) => markScoreError(r.score, r.max_score));
+    if (bad.length > 0) {
+      const names = bad.map((r) => students.find((s) => s.id === r.student_id)?.full_name ?? "").filter(Boolean);
+      return toast.error(
+        `علامات غير صحيحة (أكبر من ${Number(maxScore)} أو أقل من صفر): ${names.slice(0, 5).join("، ")}${names.length > 5 ? ` و${names.length - 5} آخرين` : ""}`,
+      );
+    }
     setSaving(true);
     const { error } = await supabase.from("daily_marks").insert(rows);
     setSaving(false);
