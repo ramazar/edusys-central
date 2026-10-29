@@ -46,6 +46,7 @@ const sourceLabel: Record<Row["source"], string> = {
 };
 
 const PaymentDues = lazy(() => import("@/components/finance/PaymentDues"));
+const StudentBalances = lazy(() => import("@/components/finance/StudentBalances"));
 
 export const Route = createFileRoute("/_authenticated/finance")({ component: FinancePage });
 
@@ -303,7 +304,12 @@ function FinancePage() {
       </div>
 
       <Tabs defaultValue="income">
-        <TabsList><TabsTrigger value="income">الإيرادات</TabsTrigger><TabsTrigger value="expenses">المصروفات</TabsTrigger><TabsTrigger value="vault">الصندوق</TabsTrigger><TabsTrigger value="dues">المتأخرات والاستحقاقات</TabsTrigger></TabsList>
+        <TabsList className="h-auto flex-wrap"><TabsTrigger value="income">الإيرادات</TabsTrigger><TabsTrigger value="expenses">المصروفات</TabsTrigger><TabsTrigger value="vault">الصندوق</TabsTrigger><TabsTrigger value="dues">المتأخرات والاستحقاقات</TabsTrigger><TabsTrigger value="owed">المبالغ المستحقة</TabsTrigger></TabsList>
+        <TabsContent value="owed">
+          <Suspense fallback={<div className="h-64 animate-pulse rounded-lg border bg-card" />}>
+            <StudentBalances schoolId={activeSchoolId} />
+          </Suspense>
+        </TabsContent>
         <TabsContent value="vault" className="space-y-3">
           <Card>
             <CardHeader><CardTitle className="text-base">النقد المتوفر في الصندوق ({currencyName[currency]})</CardTitle></CardHeader>
@@ -344,7 +350,7 @@ function FinancePage() {
         </TabsContent>
         <TabsContent value="dues">
           <Suspense fallback={<div className="h-64 animate-pulse rounded-lg border bg-card" />}>
-            <PaymentDues />
+            <PaymentDues schoolId={activeSchoolId} />
           </Suspense>
         </TabsContent>
         <TabsContent value="income" className="space-y-3">

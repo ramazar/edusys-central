@@ -21,9 +21,10 @@ type Row = {
 
 const dayMs = 86400000;
 
-function useDues() {
+function useDues(schoolId: string | null) {
   return useQuery({
-    queryKey: ["payment-dues"],
+    queryKey: ["payment-dues", schoolId],
+    enabled: !!schoolId,
     queryFn: async (): Promise<Row[]> => {
       // Read every row (not just the first 1000) so paid amounts are complete.
       const [plans, payments] = await Promise.all([
@@ -31,12 +32,13 @@ function useDues() {
           supabase
             .from("student_payment_plans")
             .select("student_id, amount, due_date, students(full_name, grade_id, guardian_phone, is_active)")
+            .eq("school_id", schoolId!)
             .order("due_date")
             .order("id")
             .range(from, to),
         ),
         fetchAll((from, to) =>
-          supabase.from("student_payments").select("student_id, amount, currency").order("id").range(from, to),
+          supabase.from("student_payments").select("student_id, amount, currency").eq("school_id", schoolId!).order("id").range(from, to),
         ),
       ]);
 
@@ -90,8 +92,9 @@ function useDues() {
   });
 }
 
-export default function PaymentDues() {
-  const { data: rows = [], isLoading } = useDues();
+export default function PaymentDues({ schoolId }: { schoolId: string | null }) {
+  // Super admins can read every school, so always scope to the active one.
+  const { data: rows = [], isLoading } = useDues(schoolId);
   const late = rows.filter((r) => r.status === "late");
   const soon = rows.filter((r) => r.status === "soon");
 
