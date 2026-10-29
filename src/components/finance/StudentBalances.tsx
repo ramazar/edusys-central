@@ -21,21 +21,23 @@ type StudentInfo = {
   sections: { section_number: number; gender: string } | null;
 };
 
-function useBalances() {
+function useBalances(schoolId: string | null) {
   return useQuery({
-    queryKey: ["student-balances"],
+    queryKey: ["student-balances", schoolId],
+    enabled: !!schoolId,
     queryFn: async () => {
       const [plans, payments, students] = await Promise.all([
         fetchAll((from, to) =>
-          supabase.from("student_payment_plans").select("student_id, amount").order("id").range(from, to),
+          supabase.from("student_payment_plans").select("student_id, amount").eq("school_id", schoolId!).order("id").range(from, to),
         ),
         fetchAll((from, to) =>
-          supabase.from("student_payments").select("student_id, amount, currency").order("id").range(from, to),
+          supabase.from("student_payments").select("student_id, amount, currency").eq("school_id", schoolId!).order("id").range(from, to),
         ),
         fetchAll((from, to) =>
           supabase
             .from("students")
             .select("id, full_name, grade_id, guardian_phone, is_active, sections(section_number, gender)")
+            .eq("school_id", schoolId!)
             .order("id")
             .range(from, to),
         ),
@@ -48,8 +50,9 @@ function useBalances() {
   });
 }
 
-export default function StudentBalances() {
-  const { data: rows = [], isLoading } = useBalances();
+export default function StudentBalances({ schoolId }: { schoolId: string | null }) {
+  // Super admins can read every school, so always scope to the active one.
+  const { data: rows = [], isLoading } = useBalances(schoolId);
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {

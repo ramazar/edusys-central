@@ -307,7 +307,7 @@ function FinancePage() {
         <TabsList className="h-auto flex-wrap"><TabsTrigger value="income">الإيرادات</TabsTrigger><TabsTrigger value="expenses">المصروفات</TabsTrigger><TabsTrigger value="vault">الصندوق</TabsTrigger><TabsTrigger value="dues">المتأخرات والاستحقاقات</TabsTrigger><TabsTrigger value="owed">المبالغ المستحقة</TabsTrigger></TabsList>
         <TabsContent value="owed">
           <Suspense fallback={<div className="h-64 animate-pulse rounded-lg border bg-card" />}>
-            <StudentBalances />
+            <StudentBalances schoolId={activeSchoolId} />
           </Suspense>
         </TabsContent>
         <TabsContent value="vault" className="space-y-3">
@@ -350,7 +350,7 @@ function FinancePage() {
         </TabsContent>
         <TabsContent value="dues">
           <Suspense fallback={<div className="h-64 animate-pulse rounded-lg border bg-card" />}>
-            <PaymentDues />
+            <PaymentDues schoolId={activeSchoolId} />
           </Suspense>
         </TabsContent>
         <TabsContent value="income" className="space-y-3">
