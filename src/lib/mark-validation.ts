@@ -7,3 +7,14 @@ export function markScoreError(score: number, maxScore: number): string | null {
   if (score > maxScore) return `العلامة (${score}) أكبر من العلامة القصوى (${maxScore})`;
   return null;
 }
+
+// Turns a database error from saving a mark into a clear Arabic message.
+// The database itself refuses a score outside 0..top mark; show that refusal
+// in plain words instead of the raw English constraint text.
+export function markSaveErrorMessage(error: { message?: string } | null | undefined): string {
+  const msg = error?.message ?? "";
+  if (msg.includes("daily_marks_score_within_max")) {
+    return "لم يتم الحفظ: العلامة يجب أن تكون بين صفر والعلامة القصوى. صحّح العلامة أو العلامة القصوى ثم احفظ.";
+  }
+  return msg || "حدث خطأ أثناء الحفظ";
+}
