@@ -9,7 +9,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { MARK_TYPES, type MarkType } from "@/lib/mark-types";
-import { markScoreError } from "@/lib/mark-validation";
+import { markScoreError, markSaveErrorMessage } from "@/lib/mark-validation";
 import { useAuthSession, logAudit } from "@/hooks/useAuth";
 
 export type BulkStudent = { id: string; full_name: string; student_number: string };
@@ -63,7 +63,7 @@ export function BulkMarksDialog({
     setSaving(true);
     const { error } = await supabase.from("daily_marks").insert(rows);
     setSaving(false);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(markSaveErrorMessage(error));
     await logAudit(user, "bulk_create", "daily_marks", undefined, null, {
       count: rows.length, subject: subject.trim(), date,
     });

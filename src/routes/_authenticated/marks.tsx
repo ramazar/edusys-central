@@ -22,7 +22,7 @@ import { BulkMarksDialog } from "@/components/marks/BulkMarksDialog";
 import { toast } from "sonner";
 import { useAuthSession, useMyRoles, hasAny, logAudit } from "@/hooks/useAuth";
 import { sectionLabel } from "@/lib/section-label";
-import { markScoreError } from "@/lib/mark-validation";
+import { markScoreError, markSaveErrorMessage } from "@/lib/mark-validation";
 
 
 export const Route = createFileRoute("/_authenticated/marks")({ component: MarksPage });
@@ -687,7 +687,7 @@ function EditMarkDialog({
     const { data, error } = await supabase
       .from("daily_marks").update(payload).eq("id", mark.id).select().maybeSingle();
     setSaving(false);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(markSaveErrorMessage(error));
     if (!data) return toast.error("لم يتم التعديل — قد يكون السجل لمدرسة أخرى");
     await logAudit(user, "update", "daily_marks", mark.id, mark as unknown, payload);
     toast.success("تم التعديل");
@@ -774,7 +774,7 @@ function AddMarkDialog({
     };
     const { data, error } = await supabase.from("daily_marks").insert(payload).select().single();
     setSaving(false);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(markSaveErrorMessage(error));
     await logAudit(user, "create", "daily_marks", data?.id, null, payload);
     toast.success("تمت إضافة العلامة");
     onSaved();
@@ -857,7 +857,7 @@ function AddNoteDialog({
     };
     const { data, error } = await supabase.from("daily_marks").insert(payload).select().single();
     setSaving(false);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(markSaveErrorMessage(error));
     await logAudit(user, "create", "daily_marks", data?.id, null, payload);
     toast.success("تمت إضافة الملاحظة");
     onSaved();
