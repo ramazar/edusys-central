@@ -16,8 +16,9 @@ import {
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Plus, StickyNote, MessageSquarePlus, Users, Pencil } from "lucide-react";
+import { Trash2, Plus, StickyNote, MessageSquarePlus, Users, Pencil, FileDown, Loader2 } from "lucide-react";
 import { ExportMenu } from "@/components/ExportMenu";
+import { printStudyMarksPdf } from "@/lib/study-marks-pdf";
 import { BulkMarksDialog } from "@/components/marks/BulkMarksDialog";
 import { toast } from "sonner";
 import { useAuthSession, useMyRoles, hasAny, logAudit } from "@/hooks/useAuth";
@@ -76,6 +77,7 @@ function MarksPage() {
   const [exportType, setExportType] = useState<"all" | MarkType>("all");
   const [exportSubject, setExportSubject] = useState<string>("all");
   const [editMark, setEditMark] = useState<Mark | null>(null);
+  const [studyPdfBusy, setStudyPdfBusy] = useState(false);
 
   const { data: sections = [] } = useQuery({
     queryKey: ["marks-sections", gradeId],
@@ -381,6 +383,32 @@ function MarksPage() {
     w.document.close();
   }
 
+  async function exportStudyPdf() {
+    setStudyPdfBusy(true);
+    try {
+      const selectedSection = sections.find((section) => section.id === sectionId);
+      const scopeLabel = `الصف ${gradeId} — ${selectedSection ? sectionLabel(selectedSection.section_number, selectedSection.gender) : "جميع الشعب"}`;
+      const result = await printStudyMarksPdf({
+        students: students.map((student) => ({
+          id: student.id,
+          full_name: student.full_name,
+          student_number: student.student_number,
+          ...(student.sections
+            ? { section_label: sectionLabel(student.sections.section_number, student.sections.gender) }
+            : {}),
+        })),
+        from: rangeFrom,
+        to: rangeTo,
+        scopeLabel,
+      });
+      toast.success(`تم تجهيز ${result.marks} علامة مذاكرة لـ ${result.students} طالب — اختر «حفظ بتنسيق PDF» من نافذة الطباعة`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذّر تجهيز علامات المذاكرة");
+    } finally {
+      setStudyPdfBusy(false);
+    }
+  }
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -453,7 +481,7 @@ function MarksPage() {
               </SelectContent>
             </Select>
           </div>
-          <div className="mr-auto flex items-end gap-2">
+          <div className="mr-auto flex flex-wrap items-end gap-2">
             <div>
               <Label>فترة التصدير</Label>
               <Select value={exportRange} onValueChange={(v) => setExportRange(v as "day" | "week" | "custom")}>
@@ -503,6 +531,16 @@ function MarksPage() {
                 </SelectContent>
               </Select>
             </div>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={exportStudyPdf}
+              disabled={studyPdfBusy || students.length === 0}
+              title="تصدير علامات المذاكرة فقط ضمن الفترة المحددة"
+            >
+              {studyPdfBusy ? <Loader2 className="ms-1 h-4 w-4 animate-spin" /> : <FileDown className="ms-1 h-4 w-4" />}
+              مذاكرة PDF
+            </Button>
             <ExportMenu
               label="تصدير الملخص"
             sectionId={sectionId !== "all" ? sectionId : null}
