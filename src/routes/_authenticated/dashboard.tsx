@@ -6,8 +6,10 @@ import { useAuthSession, useMyAccess } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Wallet, AlertTriangle, CalendarCheck } from "lucide-react";
-import { format, startOfMonth, subMonths } from "date-fns";
+import { addMonths, format, startOfMonth, subMonths } from "date-fns";
 import { type Currency, asCurrency, formatMoney } from "@/lib/currency";
+import { fetchAll } from "@/lib/fetch-all";
+import { monthRange } from "@/lib/finance-period";
 
 const FinanceCharts = lazy(() => import("@/components/dashboard/FinanceCharts"));
 
@@ -21,30 +23,35 @@ function Dashboard() {
   const { data: access, isLoading: accessLoading } = useMyAccess(user?.id);
   const allowed = !!access && (access.isSuperAdmin || access.roles.some((r) => r === "admin" || r === "accountant"));
 
+  const activeSchoolId = access?.activeSchoolId ?? null;
+
   const { data: stats } = useQuery({
-    queryKey: ["dashboard-stats"],
+    queryKey: ["dashboard-stats", activeSchoolId],
+    enabled: !!activeSchoolId && allowed,
     queryFn: async () => {
       const today = new Date().toISOString().slice(0, 10);
+      const { from: monthStart, to: nextMonthStart } = monthRange(new Date());
       const [studentsC, teachersC, workersC, incomeM, expenseM, attToday, paymentsSum] = await Promise.all([
-        supabase.from("students").select("id", { count: "exact", head: true }).eq("is_active", true),
-        supabase.from("teachers").select("id", { count: "exact", head: true }).eq("is_active", true),
-        supabase.from("workers").select("id", { count: "exact", head: true }).eq("is_active", true),
-        supabase.from("income_entries").select("amount,currency").gte("entry_date", startOfMonth(new Date()).toISOString().slice(0, 10)),
-        supabase.from("expenses").select("amount,currency").gte("entry_date", startOfMonth(new Date()).toISOString().slice(0, 10)),
-        supabase.from("attendance").select("status").eq("date", today),
-        supabase.from("student_payments").select("amount,currency").gte("payment_date", startOfMonth(new Date()).toISOString().slice(0, 10)),
+        supabase.from("students").select("id", { count: "exact", head: true }).eq("school_id", activeSchoolId!).eq("is_active", true),
+        supabase.from("teachers").select("id", { count: "exact", head: true }).eq("school_id", activeSchoolId!).eq("is_active", true),
+        supabase.from("workers").select("id", { count: "exact", head: true }).eq("school_id", activeSchoolId!).eq("is_active", true),
+        fetchAll((from, to) => supabase.from("income_entries").select("amount,currency").eq("school_id", activeSchoolId!).gte("entry_date", monthStart).lt("entry_date", nextMonthStart).order("entry_date").range(from, to)),
+        fetchAll((from, to) => supabase.from("expenses").select("amount,currency").eq("school_id", activeSchoolId!).gte("entry_date", monthStart).lt("entry_date", nextMonthStart).order("entry_date").range(from, to)),
+        fetchAll((from, to) => supabase.from("attendance").select("status").eq("school_id", activeSchoolId!).eq("date", today).order("id").range(from, to)),
+        fetchAll((from, to) => supabase.from("student_payments").select("amount,currency").eq("school_id", activeSchoolId!).gte("payment_date", monthStart).lt("payment_date", nextMonthStart).order("payment_date").range(from, to)),
       ]);
+      const countError = studentsC.error ?? teachersC.error ?? workersC.error;
+      if (countError) throw countError;
       // Currencies are never converted: SYP and USD are totalled separately.
       const sumBy = (rows: { amount: number | string; currency: unknown }[], c: Currency) =>
         rows.filter((r) => asCurrency(r.currency) === c).reduce((s, r) => s + Number(r.amount), 0);
-      const incomeRows = [...(incomeM.data ?? []), ...(paymentsSum.data ?? [])];
+      const incomeRows = [...incomeM, ...paymentsSum];
       const incomeTotal = sumBy(incomeRows, "SYP");
       const incomeTotalUsd = sumBy(incomeRows, "USD");
-      const expenseTotal = sumBy(expenseM.data ?? [], "SYP");
-      const expenseTotalUsd = sumBy(expenseM.data ?? [], "USD");
-      const presentToday = (attToday.data ?? []).filter((r) => r.status === "present").length;
-      const totalAttToday = (attToday.data ?? []).length;
-      const rate = totalAttToday ? Math.round((presentToday / totalAttToday) * 100) : 0;
+      const expenseTotal = sumBy(expenseM, "SYP");
+      const expenseTotalUsd = sumBy(expenseM, "USD");
+      const presentToday = attToday.filter((r) => r.status === "present").length;
+      const rate = attToday.length ? Math.round((presentToday / attToday.length) * 100) : 0;
       return {
         students: studentsC.count ?? 0,
         teachers: teachersC.count ?? 0,
@@ -60,14 +67,16 @@ function Dashboard() {
   });
 
   const { data: monthly } = useQuery({
-    queryKey: ["monthly-finance"],
+    queryKey: ["monthly-finance", activeSchoolId],
+    enabled: !!activeSchoolId && allowed,
     queryFn: async () => {
       const start = startOfMonth(subMonths(new Date(), 5)).toISOString().slice(0, 10);
+      const end = addMonths(startOfMonth(new Date()), 1).toISOString().slice(0, 10);
       // Chart shows SYP only; mixing currencies in one bar would be meaningless.
       const [inc, pay, exp] = await Promise.all([
-        supabase.from("income_entries").select("amount,entry_date").eq("currency", "SYP").gte("entry_date", start),
-        supabase.from("student_payments").select("amount,payment_date").eq("currency", "SYP").gte("payment_date", start),
-        supabase.from("expenses").select("amount,entry_date").eq("currency", "SYP").gte("entry_date", start),
+        fetchAll((from, to) => supabase.from("income_entries").select("amount,entry_date").eq("school_id", activeSchoolId!).eq("currency", "SYP").gte("entry_date", start).lt("entry_date", end).order("entry_date").range(from, to)),
+        fetchAll((from, to) => supabase.from("student_payments").select("amount,payment_date").eq("school_id", activeSchoolId!).eq("currency", "SYP").gte("payment_date", start).lt("payment_date", end).order("payment_date").range(from, to)),
+        fetchAll((from, to) => supabase.from("expenses").select("amount,entry_date").eq("school_id", activeSchoolId!).eq("currency", "SYP").gte("entry_date", start).lt("entry_date", end).order("entry_date").range(from, to)),
       ]);
       const buckets = new Map<string, { month: string; income: number; expense: number }>();
       for (let i = 5; i >= 0; i--) {
@@ -76,15 +85,15 @@ function Dashboard() {
         buckets.set(key, { month: format(d, "MMM"), income: 0, expense: 0 });
       }
       const bucketKey = (dateStr: string) => dateStr.slice(0, 7);
-      for (const r of inc.data ?? []) {
+      for (const r of inc) {
         const b = buckets.get(bucketKey(r.entry_date));
         if (b) b.income += Number(r.amount);
       }
-      for (const r of pay.data ?? []) {
+      for (const r of pay) {
         const b = buckets.get(bucketKey(r.payment_date));
         if (b) b.income += Number(r.amount);
       }
-      for (const r of exp.data ?? []) {
+      for (const r of exp) {
         const b = buckets.get(bucketKey(r.entry_date));
         if (b) b.expense += Number(r.amount);
       }

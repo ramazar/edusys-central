@@ -65,16 +65,20 @@ function FinancePage() {
   const [resetAmount, setResetAmount] = useState<number | null>(null);
 
   const { data: incomeRows = [] } = useQuery({
-    queryKey: ["finance-income"],
+    queryKey: ["finance-income", activeSchoolId],
+    enabled: !!activeSchoolId,
     queryFn: async (): Promise<Row[]> => {
       const [entriesRes, paymentsRes] = await Promise.all([
-        supabase.from("income_entries").select("*").order("entry_date", { ascending: false }).limit(200),
+        supabase.from("income_entries").select("*").eq("school_id", activeSchoolId!).order("entry_date", { ascending: false }).limit(200),
         supabase
           .from("student_payments")
           .select("id, amount, payment_date, method, notes, currency, students(full_name)")
+          .eq("school_id", activeSchoolId!)
           .order("payment_date", { ascending: false })
           .limit(300),
       ]);
+      if (entriesRes.error) throw entriesRes.error;
+      if (paymentsRes.error) throw paymentsRes.error;
       const manual: Row[] = (entriesRes.data ?? []).map((r) => {
         const entry: Entry = {
           id: r.id,
@@ -110,21 +114,27 @@ function FinancePage() {
   });
 
   const { data: expenseRows = [] } = useQuery({
-    queryKey: ["finance-expenses"],
+    queryKey: ["finance-expenses", activeSchoolId],
+    enabled: !!activeSchoolId,
     queryFn: async (): Promise<Row[]> => {
       const [entriesRes, teacherRes, workerRes] = await Promise.all([
-        supabase.from("expenses").select("*").order("entry_date", { ascending: false }).limit(200),
+        supabase.from("expenses").select("*").eq("school_id", activeSchoolId!).order("entry_date", { ascending: false }).limit(200),
         supabase
           .from("teacher_payments")
           .select("id, amount, payment_date, notes, currency, teachers(full_name)")
+          .eq("school_id", activeSchoolId!)
           .order("payment_date", { ascending: false })
           .limit(300),
         supabase
           .from("worker_payments")
           .select("id, amount, payment_date, notes, currency, workers(full_name)")
+          .eq("school_id", activeSchoolId!)
           .order("payment_date", { ascending: false })
           .limit(300),
       ]);
+      if (entriesRes.error) throw entriesRes.error;
+      if (teacherRes.error) throw teacherRes.error;
+      if (workerRes.error) throw workerRes.error;
       const manual: Row[] = (entriesRes.data ?? []).map((r) => {
         const entry: Entry = {
           id: r.id,
@@ -169,11 +179,13 @@ function FinancePage() {
   });
 
   const { data: withdrawals = [] } = useQuery({
-    queryKey: ["vault-withdrawals"],
+    queryKey: ["vault-withdrawals", activeSchoolId],
+    enabled: !!activeSchoolId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("vault_withdrawals")
         .select("*")
+        .eq("school_id", activeSchoolId!)
         .order("withdrawn_at", { ascending: false })
         .limit(200);
       if (error) throw error;
